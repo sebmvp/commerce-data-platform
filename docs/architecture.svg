@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="470" viewBox="0 0 720 470" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b949e"/>
+    </marker>
+  </defs>
+  <style>
+    .box   { fill: #161b22; stroke: #58a6ff; stroke-width: 1.4; rx: 8; }
+    .boxg  { fill: #161b22; stroke: #3fb950; stroke-width: 1.4; rx: 8; }
+    .boxm  { fill: #161b22; stroke: #8b949e; stroke-width: 1.2; rx: 8; }
+    .t     { fill: #e6edf3; font-size: 14px; font-weight: 600; text-anchor: middle; }
+    .ts    { fill: #8b949e; font-size: 11px; text-anchor: middle; }
+    .line  { stroke: #8b949e; stroke-width: 1.4; fill: none; marker-end: url(#arr); }
+  </style>
+
+  <!-- top -->
+  <rect class="boxm" x="240" y="16" width="240" height="46"/>
+  <text class="t" x="360" y="36">Synthetic / Source Data</text>
+  <text class="ts" x="360" y="53">8 streams · JSONL / CSV</text>
+
+  <line class="line" x1="360" y1="62" x2="360" y2="88"/>
+
+  <rect class="box" x="240" y="92" width="240" height="42"/>
+  <text class="t" x="360" y="118">Python Ingestion</text>
+
+  <line class="line" x1="360" y1="134" x2="360" y2="160"/>
+
+  <rect class="box" x="240" y="164" width="240" height="46"/>
+  <text class="t" x="360" y="184">Validation + Quarantine</text>
+  <text class="ts" x="360" y="201">pydantic · rejects recorded</text>
+
+  <line class="line" x1="360" y1="210" x2="360" y2="236"/>
+
+  <rect class="box" x="240" y="240" width="240" height="42"/>
+  <text class="t" x="360" y="266">Source / Run Audit</text>
+
+  <line class="line" x1="360" y1="282" x2="360" y2="308"/>
+
+  <rect class="box" x="240" y="312" width="240" height="46"/>
+  <text class="t" x="360" y="332">DuckDB Warehouse</text>
+  <text class="ts" x="360" y="349">core · catalog · supply · sales · insights</text>
+
+  <!-- fan out -->
+  <line class="line" x1="300" y1="358" x2="130" y2="392"/>
+  <line class="line" x1="360" y1="358" x2="360" y2="392"/>
+  <line class="line" x1="420" y1="358" x2="590" y2="392"/>
+
+  <rect class="boxg" x="40" y="396" width="180" height="42"/>
+  <text class="t" x="130" y="422">History · SCD-2</text>
+
+  <rect class="boxg" x="270" y="396" width="180" height="42"/>
+  <text class="t" x="360" y="422">Analytics Views</text>
+
+  <rect class="boxg" x="500" y="396" width="180" height="42"/>
+  <text class="t" x="590" y="422">Event State</text>
+
+  <line class="line" x1="360" y1="438" x2="360" y2="456"/>
+
+  <rect class="box" x="270" y="460" width="180" height="40" transform="translate(0,-4)"/>
+  <text class="t" x="360" y="480">CLI / FastAPI</text>
+</svg>
