@@ -258,11 +258,11 @@ CREATE TABLE IF NOT EXISTS insights.content_snapshot (
 -- The distilled "voice profile" — aggregated from content_snapshot +
 -- engagement_events by (tone, hook). One current version per (tone, hook).
 CREATE TABLE IF NOT EXISTS insights.voice_profile (
-  profile_id      VARCHAR PRIMARY KEY,
-  content_type    VARCHAR NOT NULL,      -- listing_description | listing_drop | restock
+  profile_id      VARCHAR NOT NULL,      -- 'vp_<tone>_<hook>_<channel>_v<n>'
+  content_type    VARCHAR NOT NULL DEFAULT 'listing_description',
   tone            VARCHAR NOT NULL,
-  hook_style      VARCHAR,               -- size_scarcity | provenance | price_anchor | none
-  channel_key     VARCHAR,
+  hook_style      VARCHAR NOT NULL DEFAULT 'none',
+  channel_key     VARCHAR NOT NULL DEFAULT '',
   sample_size     INTEGER NOT NULL,
   avg_watchers    DOUBLE,                -- avg new watchers per published content
   avg_conversion  DOUBLE,                -- avg listings sold per published content

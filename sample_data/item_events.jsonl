@@ -1,0 +1,39 @@
+{"item_sku": "fog-ess-hoodie-l", "event_type": "ordered", "event_at": "2026-05-02T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "tech-cargo-l", "event_type": "ordered", "event_at": "2026-05-03T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "y350-onyx-s", "event_type": "ordered", "event_at": "2026-05-04T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "carhartt-mich-m", "event_type": "ordered", "event_at": "2026-05-05T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "nb-992-grey-s", "event_type": "ordered", "event_at": "2026-05-06T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "j4-military-s", "event_type": "ordered", "event_at": "2026-05-07T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fog-ess-hoodie-l", "event_type": "received", "event_at": "2026-05-08T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "tech-cargo-l", "event_type": "received", "event_at": "2026-05-09T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "y350-onyx-s", "event_type": "received", "event_at": "2026-05-10T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "samba-white-m", "event_type": "ordered", "event_at": "2026-05-10T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "carhartt-mich-m", "event_type": "received", "event_at": "2026-05-11T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "nb-992-grey-s", "event_type": "received", "event_at": "2026-05-12T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "j4-military-s", "event_type": "received", "event_at": "2026-05-13T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "bogo-hoodie-grey-s", "event_type": "ordered", "event_at": "2026-05-13T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "tech-cargo-l", "event_type": "listed", "event_at": "2026-05-15T00:00:00", "payload": {"price_usd": 155.97}}
+{"item_sku": "stone-cargo-l", "event_type": "ordered", "event_at": "2026-05-15T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "j1-panda-m", "event_type": "ordered", "event_at": "2026-05-16T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "samba-white-m", "event_type": "received", "event_at": "2026-05-16T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "nb-992-grey-s", "event_type": "listed", "event_at": "2026-05-17T00:00:00", "payload": {"price_usd": 464.52}}
+{"item_sku": "vtg-swoosh-l", "event_type": "ordered", "event_at": "2026-05-17T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "j1-hyper-l", "event_type": "ordered", "event_at": "2026-05-18T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "bogo-hoodie-grey-s", "event_type": "received", "event_at": "2026-05-19T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "stone-cargo-l", "event_type": "received", "event_at": "2026-05-21T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "j1-panda-m", "event_type": "received", "event_at": "2026-05-22T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "nb-992-grey-s", "event_type": "sold", "event_at": "2026-05-22T00:00:00"}
+{"item_sku": "vtg-swoosh-l", "event_type": "received", "event_at": "2026-05-23T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "tech-cargo-l", "event_type": "sold", "event_at": "2026-05-24T00:00:00"}
+{"item_sku": "j1-hyper-l", "event_type": "received", "event_at": "2026-05-24T00:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "j4-military-s", "event_type": "listed", "event_at": "2026-05-27T00:00:00", "payload": {"price_usd": 727.28}}
+{"item_sku": "carhartt-mich-m", "event_type": "listed", "event_at": "2026-05-27T00:00:00", "payload": {"price_usd": 610.5}}
+{"item_sku": "samba-white-m", "event_type": "listed", "event_at": "2026-05-27T00:00:00", "payload": {"price_usd": 335.12}}
+{"item_sku": "j1-hyper-l", "event_type": "listed", "event_at": "2026-05-30T00:00:00", "payload": {"price_usd": 1203.47}}
+{"item_sku": "bogo-hoodie-grey-s", "event_type": "listed", "event_at": "2026-06-01T00:00:00", "payload": {"price_usd": 763.1}}
+{"item_sku": "j1-hyper-l", "event_type": "sold", "event_at": "2026-06-03T00:00:00"}
+{"item_sku": "bogo-hoodie-grey-s", "event_type": "sold", "event_at": "2026-06-08T00:00:00"}
+{"item_sku": "samba-white-m", "event_type": "sold", "event_at": "2026-06-08T00:00:00"}
+{"item_sku": "j1-panda-m", "event_type": "listed", "event_at": "2026-06-10T00:00:00", "payload": {"price_usd": 385.06}}
+{"item_sku": "vtg-swoosh-l", "event_type": "listed", "event_at": "2026-06-11T00:00:00", "payload": {"price_usd": 229.53}}
+{"item_sku": "j1-panda-m", "event_type": "sold", "event_at": "2026-06-17T00:00:00"}
