@@ -37,5 +37,9 @@ jobs:
       - name: Docker image smoke build
         run: |
           docker build -t cdp-ci .
-          docker run --rm -e CDP_DB=/tmp/cdp-docker.duckdb cdp-ci build --sample
-          docker run --rm -e CDP_DB=/tmp/cdp-docker.duckdb cdp-ci status
+          # Both containers must share the warehouse file; --rm alone discards
+          # the build output, which is exactly what broke main at aa42ee7.
+          docker volume create cdp-ci-data
+          docker run --rm -e CDP_DB=/data/warehouse.duckdb -v cdp-ci-data:/data cdp-ci build --sample
+          docker run --rm -e CDP_DB=/data/warehouse.duckdb -v cdp-ci-data:/data cdp-ci status
+          docker volume rm cdp-ci-data
