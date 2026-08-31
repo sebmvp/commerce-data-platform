@@ -1,0 +1,19 @@
+services:
+  # One-shot: builds the warehouse from sample data, then exits.
+  build:
+    build: .
+    command: ["build", "--sample"]
+    volumes:
+      # Warehouse lands on the host so subsequent commands can use it too.
+      - ./warehouse.duckdb:/app/warehouse.duckdb
+
+  # Long-running: FastAPI read layer over ./warehouse.duckdb.
+  api:
+    build: .
+    command: ["serve", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./warehouse.duckdb:/app/warehouse.duckdb
+    depends_on:
+      - build
