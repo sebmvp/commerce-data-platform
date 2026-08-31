@@ -33,3 +33,9 @@ jobs:
 
       - name: Lint (informational)
         run: ruff check src/ tests/ || true
+
+      - name: Docker image smoke build
+        run: |
+          docker build -t cdp-ci .
+          docker run --rm -e CDP_DB=/tmp/cdp-docker.duckdb cdp-ci build --sample
+          docker run --rm -e CDP_DB=/tmp/cdp-docker.duckdb cdp-ci status

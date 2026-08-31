@@ -5,6 +5,8 @@ WORKDIR /app
 
 COPY requirements.txt requirements-dev.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
+# Include the api extra (fastapi + uvicorn) so `cdp serve` works in the image.
+RUN pip install --no-cache-dir fastapi uvicorn
 
 COPY pyproject.toml README.md ./
 COPY schema/ schema/
@@ -13,6 +15,9 @@ COPY src/ src/
 COPY sample_data/ sample_data/
 COPY docs/ docs/
 COPY tests/ tests/
+
+# Install the package itself so `python -m cdp_cli.cli` / `cdp` resolve.
+RUN pip install --no-cache-dir -e .
 
 # non-root is more defensible but unnecessary here; keep it simple for a
 # portfolio/demo image.

@@ -3,9 +3,12 @@ services:
   build:
     build: .
     command: ["build", "--sample"]
+    environment:
+      CDP_DB: /app/data/warehouse.duckdb
     volumes:
-      # Warehouse lands on the host so subsequent commands can use it too.
-      - ./warehouse.duckdb:/app/warehouse.duckdb
+      # Mount the host dir (not the file) — duckdb needs to create/replace the
+      # file atomically, and a mounted file that doesn't exist becomes a dir.
+      - ./data:/app/data
 
   # Long-running: FastAPI read layer over ./warehouse.duckdb.
   api:
@@ -13,7 +16,9 @@ services:
     command: ["serve", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
+    environment:
+      CDP_DB: /app/data/warehouse.duckdb
     volumes:
-      - ./warehouse.duckdb:/app/warehouse.duckdb
+      - ./data:/app/data
     depends_on:
       - build
