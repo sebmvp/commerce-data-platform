@@ -5,13 +5,95 @@
 [![DuckDB](https://img.shields.io/badge/warehouse-DuckDB-yellow)](https://duckdb.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Operational data integration, validation, and analytics for a resale-commerce
-operation — built around **DuckDB**, **canonical JSONL sources**, and
-**reproducible, idempotent ingest**. Everything is rebuildable from source
-files; the warehouse file itself is disposable.
+> **One-liner:** turns messy multi-source operational data into a **reproducible,
+> validated, auditable** analytical store — one `docker compose up` away.
 
-> Personal portfolio project. All bundled data under `sample_data/` is fully
-> synthetic.
+A working reference implementation of the ingest-and-analytics problems a small
+resale operation actually has: sourcing manifests live in one file, marketplace
+listings in another, shipment status in a spreadsheet, and engagement in
+screenshots. Consolidating them into **one analytical warehouse** means pricing,
+inventory, and content decisions stop being gut calls.
+
+**Engineering properties this demonstrates** (the interesting bits):
+
+- **8 ingestion streams**, each independently idempotent (content-hash skip +
+  natural-key upsert) — re-running `cdp build` is provably a no-op
+- **Schema validation pre-insert** — pydantic per stream; rejects quarantined
+  to `core.rejected_records` with reasons, never silent
+- **SCD-2 dimensions** — point-in-time queries work against fee/standing history
+- **Event-sourced supply chain** — item state is a projection over an
+  append-only `item_events` stream
+- **Audit trail of every run** — `core.ingest_runs` records read/loaded/rejected
+  counts, duration, and content-hash for change detection
+- **End-to-end CI** — pytest + a fresh `cdp build --sample` smoke on every push
+
+```
+           canonical JSONL sources                     warehouse.duckdb (cache)
+    sourcing manifests · marketplace CSVs                 core   audit + dims
+    shipment trackers  · engagement logs   ──►  ►►►►   catalog items + events
+    content Pieces     · order exports         validate   supply purchase orders
+                          8 streams          quarantine   sales  listings/orders
+                                                 upsert   insights voice + funnels
+                        │                                │
+                        └──── audit (ingest_runs) ───────►
+                        └──── rejects (rejected_records) ─►
+                        │
+                        ▼
+                   CLI (`cdp build` · `cdp report` · `cdp query`)
+                       │
+                       ├─► FastAPI read layer  (/inventory, /listings, /sell-through)
+                       └─► Markdown exports     (weekly ops briefs)
+```
+
+---
+
+## Quick start — one command, no config
+
+```bash
+git clone https://github.com/sebmvp/commerce-data-platform && cd commerce-data-platform
+docker compose up build          # builds the warehouse from synthetic sample data
+docker compose up api            # FastAPI read layer at http://localhost:8000/docs
+```
+
+Or without Docker:
+
+```bash
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev,api]"
+cdp build --sample               # validate + ingest warehouse from sample_data/
+cdp status                       # health check: tables, row counts, rejects
+cdp report funnel                # -> markdown analytics export
+cdp serve                        # optional FastAPI read layer
+```
+
+Actual output of `cdp status` on the bundled synthetic dataset:
+
+```
+db: /path/to/commerce-data-platform/warehouse.duckdb (6.3 MB)
+  items              12
+  item_events        39
+  listings           9
+  orders             6
+  engagement_snaps   71
+  content_pieces     9
+  voice_profiles     1
+  rejected_records   0
+  ingest_runs        8
+```
+
+Actual `cdp report funnel` (first table — markdown export):
+
+```
+| platform | listings | sold | sell_through | avg_days_to_sell | gross_usd |
+| -------- | -------- | ---- | ------------ | ---------------- | --------- |
+| grailed  | 8        | 5    | 0.62         | 7.2              | $2,765.32 |
+| depop    | 1        | 1    | 1.00         | 17.0             | $388.51   |
+```
+
+The dataset in `sample_data/` is intentionally small — it's a **demo
+fixture**, not a scale claim. See [docs/assumptions.md](docs/assumptions.md)
+for the distribution reasoning; the generator script itself is committed
+and deterministic.
 
 ## Why this exists
 
