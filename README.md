@@ -1,5 +1,10 @@
 # Commerce Data Platform
 
+[![test](https://github.com/sebmvp/commerce-data-platform/actions/workflows/test.yml/badge.svg)](https://github.com/sebmvp/commerce-data-platform/actions/workflows/test.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776ab)](https://www.python.org/)
+[![DuckDB](https://img.shields.io/badge/warehouse-DuckDB-yellow)](https://duckdb.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 Operational data integration, validation, and analytics for a resale-commerce
 operation — built around **DuckDB**, **canonical JSONL sources**, and
 **reproducible, idempotent ingest**. Everything is rebuildable from source
