@@ -1,0 +1,18 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Warehouse artifacts are rebuildable from canonical sources — never commit them.
+warehouse.duckdb
+warehouse.duckdb.wal
+reports/*.md
+!reports/.gitkeep
+exports/
+
+# Local env / secrets
+.env
+.env.*
+*.local
