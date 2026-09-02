@@ -7,7 +7,7 @@ A reproducible operational data platform that ingests, validates, models, and se
 **Python · DuckDB · FastAPI · Docker · pytest · GitHub Actions**
 
 - 8 ingestion streams
-- idempotent ingestion (re-running a build is provably a no-op)
+- idempotent ingestion (re-running a build on unchanged sources loads no new rows)
 - content-hash change detection
 - validation + rejected-record quarantine
 - historical / SCD-2 modeling
@@ -61,7 +61,7 @@ db: warehouse.duckdb (6.3 MB)
   orders              6
 ```
 
-Re-running the same build demonstrates idempotency — sources are unchanged, so nothing is re-ingested and no duplicates appear:
+Before processing a source file, the loader computes a content hash and checks the most recent successful ingest. Files whose contents have not changed are skipped, which keeps repeated builds from inserting duplicate records:
 
 ```
 $ cdp build --sample

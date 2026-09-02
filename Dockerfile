@@ -19,8 +19,7 @@ COPY tests/ tests/
 # Install the package itself so `python -m cdp_cli.cli` / `cdp` resolve.
 RUN pip install --no-cache-dir -e .
 
-# non-root is more defensible but unnecessary here; keep it simple for a
-# portfolio/demo image.
+# Keep the image simple; it runs the CLI as root for the demo.
 ENV CDP_DATA=/app/sample_data
 ENV CDP_DB=/app/warehouse.duckdb
 
