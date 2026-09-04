@@ -6,7 +6,7 @@ cdp serve
 # http://127.0.0.1:8000/docs
 ```
 
-View-backed routes read SQL. `/business/*` and `/ingest/trust` call the same Python tools as the CLI.
+View-backed routes read SQL. `/business/*` and `/ingest/trust` call the same Python tools as the CLI. Item routes retrieve a business object, not a table dump.
 
 | Method | Path | Source |
 |---|---|---|
@@ -20,5 +20,7 @@ View-backed routes read SQL. `/business/*` and `/ingest/trust` call the same Pyt
 | GET | `/business/snapshot` | `get_business_snapshot` |
 | GET | `/business/attention?limit=N` | `get_inventory_attention_queue` |
 | GET | `/business/metrics?name=` | metric registry / `explain_metric` |
+| GET | `/business/items/{sku}` | `get_item` |
+| GET | `/business/items/{sku}/history` | `get_item_history` |
 
 Auth, pooling, and multi-process serving are out of scope.

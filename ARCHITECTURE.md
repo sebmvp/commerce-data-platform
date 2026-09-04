@@ -16,7 +16,7 @@ DuckDB (gitignored cache)
         │
         ├─ observability.trust_report
         ├─ metrics.METRICS
-        └─ business tools (snapshot, attention, health, explain_metric)
+        └─ business tools (snapshot, attention, item, history, health, explain_metric)
                 │
                 ├─ CLI  cdp status | business | demo
                 └─ FastAPI  /ingest/trust  /business/*
@@ -87,6 +87,8 @@ Warnings (do not flip `ok`): historical `failed` runs that rolled back, all-reje
 | `get_inventory_attention_queue` | recommendation | What deserves a look, and why? |
 | `get_ingest_health` | fact | Can I trust this warehouse? |
 | `explain_metric` | fact | What does this number mean? |
+| `get_item` | fact | What is this item right now? |
+| `get_item_history` | fact | What happened to this item over time? |
 
 Attention ranking is deterministic: unlisted owned (by capital, then age) → stale listings → high watch_rate with zero offers. Actions (`LIST NEXT`, `REVIEW PRICE OR CHANNEL`, `CONSIDER REPRICE`) are heuristics labeled separately from the metric columns.
 
@@ -95,7 +97,7 @@ Attention ranking is deterministic: unlisted owned (by capital, then age) → st
 ## Surfaces
 
 - CLI: `init / build / ingest / validate / query / report / status / business / demo / serve`
-- API: view-backed inventory/listing/insight routes, plus `/ingest/trust` and `/business/*` which call the same Python tools
+- API: view-backed inventory/listing/insight routes, plus `/ingest/trust` and `/business/*` (including item + history) which call the same Python tools
 - Demo: `cdp demo` rebuilds from `sample_data/`, prints state, stages dirty input in a temp copy, shows quarantine, replays
 
 ## Future AI boundary

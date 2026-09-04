@@ -119,6 +119,80 @@ def format_trust(data: dict[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def format_item(data: dict[str, Any]) -> str:
+    item = data.get("item") or {}
+    listings = data.get("listings") or []
+    orders = data.get("orders") or []
+    lines = [
+        f"ITEM  {item.get('sku')}",
+        "",
+        _row("Product", str(item.get("product") or "—")),
+        _row("Status", str(item.get("status") or "—")),
+        _row("Condition", str(item.get("condition") or "—")),
+        _row(
+            "Acquisition",
+            f"{_num(item.get('acquisition_cost_cny'))} CNY"
+            + (
+                f"  {item['acquisition_channel']}"
+                if item.get("acquisition_channel")
+                else ""
+            ),
+        ),
+        _row("Acquired", str(item.get("acquired_at") or "—")),
+        _row("Held", f"{_num(item.get('inventory_age_days'))} days"),
+        _row("Target price", f"{_num(item.get('target_price_usd'))} USD"),
+        _row("Listings", _num(len(listings))),
+        _row("Orders", _num(len(orders))),
+    ]
+    for listing in listings:
+        platform = listing.get("platform") or "channel"
+        age = listing.get("listing_age_days")
+        age_bit = f", {_num(age)} days" if age is not None else ""
+        lines.append(
+            f"    {platform}  {listing.get('status')}  "
+            f"{_num(listing.get('price_usd'))} USD{age_bit}"
+        )
+    for order in orders:
+        lines.append(
+            f"    order {order.get('order_id')}  {order.get('status')}  "
+            f"{_num(order.get('revenue_usd'))} USD"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def format_item_history(data: dict[str, Any]) -> str:
+    lines = [
+        f"ITEM HISTORY  {data.get('sku')}",
+        "",
+        _row("Status", str(data.get("status") or "—")),
+        _row("Timeline", _num(len(data.get("timeline") or []))),
+        _row("Engagement snaps", _num(len(data.get("engagement") or []))),
+        "",
+    ]
+    for row in data.get("timeline") or []:
+        at = str(row.get("at") or "—")
+        if "T" in at:
+            at = at.replace("T", " ", 1)
+        detail = row.get("detail") or {}
+        extra = ""
+        if isinstance(detail, dict):
+            platform = detail.get("platform")
+            price = detail.get("price_usd") or detail.get("revenue_usd") or detail.get(
+                "sold_price_usd"
+            )
+            bits = []
+            if platform:
+                bits.append(str(platform))
+            if price is not None:
+                bits.append(f"{_num(price)} USD")
+            if bits:
+                extra = "  " + "  ".join(bits)
+        lines.append(f"  {at}  {row.get('type')}{extra}")
+    if not data.get("timeline"):
+        lines.append("  (no events)")
+    return "\n".join(lines) + "\n"
+
+
 def format_rejects(rows: list[tuple]) -> str:
     """rows: (error_code, n, sample_detail)."""
     lines = ["QUARANTINE", ""]

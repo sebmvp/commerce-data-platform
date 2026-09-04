@@ -13,7 +13,7 @@ Fragmented sourcing, inventory, listing, order, engagement, and content files do
 - Atomic run boundaries and orphan recovery
 - SCD-2 channel history and event-sourced item state
 - Ingest reconciliation (`read = loaded + rejected`) and a warehouse trust report
-- Typed business tools: snapshot, attention queue, metric definitions — CLI and FastAPI
+- Typed business tools: snapshot, attention queue, item + history, metric definitions — CLI and FastAPI
 
 ## Architecture
 
@@ -88,7 +88,7 @@ Covers validation, idempotency, atomicity, quarantine, reconciliation, business 
 
 ## API
 
-`cdp serve` — `/health`, `/inventory/*`, `/listings/performance`, `/insights/voice-profiles`, `/ingest/runs`, `/ingest/trust`, `/business/snapshot`, `/business/attention`, `/business/metrics`. Docs at `/docs`.
+`cdp serve` — `/health`, `/inventory/*`, `/listings/performance`, `/insights/voice-profiles`, `/ingest/runs`, `/ingest/trust`, `/business/snapshot`, `/business/attention`, `/business/metrics`, `/business/items/{sku}`, `/business/items/{sku}/history`. Docs at `/docs`.
 
 ## Reference
 

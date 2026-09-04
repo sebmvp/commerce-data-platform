@@ -7,8 +7,9 @@ FACT vs DERIVED vs RECOMMENDATION are labeled explicitly in payloads.
 """
 from __future__ import annotations
 
+import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Literal
 
 import duckdb
@@ -47,6 +48,125 @@ class BusinessPayload:
             "data": self.data,
             "provenance": self.provenance.to_dict(),
         }
+
+
+def _jsonable(value: Any) -> Any:
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value.isoformat(timespec="seconds")
+    if isinstance(value, date):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(k): _jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_jsonable(v) for v in value]
+    return value
+
+
+def _records(
+    con: duckdb.DuckDBPyConnection, sql: str, params: list | None = None
+) -> list[dict[str, Any]]:
+    rel = con.execute(sql, params or [])
+    cols = [c[0] for c in rel.description]
+    out: list[dict[str, Any]] = []
+    for row in rel.fetchall():
+        rec: dict[str, Any] = {}
+        for col, val in zip(cols, row):
+            if col in {"payload_json", "raw_json"} and isinstance(val, str):
+                try:
+                    val = json.loads(val)
+                except json.JSONDecodeError:
+                    pass
+            rec[col] = _jsonable(val)
+        out.append(rec)
+    return out
+
+
+def _require_item(con: duckdb.DuckDBPyConnection, sku: str) -> dict[str, Any]:
+    sku = (sku or "").strip()
+    if not sku:
+        raise ValueError("sku is required")
+    rows = _records(
+        con,
+        """
+        SELECT
+          i.item_id, i.sku, i.product, i.variant, i.size, i.category_key,
+          i.condition, i.acquisition_channel, i.acquisition_cost_cny,
+          i.qty, i.status, i.target_price_usd, i.notes, i.source_file,
+          i.created_at, i.updated_at,
+          coalesce(
+            min(e.event_at) FILTER (WHERE e.event_type = 'received'),
+            min(e.event_at) FILTER (WHERE e.event_type = 'ordered'),
+            i.created_at
+          ) AS acquired_at,
+          date_diff(
+            'day',
+            coalesce(
+              min(e.event_at) FILTER (WHERE e.event_type = 'received'),
+              min(e.event_at) FILTER (WHERE e.event_type = 'ordered'),
+              i.created_at
+            ),
+            current_timestamp
+          ) AS inventory_age_days
+        FROM catalog.items i
+        LEFT JOIN catalog.item_events e ON e.item_id = i.item_id
+        WHERE i.sku = ?
+        GROUP BY i.item_id, i.sku, i.product, i.variant, i.size, i.category_key,
+                 i.condition, i.acquisition_channel, i.acquisition_cost_cny,
+                 i.qty, i.status, i.target_price_usd, i.notes, i.source_file,
+                 i.created_at, i.updated_at
+        """,
+        [sku],
+    )
+    if not rows:
+        raise KeyError(f"unknown item sku={sku!r}")
+    return rows[0]
+
+
+def _item_listings(con: duckdb.DuckDBPyConnection, item_id: str) -> list[dict[str, Any]]:
+    return _records(
+        con,
+        """
+        SELECT
+          l.listing_id, l.status, l.price_usd, l.listed_at, l.sold_at,
+          l.sold_price_usd, l.platform_url,
+          ch.platform, ch.handle,
+          CASE WHEN l.listed_at IS NULL THEN NULL
+               ELSE date_diff('day', l.listed_at, current_timestamp)
+          END AS listing_age_days,
+          coalesce(sum(em.views), 0) AS views,
+          coalesce(sum(em.watchers), 0) AS watchers,
+          coalesce(sum(em.offers), 0) AS offers,
+          CASE WHEN coalesce(sum(em.views), 0) = 0 THEN NULL
+               ELSE round(sum(em.watchers)::DOUBLE / sum(em.views), 4)
+          END AS watch_rate
+        FROM sales.listings l
+        LEFT JOIN core.channels ch
+          ON ch.channel_key = l.channel_key AND ch.valid_to IS NULL
+        LEFT JOIN sales.engagement_metric em ON em.listing_id = l.listing_id
+        WHERE l.item_id = ?
+        GROUP BY l.listing_id, l.status, l.price_usd, l.listed_at, l.sold_at,
+                 l.sold_price_usd, l.platform_url, ch.platform, ch.handle
+        ORDER BY l.listed_at NULLS LAST
+        """,
+        [item_id],
+    )
+
+
+def _item_orders(con: duckdb.DuckDBPyConnection, item_id: str) -> list[dict[str, Any]]:
+    return _records(
+        con,
+        """
+        SELECT
+          order_line_key, order_id, listing_id, qty, price_usd, revenue_usd,
+          fees_usd, shipping_usd, status, order_at
+        FROM sales.orders
+        WHERE item_id = ?
+        ORDER BY order_at NULLS LAST
+        """,
+        [item_id],
+    )
 
 
 def get_business_snapshot(con: duckdb.DuckDBPyConnection) -> BusinessPayload:
@@ -370,5 +490,156 @@ def explain_metric(name: str) -> BusinessPayload:
             source_relations=["cdp_cli.metrics.METRICS"],
             metric_names=[m.name],
             notes=["Canonical definition registry — not inferred from SQL ad hoc."],
+        ),
+    )
+
+
+def get_item(con: duckdb.DuckDBPyConnection, sku: str) -> BusinessPayload:
+    """Current state of one catalog item. Facts + named derived ages, not a recommendation."""
+    item = _require_item(con, sku)
+    listings = _item_listings(con, item["item_id"])
+    orders = _item_orders(con, item["item_id"])
+    return BusinessPayload(
+        kind="fact",
+        data={
+            "item": item,
+            "listings": listings,
+            "orders": orders,
+            "listing_count": len(listings),
+            "order_count": len(orders),
+        },
+        provenance=Provenance(
+            tool="get_item",
+            as_of=_utcnow().isoformat(timespec="seconds") + "Z",
+            source_relations=[
+                "catalog.items",
+                "catalog.item_events",
+                "sales.listings",
+                "sales.engagement_metric",
+                "sales.orders",
+                "core.channels",
+            ],
+            metric_names=["inventory_age_days", "listing_age_days", "watch_rate"],
+            notes=[
+                "FACT: item identity, listing rows, order rows.",
+                "DERIVED: inventory_age_days, listing_age_days, watch_rate.",
+                "No recommendation is attached — use get_inventory_attention_queue.",
+            ],
+        ),
+    )
+
+
+def get_item_history(con: duckdb.DuckDBPyConnection, sku: str) -> BusinessPayload:
+    """Event timeline for one item: supply events, listings, engagement, orders."""
+    item = _require_item(con, sku)
+    item_id = item["item_id"]
+    events = _records(
+        con,
+        """
+        SELECT event_id, event_type, event_at, actor, payload_json
+        FROM catalog.item_events
+        WHERE item_id = ?
+        ORDER BY event_at, event_id
+        """,
+        [item_id],
+    )
+    listings = _item_listings(con, item_id)
+    engagement = _records(
+        con,
+        """
+        SELECT em.listing_id, em.snapshot_at, em.views, em.watchers, em.offers
+        FROM sales.engagement_metric em
+        JOIN sales.listings l ON l.listing_id = em.listing_id
+        WHERE l.item_id = ?
+        ORDER BY em.snapshot_at, em.listing_id
+        """,
+        [item_id],
+    )
+    orders = _item_orders(con, item_id)
+
+    timeline: list[dict[str, Any]] = []
+    for ev in events:
+        timeline.append(
+            {
+                "at": ev["event_at"],
+                "type": ev["event_type"],
+                "source": "catalog.item_events",
+                "actor": ev["actor"],
+                "detail": ev["payload_json"],
+            }
+        )
+    for listing in listings:
+        if listing.get("listed_at"):
+            timeline.append(
+                {
+                    "at": listing["listed_at"],
+                    "type": "listing_opened",
+                    "source": "sales.listings",
+                    "actor": None,
+                    "detail": {
+                        "listing_id": listing["listing_id"],
+                        "platform": listing.get("platform"),
+                        "price_usd": listing.get("price_usd"),
+                        "status": listing.get("status"),
+                    },
+                }
+            )
+        if listing.get("sold_at"):
+            timeline.append(
+                {
+                    "at": listing["sold_at"],
+                    "type": "listing_sold",
+                    "source": "sales.listings",
+                    "actor": None,
+                    "detail": {
+                        "listing_id": listing["listing_id"],
+                        "sold_price_usd": listing.get("sold_price_usd"),
+                    },
+                }
+            )
+    for order in orders:
+        timeline.append(
+            {
+                "at": order.get("order_at"),
+                "type": "order",
+                "source": "sales.orders",
+                "actor": None,
+                "detail": {
+                    "order_id": order.get("order_id"),
+                    "revenue_usd": order.get("revenue_usd"),
+                    "status": order.get("status"),
+                },
+            }
+        )
+    timeline.sort(key=lambda row: (row["at"] is None, row["at"] or "", row["type"]))
+
+    return BusinessPayload(
+        kind="fact",
+        data={
+            "sku": item["sku"],
+            "item_id": item_id,
+            "status": item["status"],
+            "timeline": timeline,
+            "events": events,
+            "listings": listings,
+            "engagement": engagement,
+            "orders": orders,
+        },
+        provenance=Provenance(
+            tool="get_item_history",
+            as_of=_utcnow().isoformat(timespec="seconds") + "Z",
+            source_relations=[
+                "catalog.items",
+                "catalog.item_events",
+                "sales.listings",
+                "sales.engagement_metric",
+                "sales.orders",
+            ],
+            metric_names=["inventory_age_days", "listing_age_days", "watch_rate"],
+            notes=[
+                "Timeline merges item_events, listing open/sold, and orders.",
+                "Engagement snapshots are listed separately (too dense for the spine).",
+                "listing_opened/listing_sold may coincide with item_events of type listed/sold.",
+            ],
         ),
     )

@@ -9,7 +9,7 @@ Commands:
   query "SQL"           Ad-hoc SQL
   report <kind>         inventory | pricing | funnel  -> markdown export
   status                Health snapshot + ingest reconciliation
-  business <topic>      snapshot | attention | health | metric — operational answers
+  business <topic>      snapshot | attention | health | metric | item | history
   demo                  3-minute warehouse → decision → failure story
   tables                Row counts per table
   serve [--port N]      FastAPI read layer (requires cdp_cli[api])
@@ -211,6 +211,19 @@ def cmd_business(args: argparse.Namespace) -> int:
             ).to_dict()
         elif topic == "health":
             payload = biz.get_ingest_health(con).to_dict()
+        elif topic in {"item", "history"}:
+            sku = args.metric_name
+            if not sku:
+                print("sku required: cdp business item <sku>", file=sys.stderr)
+                return 1
+            try:
+                if topic == "item":
+                    payload = biz.get_item(con, sku).to_dict()
+                else:
+                    payload = biz.get_item_history(con, sku).to_dict()
+            except KeyError as e:
+                print(str(e), file=sys.stderr)
+                return 1
         else:
             print(f"unknown business topic: {topic}", file=sys.stderr)
             return 1
@@ -230,7 +243,13 @@ def _print_business(payload: dict, *, as_json: bool) -> None:
     if as_json:
         print(json.dumps(payload, indent=2, default=str))
         return
-    from .present import format_attention, format_snapshot, format_trust
+    from .present import (
+        format_attention,
+        format_item,
+        format_item_history,
+        format_snapshot,
+        format_trust,
+    )
 
     data = payload.get("data")
     tool = (payload.get("provenance") or {}).get("tool")
@@ -242,6 +261,12 @@ def _print_business(payload: dict, *, as_json: bool) -> None:
         return
     if tool == "get_ingest_health" and isinstance(data, dict):
         print(format_trust(data), end="")
+        return
+    if tool == "get_item" and isinstance(data, dict):
+        print(format_item(data), end="")
+        return
+    if tool == "get_item_history" and isinstance(data, dict):
+        print(format_item_history(data), end="")
         return
     kind = payload.get("kind", "?")
     prov = payload.get("provenance") or {}
@@ -328,17 +353,17 @@ def main(argv: list[str] | None = None) -> int:
 
     pbiz = sub.add_parser(
         "business",
-        help="Operational answers: snapshot | attention | health | metric",
+        help="Operational answers: snapshot | attention | health | metric | item | history",
     )
     pbiz.add_argument(
         "topic",
-        choices=["snapshot", "attention", "health", "metric"],
+        choices=["snapshot", "attention", "health", "metric", "item", "history"],
     )
     pbiz.add_argument(
         "metric_name",
         nargs="?",
         default=None,
-        help="For topic=metric: metric name (omit to list catalog)",
+        help="metric name (topic=metric) or item sku (topic=item|history)",
     )
     pbiz.add_argument(
         "--limit",

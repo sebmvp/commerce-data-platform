@@ -1,5 +1,11 @@
 """Formatting of business payloads — no warehouse required."""
-from cdp_cli.present import format_attention, format_snapshot, format_trust
+from cdp_cli.present import (
+    format_attention,
+    format_item,
+    format_item_history,
+    format_snapshot,
+    format_trust,
+)
 
 
 def test_format_snapshot_uses_real_metric_fields():
@@ -63,3 +69,53 @@ def test_format_trust_ok():
     assert "WAREHOUSE TRUST" in text
     assert "Rejected records" in text
     assert "2" in text
+
+
+def test_format_item_shows_acquisition_not_recommendation():
+    text = format_item(
+        {
+            "item": {
+                "sku": "stone-cargo-l",
+                "product": "Stone Island — Cargo Pants",
+                "status": "owned",
+                "condition": "new",
+                "acquisition_cost_cny": 3943.0,
+                "acquisition_channel": "wholesale",
+                "acquired_at": "2026-05-21T00:00:00",
+                "inventory_age_days": 106,
+                "target_price_usd": 628.85,
+            },
+            "listings": [],
+            "orders": [],
+        }
+    )
+    assert "ITEM  stone-cargo-l" in text
+    assert "owned" in text
+    assert "3,943 CNY" in text
+    assert "LIST NEXT" not in text
+
+
+def test_format_item_history_timeline_lines():
+    text = format_item_history(
+        {
+            "sku": "j4-military-s",
+            "status": "listed",
+            "timeline": [
+                {
+                    "at": "2026-05-07T00:00:00",
+                    "type": "ordered",
+                    "detail": {},
+                },
+                {
+                    "at": "2026-06-11T00:00:00",
+                    "type": "listing_opened",
+                    "detail": {"platform": "grailed", "price_usd": 749.86},
+                },
+            ],
+            "engagement": [{"snapshot_at": "2026-06-12"}],
+        }
+    )
+    assert "ITEM HISTORY  j4-military-s" in text
+    assert "ordered" in text
+    assert "listing_opened" in text
+    assert "grailed" in text

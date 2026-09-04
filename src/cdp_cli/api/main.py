@@ -138,4 +138,32 @@ def create_app() -> FastAPI:
                 raise HTTPException(404, str(e)) from e
         return {"kind": "fact", "data": metric_catalog()}
 
+    @app.get("/business/items/{sku}")
+    def business_item(sku: str):
+        from ..business import get_item
+
+        if not db.db_path().exists():
+            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        con = db.connect(read_only=True)
+        try:
+            return get_item(con, sku).to_dict()
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+        finally:
+            con.close()
+
+    @app.get("/business/items/{sku}/history")
+    def business_item_history(sku: str):
+        from ..business import get_item_history
+
+        if not db.db_path().exists():
+            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        con = db.connect(read_only=True)
+        try:
+            return get_item_history(con, sku).to_dict()
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+        finally:
+            con.close()
+
     return app

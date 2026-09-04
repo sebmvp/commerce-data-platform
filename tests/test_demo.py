@@ -23,6 +23,8 @@ def test_demo_story_and_sample_untouched(tmp_path, monkeypatch):
     assert "BUSINESS STATE" in text
     assert "ATTENTION" in text
     assert "LIST NEXT" in text
+    assert "ITEM HISTORY" in text
+    assert "stone-cargo-l" in text
     assert "WAREHOUSE TRUST" in text
     assert "QUARANTINE" in text
     assert "malformed_json" in text

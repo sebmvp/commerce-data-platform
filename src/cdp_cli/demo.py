@@ -16,7 +16,14 @@ from . import db
 from .ingest import JOBS_BY_SOURCE
 from .ingest.catalog import ItemIngest
 from .observability import trust_report
-from .present import format_attention, format_rejects, format_snapshot, format_trust
+from .present import (
+    format_attention,
+    format_item,
+    format_item_history,
+    format_rejects,
+    format_snapshot,
+    format_trust,
+)
 
 DIRTY_LINES = (
     "{this is not json}\n",
@@ -74,7 +81,15 @@ def run_demo(*, file: TextIO = sys.stdout) -> int:
         att = biz.get_inventory_attention_queue(con, limit=5)
         print(format_attention(att.data, limit=5), end="", file=file)
 
-        _banner("4. FAILURE HANDLING", file)
+        _banner("4. ITEM", file)
+        focus_sku = "stone-cargo-l"
+        print(f"object retrieval for {focus_sku} (unlisted owned capital)", file=file)
+        item = biz.get_item(con, focus_sku)
+        print(format_item(item.data), end="", file=file)
+        hist = biz.get_item_history(con, focus_sku)
+        print(format_item_history(hist.data), end="", file=file)
+
+        _banner("5. FAILURE HANDLING", file)
         print("temp copy of catalog_items.jsonl + 2 bad lines", file=file)
         print("  - malformed JSON", file=file)
         print("  - schema violation (negative cost)", file=file)
@@ -108,13 +123,13 @@ def run_demo(*, file: TextIO = sys.stdout) -> int:
             file=file,
         )
 
-        _banner("5. TRUST AFTER FAILURE", file)
+        _banner("6. TRUST AFTER FAILURE", file)
         health = biz.get_ingest_health(con)
         print(format_trust(health.data), end="", file=file)
         print("business state after the bad file:", file=file)
         print(format_snapshot(biz.get_business_snapshot(con).data), end="", file=file)
 
-        _banner("6. REPLAY", file)
+        _banner("7. REPLAY", file)
         print(
             "re-ingest sample_data/ — canonical files are unchanged, "
             "so content-hash skip fires",
