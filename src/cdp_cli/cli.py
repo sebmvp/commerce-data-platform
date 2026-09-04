@@ -152,25 +152,15 @@ def cmd_status(_: argparse.Namespace) -> int:
         return 1
     con = db.connect(read_only=True)
     try:
-        print(f"db: {path} ({path.stat().st_size / 1024:.1f} KB)")
-        checks = [
-            ("items", "SELECT count(*) FROM catalog.items"),
-            ("item_events", "SELECT count(*) FROM catalog.item_events"),
-            ("listings", "SELECT count(*) FROM sales.listings"),
-            ("orders", "SELECT count(*) FROM sales.orders"),
-            ("engagement_snaps", "SELECT count(*) FROM sales.engagement_metric"),
-            ("content_pieces", "SELECT count(*) FROM insights.content_pieces"),
-            ("voice_profiles", "SELECT count(*) FROM insights.voice_profile WHERE is_current"),
-            ("rejected_records", "SELECT count(*) FROM core.rejected_records"),
-            ("ingest_runs", "SELECT count(*) FROM core.ingest_runs"),
-        ]
-        for label, q in checks:
-            try:
-                n = con.execute(q).fetchone()[0]
-            except Exception:
-                n = "?"
-            print(f"  {label:18} {n}")
-        return 0
+        from .observability import format_status, trust_report
+
+        body = format_status(
+            con,
+            db_path_str=str(path),
+            size_kb=path.stat().st_size / 1024,
+        )
+        print(body, end="")
+        return 0 if trust_report(con).ok else 2
     finally:
         con.close()
 

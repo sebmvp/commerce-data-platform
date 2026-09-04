@@ -89,4 +89,17 @@ def create_app() -> FastAPI:
         finally:
             con.close()
 
+    @app.get("/ingest/trust")
+    def ingest_trust():
+        """Warehouse trustworthiness: reconciliation + orphan/failure alarms."""
+        from ..observability import trust_report
+
+        if not db.db_path().exists():
+            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        con = db.connect(read_only=True)
+        try:
+            return trust_report(con).to_dict()
+        finally:
+            con.close()
+
     return app

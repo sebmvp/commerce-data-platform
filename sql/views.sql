@@ -84,7 +84,7 @@ WHERE c.status = 'published'
 GROUP BY c.tone, c.cta
 ORDER BY avg_engagement_rate DESC NULLS LAST;
 
--- Ingest health: recent runs, rejections, freshness.
+-- Ingest health: recent runs, rejections, freshness + reconciliation flag.
 CREATE OR REPLACE VIEW core.v_ingest_health AS
 SELECT
   source,
@@ -94,6 +94,22 @@ SELECT
   rows_read,
   rows_loaded,
   rows_rejected,
-  run_idempotency_key
+  CASE
+    WHEN status != 'success' THEN NULL
+    WHEN coalesce(rows_read, 0)
+         = coalesce(rows_loaded, 0) + coalesce(rows_rejected, 0)
+      THEN true
+    ELSE false
+  END AS reconciled,
+  CASE
+    WHEN status = 'success'
+         AND coalesce(rows_read, 0) > 0
+         AND coalesce(rows_loaded, 0) = 0
+         AND coalesce(rows_rejected, 0) = coalesce(rows_read, 0)
+      THEN true
+    ELSE false
+  END AS all_rejected,
+  run_idempotency_key,
+  error_message
 FROM core.ingest_runs
 ORDER BY started_at DESC;
