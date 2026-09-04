@@ -2,6 +2,8 @@
 
 Design decisions worth knowing before extending this.
 
+CLI surface: `init / build / ingest / validate / query / report / status / business / demo / serve`.
+
 ## The warehouse file is a cache
 
 `warehouse.duckdb` is gitignored and rebuildable. Never hand-edit it in

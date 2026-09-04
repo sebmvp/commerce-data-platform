@@ -1,8 +1,8 @@
 """FastAPI read layer.
 
-Deliberately thin: the API *reads the warehouse views* — it does not own
-business logic. Every endpoint maps 1:1 to a view or a constrained table
-scan, so there is a single source of truth for metrics (the SQL itself).
+Inventory/listing/insight routes read warehouse views. `/business/*` and
+`/ingest/trust` call `cdp_cli.business` / `observability` — same tools as
+the CLI. Metrics are defined in `cdp_cli.metrics`, not invented per route.
 
 Run: `cdp serve` then http://127.0.0.1:8000/docs
 """
