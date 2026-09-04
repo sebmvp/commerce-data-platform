@@ -43,6 +43,14 @@ def cmd_init(_: argparse.Namespace) -> int:
 
 
 def _run_ingest(con, sources: list[str], force: bool) -> int:
+    from .ingest.base import recover_orphaned_runs
+
+    # Clear any leftover 'running' audits before new work starts so status
+    # and reconciliation never confuse a killed process with live work.
+    recovered = recover_orphaned_runs(con)
+    if recovered:
+        print(f"  recovered {recovered} orphaned running ingest run(s) → failed")
+
     data = db.data_dir()
     rc = 0
     for source in sources:

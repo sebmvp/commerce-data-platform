@@ -8,6 +8,10 @@ Each source loader inherits `IngestJob`. Contract:
 * skip the whole file when its content hash matches the last success
   (idempotency at the batch level, not just the row level)
 * always record a core.ingest_runs audit row
+* each run is a single transaction: a mid-run exception rolls back every
+  upsert from that run and still leaves a durable `failed` audit row
+* orphaned `running` rows (process killed mid-run) are recovered to `failed`
+  before the next write session starts
 """
 from __future__ import annotations
 
@@ -24,6 +28,8 @@ from pydantic import BaseModel, ValidationError
 
 R = TypeVar("R", bound=BaseModel)
 
+_ORPHAN_MSG = "orphaned: process interrupted before run completed"
+
 
 def file_sha256(path: Path) -> str:
     h = hashlib.sha256()
@@ -33,6 +39,31 @@ def file_sha256(path: Path) -> str:
 
 def _now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def recover_orphaned_runs(con: duckdb.DuckDBPyConnection) -> int:
+    """Mark any leftover `running` ingest audits as `failed`.
+
+    A process kill mid-run can leave status='running' with no finished_at.
+    Those rows make warehouse trustworthiness unreadable; recover them before
+    the next write path starts. Returns the number of rows recovered.
+    """
+    before = con.execute(
+        "SELECT count(*) FROM core.ingest_runs WHERE status = 'running'"
+    ).fetchone()[0]
+    if before == 0:
+        return 0
+    con.execute(
+        """
+        UPDATE core.ingest_runs
+        SET status = 'failed',
+            finished_at = COALESCE(finished_at, ?),
+            error_message = COALESCE(error_message, ?)
+        WHERE status = 'running'
+        """,
+        [_now(), _ORPHAN_MSG],
+    )
+    return int(before)
 
 
 class IngestJob(Generic[R]):
@@ -65,18 +96,25 @@ class IngestJob(Generic[R]):
         run_id = str(uuid.uuid4())
         started = _now()
         t0 = time.perf_counter()
-        self.con.execute(
-            """INSERT INTO core.ingest_runs
-               (run_id, source, file_path, file_hash, started_at, status, run_idempotency_key)
-               VALUES (?, ?, ?, ?, ?, 'running', ?)""",
-            [run_id, self.source, str(self.path), file_hash, started, idem_key],
-        )
-
         stats = {"read": 0, "loaded": 0, "rejected": 0}
-        error = None
+        error: str | None = None
+        status = "failed"
+
+        # One transaction for the whole run. On unexpected exception we
+        # ROLLBACK every upsert/quarantine from this attempt, then write a
+        # durable failed audit row in a fresh transaction.
+        self.con.execute("BEGIN TRANSACTION")
         try:
+            self.con.execute(
+                """INSERT INTO core.ingest_runs
+                   (run_id, source, file_path, file_hash, started_at, status, run_idempotency_key)
+                   VALUES (?, ?, ?, ?, ?, 'running', ?)""",
+                [run_id, self.source, str(self.path), file_hash, started, idem_key],
+            )
+
             if not self.path.exists():
                 raise FileNotFoundError(str(self.path))
+
             for line_no, line in enumerate(self.path.read_text().splitlines(), 1):
                 line = line.strip()
                 if not line:
@@ -106,19 +144,90 @@ class IngestJob(Generic[R]):
                 except (duckdb.Error, ValueError) as e:
                     self._quarantine(run_id, raw, "load_error", str(e))
                     stats["rejected"] += 1
-            status = "success"
-        except Exception as e:  # file-level failure
-            status, error = "failed", str(e)
 
-        self.con.execute(
-            """UPDATE core.ingest_runs
-               SET finished_at=?, status=?, rows_read=?, rows_loaded=?,
-                   rows_rejected=?, error_message=?, duration_ms=?
-               WHERE run_id=?""",
-            [_now(), status, stats["read"], stats["loaded"], stats["rejected"],
-             error, int((time.perf_counter() - t0) * 1000), run_id],
-        )
-        return {"source": self.source, "status": status, **stats, "run_id": run_id}
+            status = "success"
+            self.con.execute(
+                """UPDATE core.ingest_runs
+                   SET finished_at=?, status=?, rows_read=?, rows_loaded=?,
+                       rows_rejected=?, error_message=?, duration_ms=?
+                   WHERE run_id=?""",
+                [_now(), status, stats["read"], stats["loaded"], stats["rejected"],
+                 None, int((time.perf_counter() - t0) * 1000), run_id],
+            )
+            self.con.execute("COMMIT")
+        except Exception as e:
+            # File-level / unexpected failure: undo partial writes, then
+            # durable-fail the audit outside the rolled-back transaction.
+            error = str(e)
+            status = "failed"
+            try:
+                self.con.execute("ROLLBACK")
+            except duckdb.Error:
+                pass
+            duration_ms = int((time.perf_counter() - t0) * 1000)
+            # Post-rollback truth: nothing from this attempt survived.
+            stats["loaded"] = 0
+            stats["rejected"] = 0
+            self._record_failed_run(
+                run_id=run_id,
+                file_hash=file_hash,
+                started=started,
+                idem_key=idem_key,
+                stats=stats,
+                error=error,
+                duration_ms=duration_ms,
+            )
+
+        return {
+            "source": self.source,
+            "status": status,
+            **stats,
+            "run_id": run_id,
+            "error": error,
+        }
+
+    def _record_failed_run(
+        self,
+        *,
+        run_id: str,
+        file_hash: str,
+        started: datetime,
+        idem_key: str,
+        stats: dict[str, int],
+        error: str | None,
+        duration_ms: int,
+    ) -> None:
+        """Write a failed audit row after a rollback (its own transaction)."""
+        self.con.execute("BEGIN TRANSACTION")
+        try:
+            self.con.execute(
+                """INSERT INTO core.ingest_runs
+                   (run_id, source, file_path, file_hash, started_at, finished_at,
+                    status, rows_read, rows_loaded, rows_rejected, error_message,
+                    duration_ms, run_idempotency_key)
+                   VALUES (?, ?, ?, ?, ?, ?, 'failed', ?, ?, ?, ?, ?, ?)""",
+                [
+                    run_id,
+                    self.source,
+                    str(self.path),
+                    file_hash,
+                    started,
+                    _now(),
+                    stats["read"],
+                    stats["loaded"],
+                    stats["rejected"],
+                    error,
+                    duration_ms,
+                    idem_key,
+                ],
+            )
+            self.con.execute("COMMIT")
+        except Exception:
+            try:
+                self.con.execute("ROLLBACK")
+            except duckdb.Error:
+                pass
+            raise
 
     # -- helpers ------------------------------------------------------------
     def _already_succeeded(self, idem_key: str) -> bool:

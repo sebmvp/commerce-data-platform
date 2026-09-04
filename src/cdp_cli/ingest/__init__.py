@@ -1,7 +1,7 @@
 """Source loaders. Order matters: dims before facts, items before events."""
 from __future__ import annotations
 
-from .base import IngestJob
+from .base import IngestJob, recover_orphaned_runs
 from .catalog import ChannelIngest, ItemEventIngest, ItemIngest
 from .insights import ContentIngest, ContentSnapshotIngest
 from .sales import EngagementIngest, ListingIngest, OrderIngest
@@ -21,4 +21,4 @@ ALL_JOBS: list[type[IngestJob]] = [
 
 JOBS_BY_SOURCE: dict[str, type[IngestJob]] = {j.source: j for j in ALL_JOBS}
 
-__all__ = ["ALL_JOBS", "JOBS_BY_SOURCE", "IngestJob"]
+__all__ = ["ALL_JOBS", "JOBS_BY_SOURCE", "IngestJob", "recover_orphaned_runs"]

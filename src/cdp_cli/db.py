@@ -39,10 +39,18 @@ def connect(read_only: bool = False) -> duckdb.DuckDBPyConnection:
 
 
 def init_schema(con: duckdb.DuckDBPyConnection) -> None:
-    """Create schemas/tables (idempotent) and rebuild analytics views."""
+    """Create schemas/tables (idempotent) and rebuild analytics views.
+
+    Also recovers any orphaned `running` ingest audits left by a killed
+    process — warehouse trustworthiness starts with a clean audit log.
+    """
     root = project_root()
     con.execute((root / "schema" / "001_init.sql").read_text())
     con.execute((root / "sql" / "views.sql").read_text())
+    # Import locally to avoid a circular import at module load.
+    from .ingest.base import recover_orphaned_runs
+
+    recover_orphaned_runs(con)
 
 
 def table_counts(con: duckdb.DuckDBPyConnection) -> list[tuple[str, str, int]]:
