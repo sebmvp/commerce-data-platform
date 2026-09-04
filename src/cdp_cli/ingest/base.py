@@ -82,7 +82,16 @@ class IngestJob(Generic[R]):
                 if not line:
                     continue
                 stats["read"] += 1
-                raw = json.loads(line)
+                try:
+                    raw = json.loads(line)
+                except json.JSONDecodeError as je:
+                    # A corrupt line must not abort the batch: quarantine the
+                    # raw text and keep loading the rows that follow it.
+                    self._quarantine(run_id, {"_unparseable": line},
+                                     "malformed_json",
+                                     f"line {line_no}: {je.msg}")
+                    stats["rejected"] += 1
+                    continue
                 try:
                     rec = self.model.model_validate(raw)
                 except ValidationError as ve:
