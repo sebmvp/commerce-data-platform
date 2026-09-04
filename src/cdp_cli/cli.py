@@ -10,6 +10,7 @@ Commands:
   report <kind>         inventory | pricing | funnel  -> markdown export
   status                Health snapshot + ingest reconciliation
   business <topic>      snapshot | attention | health | metric — operational answers
+  demo                  3-minute warehouse → decision → failure story
   tables                Row counts per table
   serve [--port N]      FastAPI read layer (requires cdp_cli[api])
 """
@@ -219,9 +220,28 @@ def cmd_business(args: argparse.Namespace) -> int:
         con.close()
 
 
+def cmd_demo(_: argparse.Namespace) -> int:
+    from .demo import run_demo
+
+    return run_demo()
+
+
 def _print_business(payload: dict, *, as_json: bool) -> None:
     if as_json:
         print(json.dumps(payload, indent=2, default=str))
+        return
+    from .present import format_attention, format_snapshot, format_trust
+
+    data = payload.get("data")
+    tool = (payload.get("provenance") or {}).get("tool")
+    if tool == "get_business_snapshot" and isinstance(data, dict):
+        print(format_snapshot(data), end="")
+        return
+    if tool == "get_inventory_attention_queue" and isinstance(data, dict):
+        print(format_attention(data), end="")
+        return
+    if tool == "get_ingest_health" and isinstance(data, dict):
+        print(format_trust(data), end="")
         return
     kind = payload.get("kind", "?")
     prov = payload.get("provenance") or {}
@@ -233,41 +253,16 @@ def _print_business(payload: dict, *, as_json: bool) -> None:
         for note in prov.get("notes") or []:
             print(f"  note: {note}")
     print("---")
-    data = payload.get("data")
-    if isinstance(data, dict) and "queue" in data:
-        recs = data.get("recommendations") or []
-        if recs:
-            print("RECOMMENDATIONS (heuristic):")
-            for r in recs:
-                print(f"  [{r['action']}] {r['sku']}: {r['why']}")
-            print("")
-        print("QUEUE (facts/derived):")
-        cols = [
-            "sku", "attention_reason", "acquisition_cost_cny",
-            "inventory_age_days", "listing_age_days", "watch_rate", "platform",
-        ]
-        rows = []
-        for q in data.get("queue") or []:
-            rows.append(tuple(q.get(c) for c in cols))
-        _print_table(cols, rows)
-        return
-    if isinstance(data, dict):
-        for k, v in data.items():
-            if k in {"recent_runs", "queue", "recommendations"}:
-                continue
-            if isinstance(v, list) and k == "warehouse_trust_reasons":
-                print(f"  {k}:")
-                for item in v:
-                    print(f"    - {item}")
-            else:
-                print(f"  {k:32} {v}")
-        return
     if isinstance(data, list):
         for item in data:
             if isinstance(item, dict) and "name" in item:
                 print(f"  {item['name']:28} {item.get('unit', ''):6}  {item.get('definition', '')[:70]}")
             else:
                 print(f"  {item}")
+        return
+    if isinstance(data, dict):
+        for k, v in data.items():
+            print(f"  {k:32} {v}")
         return
     print(data)
 
@@ -329,6 +324,7 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("tables", help="Row counts per table")
     sub.add_parser("status", help="Health snapshot + ingest reconciliation")
+    sub.add_parser("demo", help="Rebuild warehouse and walk the decision story")
 
     pbiz = sub.add_parser(
         "business",
@@ -372,6 +368,7 @@ def main(argv: list[str] | None = None) -> int:
         "query": cmd_query,
         "tables": cmd_tables,
         "status": cmd_status,
+        "demo": cmd_demo,
         "business": cmd_business,
         "report": cmd_report,
         "serve": cmd_serve,
