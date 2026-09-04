@@ -8,7 +8,8 @@ Commands:
   validate              Dry-run validation report (no writes)
   query "SQL"           Ad-hoc SQL
   report <kind>         inventory | pricing | funnel  -> markdown export
-  status                Health snapshot
+  status                Health snapshot + ingest reconciliation
+  business <topic>      snapshot | attention | health | metric — operational answers
   tables                Row counts per table
   serve [--port N]      FastAPI read layer (requires cdp_cli[api])
 """
@@ -18,7 +19,6 @@ import argparse
 import json
 import sys
 from datetime import datetime, timezone
-from pathlib import Path
 
 from . import db
 from .ingest import ALL_JOBS, JOBS_BY_SOURCE
@@ -165,6 +165,113 @@ def cmd_status(_: argparse.Namespace) -> int:
         con.close()
 
 
+def cmd_business(args: argparse.Namespace) -> int:
+    """Operational decision surface — structured facts with provenance."""
+    from . import business as biz
+    from . import metrics as metrics_mod
+
+    topic = args.topic
+    as_json = args.json
+
+    # explain_metric / catalog do not need the warehouse
+    if topic == "metric":
+        name = args.metric_name
+        if not name:
+            payload = {
+                "kind": "fact",
+                "data": metrics_mod.metric_catalog(),
+                "provenance": {
+                    "tool": "metric_catalog",
+                    "source_relations": ["cdp_cli.metrics.METRICS"],
+                },
+            }
+            _print_business(payload, as_json=as_json)
+            return 0
+        try:
+            payload = biz.explain_metric(name).to_dict()
+        except KeyError as e:
+            print(str(e), file=sys.stderr)
+            return 1
+        _print_business(payload, as_json=as_json)
+        return 0
+
+    path = db.db_path()
+    if not path.exists():
+        print(f"warehouse not initialized — run: cdp build (expected at {path})")
+        return 1
+
+    con = db.connect(read_only=True)
+    try:
+        if topic == "snapshot":
+            payload = biz.get_business_snapshot(con).to_dict()
+        elif topic == "attention":
+            payload = biz.get_inventory_attention_queue(
+                con, limit=args.limit
+            ).to_dict()
+        elif topic == "health":
+            payload = biz.get_ingest_health(con).to_dict()
+        else:
+            print(f"unknown business topic: {topic}", file=sys.stderr)
+            return 1
+        _print_business(payload, as_json=as_json)
+        return 0
+    finally:
+        con.close()
+
+
+def _print_business(payload: dict, *, as_json: bool) -> None:
+    if as_json:
+        print(json.dumps(payload, indent=2, default=str))
+        return
+    kind = payload.get("kind", "?")
+    prov = payload.get("provenance") or {}
+    print(f"kind: {kind}")
+    if prov:
+        print(f"tool: {prov.get('tool')}  as_of: {prov.get('as_of')}")
+        if prov.get("metric_names"):
+            print("metrics: " + ", ".join(prov["metric_names"]))
+        for note in prov.get("notes") or []:
+            print(f"  note: {note}")
+    print("---")
+    data = payload.get("data")
+    if isinstance(data, dict) and "queue" in data:
+        recs = data.get("recommendations") or []
+        if recs:
+            print("RECOMMENDATIONS (heuristic):")
+            for r in recs:
+                print(f"  [{r['action']}] {r['sku']}: {r['why']}")
+            print("")
+        print("QUEUE (facts/derived):")
+        cols = [
+            "sku", "attention_reason", "acquisition_cost_cny",
+            "inventory_age_days", "listing_age_days", "watch_rate", "platform",
+        ]
+        rows = []
+        for q in data.get("queue") or []:
+            rows.append(tuple(q.get(c) for c in cols))
+        _print_table(cols, rows)
+        return
+    if isinstance(data, dict):
+        for k, v in data.items():
+            if k in {"recent_runs", "queue", "recommendations"}:
+                continue
+            if isinstance(v, list) and k == "warehouse_trust_reasons":
+                print(f"  {k}:")
+                for item in v:
+                    print(f"    - {item}")
+            else:
+                print(f"  {k:32} {v}")
+        return
+    if isinstance(data, list):
+        for item in data:
+            if isinstance(item, dict) and "name" in item:
+                print(f"  {item['name']:28} {item.get('unit', ''):6}  {item.get('definition', '')[:70]}")
+            else:
+                print(f"  {item}")
+        return
+    print(data)
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     from .analytics import reports
 
@@ -221,7 +328,33 @@ def main(argv: list[str] | None = None) -> int:
     pq.add_argument("sql")
 
     sub.add_parser("tables", help="Row counts per table")
-    sub.add_parser("status", help="Health snapshot")
+    sub.add_parser("status", help="Health snapshot + ingest reconciliation")
+
+    pbiz = sub.add_parser(
+        "business",
+        help="Operational answers: snapshot | attention | health | metric",
+    )
+    pbiz.add_argument(
+        "topic",
+        choices=["snapshot", "attention", "health", "metric"],
+    )
+    pbiz.add_argument(
+        "metric_name",
+        nargs="?",
+        default=None,
+        help="For topic=metric: metric name (omit to list catalog)",
+    )
+    pbiz.add_argument(
+        "--limit",
+        type=int,
+        default=25,
+        help="attention queue size (default 25)",
+    )
+    pbiz.add_argument(
+        "--json",
+        action="store_true",
+        help="Emit structured payload (kind + data + provenance)",
+    )
 
     pr = sub.add_parser("report", help="Write a markdown report to reports/")
     pr.add_argument("kind", choices=["inventory", "pricing", "funnel"])
@@ -239,6 +372,7 @@ def main(argv: list[str] | None = None) -> int:
         "query": cmd_query,
         "tables": cmd_tables,
         "status": cmd_status,
+        "business": cmd_business,
         "report": cmd_report,
         "serve": cmd_serve,
     }[args.cmd](args)

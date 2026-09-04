@@ -102,4 +102,40 @@ def create_app() -> FastAPI:
         finally:
             con.close()
 
+    @app.get("/business/snapshot")
+    def business_snapshot():
+        from ..business import get_business_snapshot
+
+        if not db.db_path().exists():
+            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        con = db.connect(read_only=True)
+        try:
+            return get_business_snapshot(con).to_dict()
+        finally:
+            con.close()
+
+    @app.get("/business/attention")
+    def business_attention(limit: int = Query(25, le=200)):
+        from ..business import get_inventory_attention_queue
+
+        if not db.db_path().exists():
+            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        con = db.connect(read_only=True)
+        try:
+            return get_inventory_attention_queue(con, limit=limit).to_dict()
+        finally:
+            con.close()
+
+    @app.get("/business/metrics")
+    def business_metrics(name: str | None = None):
+        from ..business import explain_metric
+        from ..metrics import metric_catalog
+
+        if name:
+            try:
+                return explain_metric(name).to_dict()
+            except KeyError as e:
+                raise HTTPException(404, str(e)) from e
+        return {"kind": "fact", "data": metric_catalog()}
+
     return app
