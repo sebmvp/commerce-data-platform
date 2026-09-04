@@ -1,0 +1,8 @@
+{"sku": "adv-ok-1", "product": "Valid Before Storm", "status": "owned", "acquisition_cost_cny": 100}
+{"sku": "adv-ok-1", "product": "Duplicate SKU same file", "status": "owned", "acquisition_cost_cny": 100}
+{"sku": "adv-neg", "product": "Negative Cost", "status": "owned", "acquisition_cost_cny": -5}
+{"sku": "adv-ok-2", "product": "Valid After Storm", "status": "owned", "acquisition_cost_cny": 250}
+{"this is truncated json
+{"sku": "adv-null-product", "product": null, "status": "owned", "acquisition_cost_cny": 10}
+{"sku": "", "product": "Empty SKU", "status": "owned", "acquisition_cost_cny": 10}
+{"sku": "adv-ok-3", "product": "Trailing Valid", "status": "owned", "acquisition_cost_cny": 50}

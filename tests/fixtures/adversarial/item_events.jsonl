@@ -1,0 +1,5 @@
+{"item_sku": "does-not-exist-sku", "event_type": "received", "event_at": "2026-01-01T00:00:00", "actor": "adv"}
+{"item_sku": "adv-ok-1", "event_type": "received", "event_at": "2026-01-02T00:00:00", "actor": "adv"}
+{"item_sku": "adv-ok-1", "event_type": "not_a_real_type", "event_at": "2026-01-03T00:00:00", "actor": "adv"}
+{broken
+{"item_sku": "adv-ok-2", "event_type": "ordered", "event_at": "2026-01-04T00:00:00", "actor": "adv"}

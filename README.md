@@ -2,21 +2,35 @@
 
 [![test](https://github.com/sebmvp/commerce-data-platform/actions/workflows/test.yml/badge.svg)](https://github.com/sebmvp/commerce-data-platform/actions/workflows/test.yml)
 
-A reproducible operational data platform that ingests, validates, models, and serves resale-commerce data through a DuckDB warehouse.
+An operational data and intelligence system for a small multi-channel
+**resale commerce** workflow — not just an ETL demo.
+
+It turns messy sourcing / inventory / listing / sales / engagement JSONL into a
+validated DuckDB warehouse, then answers operational questions through typed
+tools with explicit metric definitions and provenance. The long-term direction
+is a grounded AI business copilot that retrieves current truth via those tools
+— never by stuffing warehouse rows into a prompt.
 
 **Python · DuckDB · FastAPI · Docker · pytest · GitHub Actions**
 
 - 8 ingestion streams
 - idempotent ingestion (re-running a build on unchanged sources loads no new rows)
 - content-hash change detection
-- validation + rejected-record quarantine
+- validation + rejected-record quarantine (including malformed JSON)
+- **atomic run boundaries** (mid-run failure rolls back partial loads)
 - historical / SCD-2 modeling
-- ingest auditing (every run recorded with read/loaded/rejected counts)
+- ingest auditing + **read=loaded+rejected reconciliation**
+- business snapshot + inventory attention queue (FACT / DERIVED / RECOMMENDATION)
 - analytics + API layer
 
 ## Architecture
 
 <img src="docs/architecture.svg" alt="Pipeline architecture: sources → ingestion → validation/quarantine → audit → DuckDB warehouse → history, analytics, event state → CLI/FastAPI" width="720"/>
+
+```
+messy sources → trustworthy ingest → warehouse → semantic metrics
+    → typed business tools → (future) AI copilot → evaluated recommendations
+```
 
 ## Quick start
 
@@ -34,8 +48,12 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,api]"
 cdp build --sample
 cdp status
+cdp business snapshot
+cdp business attention --limit 5
 cdp report funnel
 ```
+
+Interviewer-facing walkthrough: **[docs/DEMO.md](docs/DEMO.md)** (≈3–5 minutes).
 
 Actual output:
 
@@ -54,11 +72,21 @@ Refreshed 1 voice profile version(s)
 Build complete.
 
 $ cdp status
-db: warehouse.duckdb (6.3 MB)
-  items              12      voice_profiles     1
-  item_events        39      rejected_records   0
-  listings            9      ingest_runs        8
-  orders              6
+db: warehouse.duckdb (...)
+  items              12
+  ...
+trust: OK
+  - no integrity alarms
+reconciliation (recent runs):
+  source                       status    read  load   rej balanced
+  catalog.items                success     12    12     0 yes
+  ...
+
+$ cdp business attention --limit 3
+kind: recommendation
+RECOMMENDATIONS (heuristic):
+  [list_next] stone-cargo-l: ... capital is idle.
+  ...
 ```
 
 Before processing a source file, the loader computes a content hash and checks the most recent successful ingest. Files whose contents have not changed are skipped, which keeps repeated builds from inserting duplicate records:
@@ -78,29 +106,35 @@ The bundled dataset is intentionally small — it is a **deterministic demo fixt
 1. **Canonical inputs preserved.** Every row keeps its raw source payload (`raw_json`) and origin file. The DuckDB file is a cache — delete it and `cdp build` rebuilds losslessly.
 2. **Idempotent ingest.** Natural-key upserts plus content-hash skip detection: unchanged sources are not re-processed, re-runs never duplicate rows.
 3. **Validation before insert.** Pydantic models per stream; failing rows are quarantined to `core.rejected_records` with reasons — never silently dropped.
-4. **Event-sourced supply chain.** `catalog.item_events` is append-only truth; `catalog.items` is the latest projection.
-5. **SCD-2 dimensions.** Fee/standing history is versioned so point-in-time queries return the state as of any date.
+4. **Atomic runs.** Each source ingest is one transaction; a mid-run exception rolls back partial upserts and still records a durable `failed` audit row. Orphaned `running` rows are recovered on the next write path.
+5. **Event-sourced supply chain.** `catalog.item_events` is append-only truth; `catalog.items` is the latest projection.
+6. **SCD-2 dimensions.** Fee/standing history is versioned so point-in-time queries return the state as of any date.
+7. **Explicit metrics.** Operational numbers (`capital_tied_up_cny`, `inventory_age_days`, `stale_listing`, …) have definitions, grain, null behavior, and limitations in code (`cdp business metric`).
+8. **Typed business tools over arbitrary SQL.** `cdp business snapshot|attention|health` return structured payloads with provenance — the substrate for a future copilot. No LLM in-tree yet; that is intentional until the foundation is trustworthy.
+9. **Honest economics.** Fee-adjusted gross is labeled as such. Full margin is not claimed while acquisition-cost allocation and fee modeling are incomplete.
 
 ## Data quality
 
-Every run writes an `core.ingest_runs` audit record (source, read/loaded/rejected counts, duration, content hash). Rejected rows are stored with the validation error and raw payload, so bad data is inspectable rather than invisible.
+Every run writes an `core.ingest_runs` audit record (source, read/loaded/rejected counts, duration, content hash). Rejected rows are stored with the validation error and raw payload, so bad data is inspectable rather than invisible. `cdp status` reconciles `read = loaded + rejected` and surfaces trust alarms (orphaned runs, unbalanced successes).
 
 ## Tests & CI
 
 ```bash
-pytest -q          # 15 tests incl. ingest idempotency
+pytest -q          # unit + integration: atomicity, quarantine, reconciliation, business tools, adversarial fixtures
 ```
 
 GitHub Actions runs the suite, a from-scratch `cdp build --sample` smoke build, and a Docker image smoke build on every push to `main`.
 
 ## API
 
-`cdp serve` starts a FastAPI read layer over the warehouse: `/health`, `/inventory/summary`, `/inventory/unlisted`, `/listings/performance`, `/insights/voice-profiles`, `/ingest/runs` (interactive docs at `/docs`).
+`cdp serve` starts a FastAPI read layer over the warehouse: `/health`, `/inventory/summary`, `/inventory/unlisted`, `/listings/performance`, `/insights/voice-profiles`, `/ingest/runs`, `/ingest/trust`, `/business/snapshot`, `/business/attention`, `/business/metrics` (interactive docs at `/docs`).
 
 ## Things testing caught
 
 - Ingest re-runs duplicating rows before content-hash skip detection was added — now covered by an idempotency test that builds twice and asserts stable counts.
 - A CI Docker smoke step where `build` and `status` ran in separate `--rm` containers, so the warehouse vanished between steps — the workflow now shares a volume, and the failure mode is documented in the commit history.
+- Malformed JSON aborting an entire batch — quarantine now continues past corrupt lines (`tests/test_ingest_malformed.py`).
+- Mid-run exceptions leaving partial loads — runs are transactional (`tests/test_ingest_atomicity.py`).
 
 ## Reference
 
