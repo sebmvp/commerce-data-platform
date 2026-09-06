@@ -5,9 +5,9 @@ pip install -e ".[dev]"
 cdp demo
 ```
 
-Rebuilds `warehouse.duckdb` from `sample_data/`. About three minutes. Synthetic data only.
+Builds an **isolated temp warehouse** from `sample_data/`. About three minutes. Synthetic data only.
 
-`cdp demo` does not edit committed source files. Bad input is staged in a temp copy.
+`cdp demo` does not edit committed source files and does not touch `warehouse.duckdb` or `CDP_DB`. Bad input is staged in a temp copy.
 
 ## Story
 
@@ -23,4 +23,4 @@ Same commands by hand: `cdp build --sample`, `cdp business snapshot`, `cdp busin
 
 ## After the demo
 
-The warehouse on disk includes the quarantine rows from the dirty temp file. `rm warehouse.duckdb && cdp build --sample` returns to a clean build. `cdp demo` itself starts by removing the warehouse file.
+The isolated warehouse is deleted when the command exits. Nothing is left on disk. `cdp build --sample` is the command that writes `warehouse.duckdb` for later `cdp business` / `cdp status` use.

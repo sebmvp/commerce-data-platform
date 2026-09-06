@@ -98,7 +98,7 @@ Attention ranking is deterministic: unlisted owned (by capital, then age) → st
 
 - CLI: `init / build / ingest / validate / query / report / status / business / demo / serve`
 - API: view-backed inventory/listing/insight routes, plus `/ingest/trust` and `/business/*` (including item + history) which call the same Python tools
-- Demo: `cdp demo` rebuilds from `sample_data/`, prints state, stages dirty input in a temp copy, shows quarantine, replays
+- Demo: `cdp demo` builds an isolated temp warehouse from `sample_data/` (never unlinks the configured DB), prints state, stages dirty input in a temp copy, shows quarantine, replays
 
 ## Future AI boundary
 

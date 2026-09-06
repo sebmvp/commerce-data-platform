@@ -349,7 +349,7 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("tables", help="Row counts per table")
     sub.add_parser("status", help="Health snapshot + ingest reconciliation")
-    sub.add_parser("demo", help="Rebuild warehouse and walk the decision story")
+    sub.add_parser("demo", help="Isolated warehouse story (does not touch CDP_DB)")
 
     pbiz = sub.add_parser(
         "business",

@@ -35,7 +35,7 @@ pip install -e ".[dev]"
 cdp demo
 ```
 
-One command, about three minutes. It rebuilds the warehouse from bundled synthetic data, prints current business state and an attention queue, then ingests a **temp copy** of a source file with malformed JSON and a schema violation.
+One command, about three minutes. It builds an isolated temp warehouse from bundled synthetic data (your `warehouse.duckdb` / `CDP_DB` is not deleted), prints current business state and an attention queue, then ingests a **temp copy** of a source file with malformed JSON and a schema violation.
 
 Valid rows stay in the catalog. Invalid rows land in quarantine. Trust stays readable. A replay does not duplicate items. Committed `sample_data/` is not modified.
 

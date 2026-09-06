@@ -1,13 +1,17 @@
 """Interviewer demo: warehouse → business state → failure → still usable.
 
 Does not modify committed sample_data/. Dirty input is staged in a temp copy.
-Rebuilds the warehouse from sample_data so the run is deterministic.
+The warehouse used for the story is an isolated temp file — never
+warehouse.duckdb and never whatever CDP_DB the caller already configured.
 """
 from __future__ import annotations
 
+import os
 import shutil
 import sys
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TextIO
 
@@ -42,6 +46,26 @@ def _count(con, sql: str) -> int:
     return int(row[0]) if row else 0
 
 
+@contextmanager
+def _isolated_warehouse() -> Iterator[Path]:
+    """Point CDP_DB at a throwaway file; restore the caller environment.
+
+    `cdp demo` is a story, not `cdp build`. Unlinking the configured
+    warehouse would destroy an interviewer's already-built cache.
+    """
+    previous = os.environ.get("CDP_DB")
+    with tempfile.TemporaryDirectory(prefix="cdp-demo-db-") as tmp:
+        path = Path(tmp) / "warehouse.duckdb"
+        os.environ["CDP_DB"] = str(path)
+        try:
+            yield path
+        finally:
+            if previous is None:
+                os.environ.pop("CDP_DB", None)
+            else:
+                os.environ["CDP_DB"] = previous
+
+
 def run_demo(*, file: TextIO = sys.stdout) -> int:
     data_dir = db.data_dir()
     catalog = data_dir / "catalog_items.jsonl"
@@ -49,15 +73,17 @@ def run_demo(*, file: TextIO = sys.stdout) -> int:
         print(f"missing sample data: {catalog}", file=sys.stderr)
         return 1
 
-    path = db.db_path()
-    if path.exists():
-        path.unlink()
-        print(f"rebuilding {path} from sample_data/", file=file)
-
     print("Commerce Data Platform — demo", file=file)
     print("synthetic data only · ~3 minutes", file=file)
 
+    with _isolated_warehouse() as path:
+        return _run_isolated_demo(catalog, path, file)
+
+
+def _run_isolated_demo(catalog: Path, path: Path, file: TextIO) -> int:
     _banner("1. BUILD", file)
+    print(f"isolated warehouse {path}", file=file)
+    print("configured CDP_DB / warehouse.duckdb left untouched", file=file)
     con = db.connect()
     try:
         db.init_schema(con)
