@@ -34,7 +34,7 @@ class ChannelIngest(IngestJob[ChannelRecord]):
             return
 
         current = self.con.execute(
-            """SELECT channel_key, standing, fee_pct FROM core.channels
+            """SELECT channel_key, standing, fee_pct, valid_from FROM core.channels
                WHERE platform=? AND handle=? AND valid_to IS NULL""",
             [rec.platform, rec.handle],
         ).fetchone()
@@ -42,9 +42,19 @@ class ChannelIngest(IngestJob[ChannelRecord]):
         if current:
             if current[1] == rec.standing and abs(current[2] - rec.fee_pct) < 1e-9:
                 return  # same values, different window — nothing to do
+            # Close at the successor's valid_from, not ingest wall-clock.
+            # Intervals are half-open [valid_from, valid_to); using now()
+            # would leave two versions covering every as-of between the
+            # fee change and the ingest.
+            if rec.valid_from <= current[3]:
+                raise ValueError(
+                    f"SCD-2 version {rec.platform}/{rec.handle}@"
+                    f"{rec.valid_from.isoformat()} is not after open "
+                    f"version valid_from={current[3]}"
+                )
             self.con.execute(
                 "UPDATE core.channels SET valid_to=?, updated_at=? WHERE channel_key=?",
-                [_now(), _now(), current[0]],
+                [rec.valid_from, _now(), current[0]],
             )
         self.con.execute(
             """INSERT INTO core.channels

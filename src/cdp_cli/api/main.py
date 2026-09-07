@@ -138,6 +138,28 @@ def create_app() -> FastAPI:
                 raise HTTPException(404, str(e)) from e
         return {"kind": "fact", "data": metric_catalog()}
 
+    @app.get("/business/channels/{platform}")
+    def business_channel(
+        platform: str,
+        as_of: str | None = Query(None),
+        handle: str | None = Query(None),
+    ):
+        from ..business import get_channel_as_of
+
+        if not db.db_path().exists():
+            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        con = db.connect(read_only=True)
+        try:
+            return get_channel_as_of(
+                con, platform, as_of=as_of, handle=handle
+            ).to_dict()
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+        finally:
+            con.close()
+
     @app.get("/business/items/{sku}")
     def business_item(sku: str):
         from ..business import get_item

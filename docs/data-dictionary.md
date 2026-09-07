@@ -48,8 +48,12 @@ to match observed public patterns on Grailed.
 
 ## orders.jsonl
 
-One row per sold listing with fee calculation platform-specific
-(Grailed 9%, Depop 10%).
+One row per sold listing. The generator currently applies a hardcoded
+platform rate (Grailed 9%, Depop 10%) — it does **not** look up
+`core.channels` as-of `order_at`. After 2026-01-01 the Grailed SCD-2
+version is 12%, so sample order `fees_usd` and as-of channel fee can
+disagree. Treat order fees as recorded facts; treat channel `fee_pct`
+as the account's contracted rate at a point in time.
 
 ## content_pieces.jsonl
 

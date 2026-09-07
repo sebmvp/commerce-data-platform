@@ -11,9 +11,9 @@ Fragmented sourcing, inventory, listing, order, engagement, and content files do
 - Replay-safe ingest (content-hash skip + natural-key upserts)
 - Pydantic validation with rejected-record quarantine, including malformed JSON
 - Atomic run boundaries and orphan recovery
-- SCD-2 channel history and event-sourced item state
+- SCD-2 channel history (as-of lookup) and event-sourced item state
 - Ingest reconciliation (`read = loaded + rejected`) and a warehouse trust report
-- Typed business tools: snapshot, attention queue, item + history, metric definitions — CLI and FastAPI
+- Typed business tools: snapshot, attention queue, item + history, channel as-of, metric definitions — CLI and FastAPI
 
 ## Architecture
 
@@ -67,6 +67,7 @@ cdp build --sample
 cdp status
 cdp business snapshot
 cdp business attention --limit 5
+cdp business channel grailed --as-of 2025-06-01
 ```
 
 `--json` on business commands emits the structured payload (kind, data, provenance).

@@ -1,4 +1,7 @@
 -- Analytics surface. Views are rebuilt on every `cdp init`/`cdp build`.
+-- Listing joins to core.channels use the version PK (channel_key). Do not
+-- also require valid_to IS NULL — that dropped platform after a later
+-- SCD-2 version closed the stamped row.
 
 -- Latest projection health: everything sitting in inventory right now.
 CREATE OR REPLACE VIEW catalog.v_inventory_summary AS
@@ -46,7 +49,7 @@ SELECT
       / nullif(coalesce(sum(e.views), 0), 0), 4)  AS watch_rate
 FROM sales.listings l
 JOIN catalog.items i      ON i.item_id = l.item_id
-LEFT JOIN core.channels ch ON ch.channel_key = l.channel_key AND ch.valid_to IS NULL
+LEFT JOIN core.channels ch ON ch.channel_key = l.channel_key
 LEFT JOIN sales.engagement_metric e ON e.listing_id = l.listing_id
 GROUP BY l.listing_id, i.sku, i.product, ch.platform,
          l.price_usd, l.status, l.listed_at, l.sold_at, l.sold_price_usd;
@@ -63,7 +66,7 @@ SELECT
             THEN epoch(l.sold_at - l.listed_at) / 86400.0 END), 1) AS avg_days_to_sell,
   round(sum(l.sold_price_usd), 2)                     AS gross_sales_usd
 FROM sales.listings l
-LEFT JOIN core.channels ch ON ch.channel_key = l.channel_key AND ch.valid_to IS NULL
+LEFT JOIN core.channels ch ON ch.channel_key = l.channel_key
 GROUP BY ch.platform
 ORDER BY gross_sales_usd DESC NULLS LAST;
 

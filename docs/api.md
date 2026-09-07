@@ -22,5 +22,6 @@ View-backed routes read SQL. `/business/*` and `/ingest/trust` call the same Pyt
 | GET | `/business/metrics?name=` | metric registry / `explain_metric` |
 | GET | `/business/items/{sku}` | `get_item` |
 | GET | `/business/items/{sku}/history` | `get_item_history` |
+| GET | `/business/channels/{platform}?as_of=&handle=` | `get_channel_as_of` |
 
 Auth, pooling, and multi-process serving are out of scope.

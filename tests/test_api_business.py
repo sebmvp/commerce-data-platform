@@ -56,3 +56,34 @@ def test_api_snapshot_still_derived(warehouse):
     assert body["kind"] == "derived"
     assert body["data"]["items_total"] == 12
     assert "margin" not in body["data"]
+
+
+def test_api_channel_as_of_contract(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    from cdp_cli.api.main import create_app
+
+    client = TestClient(create_app())
+    missing = client.get("/business/channels/stockx")
+    assert missing.status_code == 404
+
+    before = client.get(
+        "/business/channels/grailed", params={"as_of": "2025-06-01T00:00:00"}
+    )
+    assert before.status_code == 200
+    body = before.json()
+    assert body["kind"] == "fact"
+    assert body["provenance"]["tool"] == "get_channel_as_of"
+    assert len(body["data"]["versions"]) == 1
+    assert body["data"]["versions"][0]["fee_pct"] == pytest.approx(0.09)
+
+    after = client.get(
+        "/business/channels/grailed", params={"as_of": "2026-06-01"}
+    )
+    assert after.status_code == 200
+    assert after.json()["data"]["versions"][0]["fee_pct"] == pytest.approx(0.12)
+
+    bad = client.get(
+        "/business/channels/grailed", params={"as_of": "not-a-date"}
+    )
+    assert bad.status_code == 400

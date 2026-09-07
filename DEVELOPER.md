@@ -40,11 +40,19 @@ visible in `cdp query "SELECT * FROM core.rejected_records"` or
 ## SCD-2 vs. ON CONFLICT
 
 Channels use SCD-2 (`valid_from` / `valid_to`) because fees and standing
-actually change over time and point-in-time queries matter. Items,
-listings, orders use `ON CONFLICT DO UPDATE` — a listing's *price* can
-change, but we don't need the history of that change in the warehouse
-(it lives in the source platforms' "listing updated at" APIs if we ever
-need it).
+actually change over time and point-in-time queries matter. A new version
+closes the open row at the new `valid_from`, so intervals are
+`[valid_from, valid_to)` and do not overlap. Ask `get_channel_as_of`
+(CLI: `cdp business channel grailed --as-of 2025-06-01`) instead of
+filtering `valid_to IS NULL` by hand.
+
+Items, listings, orders use `ON CONFLICT DO UPDATE` — a listing's *price*
+can change, but we don't keep that history in the warehouse (it lives in
+the source platforms' "listing updated at" APIs if we ever need it).
+`sales.listings.channel_key` is the SCD-2 *version* current at ingest,
+not "the version that covered listed_at". Join on that key without also
+requiring `valid_to IS NULL`, or the platform disappears after a later
+fee change.
 
 ## Adding a new source
 

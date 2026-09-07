@@ -16,7 +16,7 @@ DuckDB (gitignored cache)
         │
         ├─ observability.trust_report
         ├─ metrics.METRICS
-        └─ business tools (snapshot, attention, item, history, health, explain_metric)
+        └─ business tools (snapshot, attention, item, history, channel as-of, health, explain_metric)
                 │
                 ├─ CLI  cdp status | business | demo
                 └─ FastAPI  /ingest/trust  /business/*
@@ -66,7 +66,7 @@ Pydantic models live in `validate.py`. Rejects go to `core.rejected_records` wit
 
 ## History
 
-- **SCD-2** on `core.channels`: fee/standing changes close `valid_to` and open a new version. Point-in-time queries should filter `valid_from/valid_to`; as-of helpers are not a separate API yet.
+- **SCD-2** on `core.channels`: fee/standing changes close the open row at the *successor's* `valid_from` (not ingest wall-clock). Intervals are half-open `[valid_from, valid_to)` with `valid_to` null meaning current. `get_channel_as_of` is the point-in-time API. Listing/order rows stamp the version that was current at ingest; that key is not automatically as-of `listed_at`/`order_at`.
 - **Event sourcing** on `catalog.item_events`: append-only truth. `catalog.items` is the latest projection.
 
 ## Warehouse trust
@@ -89,6 +89,7 @@ Warnings (do not flip `ok`): historical `failed` runs that rolled back, all-reje
 | `explain_metric` | fact | What does this number mean? |
 | `get_item` | fact | What is this item right now? |
 | `get_item_history` | fact | What happened to this item over time? |
+| `get_channel_as_of` | fact | What channel version (fee/standing) covered this instant? |
 
 Attention ranking is deterministic: unlisted owned (by capital, then age) → stale listings → high watch_rate with zero offers. Actions (`LIST NEXT`, `REVIEW PRICE OR CHANNEL`, `CONSIDER REPRICE`) are heuristics labeled separately from the metric columns.
 
@@ -97,7 +98,7 @@ Attention ranking is deterministic: unlisted owned (by capital, then age) → st
 ## Surfaces
 
 - CLI: `init / build / ingest / validate / query / report / status / business / demo / serve`
-- API: view-backed inventory/listing/insight routes, plus `/ingest/trust` and `/business/*` (including item + history) which call the same Python tools
+- API: view-backed inventory/listing/insight routes, plus `/ingest/trust` and `/business/*` (including item + history + channel as-of) which call the same Python tools
 - Demo: `cdp demo` builds an isolated temp warehouse from `sample_data/` (never unlinks the configured DB), prints state, stages dirty input in a temp copy, shows quarantine, replays
 
 ## Future AI boundary
@@ -110,4 +111,4 @@ The public fixture is small by design. A file the reviewer can rebuild on a lapt
 
 ## Tests
 
-Validation, smoke build, idempotency, malformed JSON, atomicity, views, observability, business tools, adversarial fixtures, demo path. CI: pytest, `cdp build --sample`, Docker image smoke.
+Validation, smoke build, idempotency, malformed JSON, atomicity, views, observability, business tools (including channel as-of), adversarial fixtures, demo path. CI: pytest, `cdp build --sample`, Docker image smoke.

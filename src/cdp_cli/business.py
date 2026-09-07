@@ -24,6 +24,32 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+def _parse_as_of(as_of: datetime | date | str | None) -> datetime:
+    """Accept ISO timestamps (with optional Z) or a date; default now."""
+    if as_of is None:
+        return _utcnow()
+    if isinstance(as_of, datetime):
+        if as_of.tzinfo:
+            return as_of.astimezone(timezone.utc).replace(tzinfo=None)
+        return as_of
+    if isinstance(as_of, date):
+        return datetime(as_of.year, as_of.month, as_of.day)
+    text = str(as_of).strip()
+    if not text:
+        raise ValueError("as_of is empty")
+    if text.endswith("Z"):
+        text = text[:-1]
+    try:
+        parsed = datetime.fromisoformat(text)
+    except ValueError as e:
+        raise ValueError(f"invalid as_of {as_of!r}; expected ISO-8601") from e
+    if isinstance(parsed, datetime):
+        if parsed.tzinfo:
+            return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        return parsed
+    return datetime(parsed.year, parsed.month, parsed.day)
+
+
 @dataclass
 class Provenance:
     tool: str
@@ -143,7 +169,7 @@ def _item_listings(con: duckdb.DuckDBPyConnection, item_id: str) -> list[dict[st
           END AS watch_rate
         FROM sales.listings l
         LEFT JOIN core.channels ch
-          ON ch.channel_key = l.channel_key AND ch.valid_to IS NULL
+          ON ch.channel_key = l.channel_key
         LEFT JOIN sales.engagement_metric em ON em.listing_id = l.listing_id
         WHERE l.item_id = ?
         GROUP BY l.listing_id, l.status, l.price_usd, l.listed_at, l.sold_at,
@@ -309,7 +335,7 @@ def get_inventory_attention_queue(
             END AS watch_rate
           FROM sales.listings l
           LEFT JOIN core.channels ch
-            ON ch.channel_key = l.channel_key AND ch.valid_to IS NULL
+            ON ch.channel_key = l.channel_key
           LEFT JOIN sales.engagement_metric em ON em.listing_id = l.listing_id
           WHERE l.status = 'active'
           GROUP BY l.item_id, l.listing_id, l.status, l.listed_at, l.price_usd, ch.platform
@@ -490,6 +516,74 @@ def explain_metric(name: str) -> BusinessPayload:
             source_relations=["cdp_cli.metrics.METRICS"],
             metric_names=[m.name],
             notes=["Canonical definition registry — not inferred from SQL ad hoc."],
+        ),
+    )
+
+
+def get_channel_as_of(
+    con: duckdb.DuckDBPyConnection,
+    platform: str,
+    *,
+    as_of: datetime | date | str | None = None,
+    handle: str | None = None,
+) -> BusinessPayload:
+    """Channel version(s) covering as_of. FACT — not a fee recommendation.
+
+    SCD-2 intervals are half-open [valid_from, valid_to). A row with
+    valid_to NULL is current. Listing.channel_key is the version stamped
+    at ingest, which may differ from the version that covered listed_at.
+    """
+    platform = (platform or "").strip()
+    if not platform:
+        raise ValueError("platform is required")
+    handle = (handle or "").strip() or None
+    at = _parse_as_of(as_of)
+
+    exists_sql = "SELECT 1 FROM core.channels WHERE platform = ?"
+    exists_params: list[Any] = [platform]
+    if handle:
+        exists_sql += " AND handle = ?"
+        exists_params.append(handle)
+    exists_sql += " LIMIT 1"
+    if not con.execute(exists_sql, exists_params).fetchone():
+        label = f"{platform}/{handle}" if handle else platform
+        raise KeyError(f"unknown channel platform={label!r}")
+
+    sql = """
+        SELECT channel_key, platform, handle, standing, region, fee_pct,
+               valid_from, valid_to
+        FROM core.channels
+        WHERE platform = ?
+          AND valid_from <= ?
+          AND (valid_to IS NULL OR valid_to > ?)
+    """
+    params: list[Any] = [platform, at, at]
+    if handle:
+        sql += " AND handle = ?"
+        params.append(handle)
+    sql += " ORDER BY handle, valid_from"
+    versions = _records(con, sql, params)
+
+    return BusinessPayload(
+        kind="fact",
+        data={
+            "platform": platform,
+            "handle": handle,
+            "as_of": at.isoformat(timespec="seconds"),
+            "interval": "[valid_from, valid_to)",
+            "versions": versions,
+            "covered": bool(versions),
+        },
+        provenance=Provenance(
+            tool="get_channel_as_of",
+            as_of=at.isoformat(timespec="seconds") + "Z",
+            source_relations=["core.channels"],
+            metric_names=[],
+            notes=[
+                "FACT: SCD-2 row covering as_of; fee_pct is that version's rate.",
+                "Interval is [valid_from, valid_to). The boundary instant belongs to the newer version.",
+                "Does not compute order fees. Sample orders may use a generator rate that disagrees with this version.",
+            ],
         ),
     )
 

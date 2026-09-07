@@ -9,7 +9,7 @@ Commands:
   query "SQL"           Ad-hoc SQL
   report <kind>         inventory | pricing | funnel  -> markdown export
   status                Health snapshot + ingest reconciliation
-  business <topic>      snapshot | attention | health | metric | item | history
+  business <topic>      snapshot | attention | health | metric | item | history | channel
   demo                  3-minute warehouse → decision → failure story
   tables                Row counts per table
   serve [--port N]      FastAPI read layer (requires cdp_cli[api])
@@ -224,6 +224,24 @@ def cmd_business(args: argparse.Namespace) -> int:
             except KeyError as e:
                 print(str(e), file=sys.stderr)
                 return 1
+        elif topic == "channel":
+            platform = args.metric_name
+            if not platform:
+                print(
+                    "platform required: cdp business channel <platform> [--as-of ISO]",
+                    file=sys.stderr,
+                )
+                return 1
+            try:
+                payload = biz.get_channel_as_of(
+                    con, platform, as_of=args.as_of, handle=args.handle
+                ).to_dict()
+            except KeyError as e:
+                print(str(e), file=sys.stderr)
+                return 1
+            except ValueError as e:
+                print(str(e), file=sys.stderr)
+                return 1
         else:
             print(f"unknown business topic: {topic}", file=sys.stderr)
             return 1
@@ -353,23 +371,34 @@ def main(argv: list[str] | None = None) -> int:
 
     pbiz = sub.add_parser(
         "business",
-        help="Operational answers: snapshot | attention | health | metric | item | history",
+        help="Operational answers: snapshot | attention | health | metric | item | history | channel",
     )
     pbiz.add_argument(
         "topic",
-        choices=["snapshot", "attention", "health", "metric", "item", "history"],
+        choices=["snapshot", "attention", "health", "metric", "item", "history", "channel"],
     )
     pbiz.add_argument(
         "metric_name",
         nargs="?",
         default=None,
-        help="metric name (topic=metric) or item sku (topic=item|history)",
+        help="metric name, item sku, or channel platform depending on topic",
     )
     pbiz.add_argument(
         "--limit",
         type=int,
         default=25,
         help="attention queue size (default 25)",
+    )
+    pbiz.add_argument(
+        "--as-of",
+        dest="as_of",
+        default=None,
+        help="ISO-8601 timestamp for topic=channel (default: now)",
+    )
+    pbiz.add_argument(
+        "--handle",
+        default=None,
+        help="channel handle filter (topic=channel)",
     )
     pbiz.add_argument(
         "--json",

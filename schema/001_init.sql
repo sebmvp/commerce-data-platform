@@ -10,8 +10,9 @@
 --     re-interpreted without re-reading the original file.
 --   * core.ingest_runs is an audit log: every ingest batch is recorded with
 --     row counts, validation rejections, and duration.
---   * Channel snapshots are SCD-2 (valid_from/valid_to) so point-in-time
---     questions ("what did this account look like in June?") are answerable.
+--   * Channel snapshots are SCD-2: half-open [valid_from, valid_to)
+--     (valid_to null = current). Point-in-time questions go through
+--     get_channel_as_of, not ad-hoc valid_to IS NULL filters.
 --   * Supply chain is event-sourced: items accumulate item_events; the item
 --     row itself is the latest projection of its event stream.
 
