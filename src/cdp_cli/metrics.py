@@ -30,6 +30,9 @@ class MetricDef:
 # Default operational thresholds — named so they are not magic numbers
 # scattered through SQL. Changing one is an explicit product decision.
 STALE_LISTING_DAYS = 14
+# Attention heuristic, not a metric: active listing with this watch_rate
+# and zero offers is treated as "interest without conversion."
+HIGH_WATCH_RATE = 0.08
 ATTENTION_QUEUE_DEFAULT_LIMIT = 25
 
 # Approximate FX used only for *display* USD estimates of CNY cost basis.

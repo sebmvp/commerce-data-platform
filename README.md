@@ -85,7 +85,7 @@ cdp business channel grailed --as-of 2025-06-01
 pytest -q
 ```
 
-Covers validation, idempotency, atomicity, quarantine, reconciliation, business tools, adversarial fixtures, and the demo path. GitHub Actions runs the suite, a from-scratch `cdp build --sample`, and a Docker image smoke on every push to `main`.
+Covers validation, idempotency, atomicity, quarantine, reconciliation, business tools, attention-queue eval, adversarial fixtures, and the demo path. GitHub Actions runs the suite, a from-scratch `cdp build --sample`, and a Docker image smoke on every push to `main`.
 
 ## API
 

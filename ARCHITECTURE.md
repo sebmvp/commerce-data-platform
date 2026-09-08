@@ -111,4 +111,4 @@ The public fixture is small by design. A file the reviewer can rebuild on a lapt
 
 ## Tests
 
-Validation, smoke build, idempotency, malformed JSON, atomicity, views, observability, business tools (including channel as-of), adversarial fixtures, demo path. CI: pytest, `cdp build --sample`, Docker image smoke.
+Covers validation, smoke build, idempotency, malformed JSON, atomicity, views, observability, business tools (including channel as-of), labeled attention-queue eval, adversarial fixtures, demo path. CI: pytest, `cdp build --sample`, Docker image smoke.

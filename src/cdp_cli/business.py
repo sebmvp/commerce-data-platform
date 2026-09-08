@@ -360,14 +360,14 @@ def get_inventory_attention_queue(
             CASE
               WHEN a.status = 'owned' THEN 'unlisted_owned'
               WHEN lr.listing_age_days >= {M.STALE_LISTING_DAYS} THEN 'stale_listing'
-              WHEN lr.watch_rate IS NOT NULL AND lr.watch_rate >= 0.08
+              WHEN lr.watch_rate IS NOT NULL AND lr.watch_rate >= {M.HIGH_WATCH_RATE}
                    AND coalesce(lr.offers, 0) = 0 THEN 'high_attention_no_offers'
               ELSE 'listed_active'
             END AS attention_reason,
             CASE
               WHEN a.status = 'owned' THEN 100
               WHEN lr.listing_age_days >= {M.STALE_LISTING_DAYS} THEN 80
-              WHEN lr.watch_rate IS NOT NULL AND lr.watch_rate >= 0.08
+              WHEN lr.watch_rate IS NOT NULL AND lr.watch_rate >= {M.HIGH_WATCH_RATE}
                    AND coalesce(lr.offers, 0) = 0 THEN 60
               ELSE 20
             END AS priority_class
@@ -447,11 +447,13 @@ def get_inventory_attention_queue(
             "queue": queue,
             "recommendations": recommendations,
             "threshold_stale_listing_days": M.STALE_LISTING_DAYS,
+            "threshold_high_watch_rate": M.HIGH_WATCH_RATE,
             "ranking_notes": [
                 "priority_class: unlisted_owned=100, stale_listing=80, "
                 "high_attention_no_offers=60, listed_active=20",
                 "Within a class: higher capital, then older inventory/listing first",
                 "RECOMMENDATION rows are heuristic; FACT rows are the queue metrics",
+                f"high_attention_no_offers: watch_rate >= {M.HIGH_WATCH_RATE} and 0 offers",
             ],
         },
         provenance=Provenance(
@@ -474,6 +476,7 @@ def get_inventory_attention_queue(
             notes=[
                 "Queue metric columns are FACT/DERIVED; 'recommendations' are labeled separately.",
                 f"stale threshold = {M.STALE_LISTING_DAYS} days (metrics.STALE_LISTING_DAYS).",
+                f"high-watch threshold = {M.HIGH_WATCH_RATE} (metrics.HIGH_WATCH_RATE).",
             ],
         ),
     )
