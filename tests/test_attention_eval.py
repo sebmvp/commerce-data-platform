@@ -84,10 +84,10 @@ def _seed(con) -> None:
     item(AGE_NEW, "owned", 500, 10)
 
     item(STALE, "listed", 200, 40)
-    listing(STALE, 20, 10, 1, 0)
+    listing(STALE, metrics.STALE_LISTING_DAYS, 10, 1, 0)
 
     item(ALMOST_STALE, "listed", 200, 40)
-    listing(ALMOST_STALE, 13, 10, 0, 0)
+    listing(ALMOST_STALE, metrics.STALE_LISTING_DAYS - 1, 10, 0, 0)
 
     item(WATCH_NO_OFFER, "listed", 200, 20)
     listing(WATCH_NO_OFFER, 5, 100, 8, 0)  # watch_rate = 0.08
@@ -154,11 +154,16 @@ def test_attention_eval_unlisted_sorts_capital_then_age(warehouse):
 
 
 def test_attention_eval_stale_threshold_is_inclusive(warehouse):
+    """Age == STALE_LISTING_DAYS is stale; one day under is not.
+
+    A `>` threshold would still pass a 20-vs-13 seed. Pin the boundary.
+    """
     _seed(warehouse)
     by = _by_sku(get_inventory_attention_queue(warehouse, limit=50).data["queue"])
-    assert by[STALE]["listing_age_days"] >= metrics.STALE_LISTING_DAYS
-    assert by[ALMOST_STALE]["listing_age_days"] == 13
-    assert by[ALMOST_STALE]["listing_age_days"] < metrics.STALE_LISTING_DAYS
+    assert by[STALE]["listing_age_days"] == metrics.STALE_LISTING_DAYS
+    assert by[STALE]["attention_reason"] == "stale_listing"
+    assert by[ALMOST_STALE]["listing_age_days"] == metrics.STALE_LISTING_DAYS - 1
+    assert by[ALMOST_STALE]["attention_reason"] == "listed_active"
 
 
 def test_attention_eval_watch_rate_boundary(warehouse):
@@ -201,9 +206,15 @@ def test_attention_eval_emits_consider_reprice(warehouse):
     """Need the watch-no-offer SKU inside the top-5 recommendation window."""
     _seed(warehouse)
     warehouse.execute("DELETE FROM catalog.items WHERE status = 'owned'")
-    recs = {
-        r["sku"]: r
-        for r in get_inventory_attention_queue(warehouse, limit=50).data["recommendations"]
-    }
-    assert recs[WATCH_NO_OFFER]["action"] == "consider_reprice"
-    assert recs[STALE]["action"] == "review_price_or_channel"
+    payload = get_inventory_attention_queue(warehouse, limit=50)
+    queue = payload.data["queue"]
+    recs = payload.data["recommendations"]
+    assert [r["sku"] for r in recs] == [r["sku"] for r in queue[:5]]
+    rec_by_sku = {r["sku"]: r for r in recs}
+    assert rec_by_sku[WATCH_NO_OFFER]["action"] == "consider_reprice"
+    assert rec_by_sku[STALE]["action"] == "review_price_or_channel"
+
+
+def test_high_watch_rate_is_heuristic_not_a_metric():
+    assert "high_watch_rate" not in metrics.METRICS
+    assert metrics.HIGH_WATCH_RATE == 0.08
