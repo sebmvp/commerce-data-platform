@@ -10,7 +10,11 @@ Changing ranking here is a product decision, not a silent refactor.
 from __future__ import annotations
 
 from cdp_cli import metrics
-from cdp_cli.business import get_inventory_attention_queue
+from cdp_cli.business import (
+    ACTION_FOR_REASON,
+    action_for_reason,
+    get_inventory_attention_queue,
+)
 
 # SKUs are the eval IDs. Keep them stable; tests assert on these names.
 CAPITAL_HIGH = "eval-capital-high"
@@ -182,7 +186,7 @@ def test_attention_eval_actions_and_layer_split(warehouse):
     payload = get_inventory_attention_queue(warehouse, limit=50)
     queue = payload.data["queue"]
     recs = payload.data["recommendations"]
-    expected = {
+    assert ACTION_FOR_REASON == {
         "unlisted_owned": "list_next",
         "stale_listing": "review_price_or_channel",
         "high_attention_no_offers": "consider_reprice",
@@ -190,28 +194,17 @@ def test_attention_eval_actions_and_layer_split(warehouse):
     }
     assert [r["sku"] for r in recs] == [r["sku"] for r in queue[:5]]
     for rec, row in zip(recs, queue[:5]):
-        assert rec["action"] == expected[row["attention_reason"]]
+        assert rec["action"] == action_for_reason(row["attention_reason"])
         assert rec["based_on"]["attention_reason"] == row["attention_reason"]
         assert "action" not in rec["based_on"]
         assert "margin" not in str(rec).lower()
     for row in queue:
         assert "action" not in row
         assert "why" not in row
+    by = _by_sku(queue)
+    assert action_for_reason(by[WATCH_NO_OFFER]["attention_reason"]) == "consider_reprice"
     rec_by_sku = {r["sku"]: r for r in recs}
     assert rec_by_sku[CAPITAL_HIGH]["action"] == "list_next"
-    assert rec_by_sku[STALE]["action"] == "review_price_or_channel"
-
-
-def test_attention_eval_emits_consider_reprice(warehouse):
-    """Need the watch-no-offer SKU inside the top-5 recommendation window."""
-    _seed(warehouse)
-    warehouse.execute("DELETE FROM catalog.items WHERE status = 'owned'")
-    payload = get_inventory_attention_queue(warehouse, limit=50)
-    queue = payload.data["queue"]
-    recs = payload.data["recommendations"]
-    assert [r["sku"] for r in recs] == [r["sku"] for r in queue[:5]]
-    rec_by_sku = {r["sku"]: r for r in recs}
-    assert rec_by_sku[WATCH_NO_OFFER]["action"] == "consider_reprice"
     assert rec_by_sku[STALE]["action"] == "review_price_or_channel"
 
 

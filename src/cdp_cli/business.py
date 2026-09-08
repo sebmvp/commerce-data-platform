@@ -19,6 +19,18 @@ from .observability import trust_report
 
 Kind = Literal["fact", "derived", "recommendation"]
 
+# Recommendation policy. Queue rows stay facts; these labels are heuristic.
+ACTION_FOR_REASON = {
+    "unlisted_owned": "list_next",
+    "stale_listing": "review_price_or_channel",
+    "high_attention_no_offers": "consider_reprice",
+    "listed_active": "monitor",
+}
+
+
+def action_for_reason(reason: str) -> str:
+    return ACTION_FOR_REASON.get(reason, "monitor")
+
 
 def _utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
@@ -403,28 +415,25 @@ def get_inventory_attention_queue(
     recommendations = []
     for row in queue[:5]:
         reason = row["attention_reason"]
+        action = action_for_reason(reason)
         if reason == "unlisted_owned":
-            action = "list_next"
             why = (
                 f"{row['sku']} is owned/unlisted with cost basis "
                 f"{row['acquisition_cost_cny']} CNY and age "
                 f"{row['inventory_age_days']} days — capital is idle."
             )
         elif reason == "stale_listing":
-            action = "review_price_or_channel"
             why = (
                 f"{row['sku']} active on {row['platform']} for "
                 f"{row['listing_age_days']} days "
                 f"(threshold {M.STALE_LISTING_DAYS}) without sale."
             )
         elif reason == "high_attention_no_offers":
-            action = "consider_reprice"
             why = (
                 f"{row['sku']} watch_rate={row['watch_rate']} with 0 offers — "
                 f"attention without conversion often means price friction."
             )
         else:
-            action = "monitor"
             why = f"{row['sku']} is active; no urgency rule fired."
         recommendations.append(
             {
