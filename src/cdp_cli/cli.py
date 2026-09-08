@@ -11,6 +11,7 @@ Commands:
   status                Health snapshot + ingest reconciliation
   business <topic>      snapshot | attention | health | metric | item | history | channel
   demo                  3-minute warehouse → decision → failure story
+  action                propose | list | get | approve | reject  (sandbox)
   tables                Row counts per table
   serve [--port N]      FastAPI read layer (requires cdp_cli[api])
 """
@@ -257,6 +258,58 @@ def cmd_demo(_: argparse.Namespace) -> int:
     return run_demo()
 
 
+def cmd_action(args: argparse.Namespace) -> int:
+    from . import actions as act
+    from .present import format_action
+
+    as_json = args.json
+    try:
+        if args.action_cmd == "propose":
+            payload = act.propose(
+                target_type=args.target_type,
+                target_id=args.target_id,
+                action_type=args.action_type,
+                reason=args.reason,
+                actor=args.actor,
+            )
+        elif args.action_cmd == "list":
+            payload = act.list_actions(status=args.status, limit=args.limit)
+        elif args.action_cmd == "get":
+            payload = act.get_action(args.action_id)
+        elif args.action_cmd == "approve":
+            payload = act.approve_action(
+                args.action_id, actor=args.actor, reason=args.reason
+            )
+        elif args.action_cmd == "reject":
+            payload = act.reject_action(
+                args.action_id, actor=args.actor, reason=args.reason
+            )
+        else:
+            print(f"unknown action command: {args.action_cmd}", file=sys.stderr)
+            return 1
+    except (KeyError, ValueError) as e:
+        print(str(e), file=sys.stderr)
+        return 1
+
+    if as_json:
+        print(json.dumps(payload, indent=2, default=str))
+        return 0
+    data = payload.get("data")
+    if isinstance(data, dict) and "actions" in data:
+        rows = data["actions"]
+        if not rows:
+            print("(no actions)")
+            return 0
+        for row in rows:
+            print(format_action(row), end="")
+        return 0
+    if isinstance(data, dict):
+        print(format_action(data), end="")
+        return 0
+    print(json.dumps(payload, indent=2, default=str))
+    return 0
+
+
 def _print_business(payload: dict, *, as_json: bool) -> None:
     if as_json:
         print(json.dumps(payload, indent=2, default=str))
@@ -369,6 +422,42 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("status", help="Health snapshot + ingest reconciliation")
     sub.add_parser("demo", help="Isolated warehouse story (does not touch CDP_DB)")
 
+    pa = sub.add_parser("action", help="Sandbox operational actions (SQLite log)")
+    a_sub = pa.add_subparsers(dest="action_cmd", required=True)
+
+    def _json_flag(p: argparse.ArgumentParser) -> None:
+        p.add_argument("--json", action="store_true")
+
+    ap = a_sub.add_parser("propose", help="Record a proposed sandbox action")
+    _json_flag(ap)
+    ap.add_argument("--target-type", default="item", choices=["item", "listing"])
+    ap.add_argument("--target-id", required=True, help="sku or listing_id")
+    ap.add_argument(
+        "--type",
+        dest="action_type",
+        required=True,
+        choices=["propose_list", "propose_reprice", "propose_channel_change", "mark_reviewed"],
+    )
+    ap.add_argument("--reason", required=True)
+    ap.add_argument("--actor", default="operator")
+    al = a_sub.add_parser("list", help="List sandbox actions")
+    _json_flag(al)
+    al.add_argument("--status", choices=["proposed", "approved", "rejected"])
+    al.add_argument("--limit", type=int, default=50)
+    ag = a_sub.add_parser("get", help="Fetch one action")
+    _json_flag(ag)
+    ag.add_argument("action_id")
+    aa = a_sub.add_parser("approve", help="Human-approve a proposed action")
+    _json_flag(aa)
+    aa.add_argument("action_id")
+    aa.add_argument("--actor", default="operator")
+    aa.add_argument("--reason", default=None)
+    ar = a_sub.add_parser("reject", help="Human-reject a proposed action")
+    _json_flag(ar)
+    ar.add_argument("action_id")
+    ar.add_argument("--actor", default="operator")
+    ar.add_argument("--reason", default=None)
+
     pbiz = sub.add_parser(
         "business",
         help="Operational answers: snapshot | attention | health | metric | item | history | channel",
@@ -423,6 +512,7 @@ def main(argv: list[str] | None = None) -> int:
         "tables": cmd_tables,
         "status": cmd_status,
         "demo": cmd_demo,
+        "action": cmd_action,
         "business": cmd_business,
         "report": cmd_report,
         "serve": cmd_serve,

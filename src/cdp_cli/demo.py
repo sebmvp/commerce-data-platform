@@ -21,6 +21,7 @@ from .ingest import JOBS_BY_SOURCE
 from .ingest.catalog import ItemIngest
 from .observability import trust_report
 from .present import (
+    format_action,
     format_attention,
     format_item,
     format_item_history,
@@ -54,9 +55,11 @@ def _isolated_warehouse() -> Iterator[Path]:
     warehouse would destroy an interviewer's already-built cache.
     """
     previous = os.environ.get("CDP_DB")
+    previous_actions = os.environ.get("CDP_ACTIONS_DB")
     with tempfile.TemporaryDirectory(prefix="cdp-demo-db-") as tmp:
         path = Path(tmp) / "warehouse.duckdb"
         os.environ["CDP_DB"] = str(path)
+        os.environ["CDP_ACTIONS_DB"] = str(Path(tmp) / "actions.sqlite")
         try:
             yield path
         finally:
@@ -64,6 +67,10 @@ def _isolated_warehouse() -> Iterator[Path]:
                 os.environ.pop("CDP_DB", None)
             else:
                 os.environ["CDP_DB"] = previous
+            if previous_actions is None:
+                os.environ.pop("CDP_ACTIONS_DB", None)
+            else:
+                os.environ["CDP_ACTIONS_DB"] = previous_actions
 
 
 def run_demo(*, file: TextIO = sys.stdout) -> int:
@@ -115,7 +122,35 @@ def _run_isolated_demo(catalog: Path, path: Path, file: TextIO) -> int:
         hist = biz.get_item_history(con, focus_sku)
         print(format_item_history(hist.data), end="", file=file)
 
-        _banner("5. FAILURE HANDLING", file)
+        _banner("5. SANDBOX ACTION", file)
+        print("recommendation is not an action until a human approves it", file=file)
+        recs = att.data.get("recommendations") or []
+        if recs:
+            from . import actions as act
+
+            rec = recs[0]
+            sandbox_type = act.sandbox_type_for_recommendation(rec["action"])
+            proposed = act.propose(
+                target_type="item",
+                target_id=rec["sku"],
+                action_type=sandbox_type,
+                reason=rec["why"],
+                actor="demo",
+                payload={"sku": rec["sku"], "from": rec["action"]},
+                recommendation_action=rec["action"],
+            )
+            print(format_action(proposed["data"]), end="", file=file)
+            approved = act.approve_action(
+                proposed["data"]["action_id"], actor="operator"
+            )
+            print("human approved:", file=file)
+            print(format_action(approved["data"]), end="", file=file)
+            print(
+                "warehouse listings/items unchanged — this log is the new state.",
+                file=file,
+            )
+
+        _banner("6. FAILURE HANDLING", file)
         print("temp copy of catalog_items.jsonl + 2 bad lines", file=file)
         print("  - malformed JSON", file=file)
         print("  - schema violation (negative cost)", file=file)
@@ -149,13 +184,13 @@ def _run_isolated_demo(catalog: Path, path: Path, file: TextIO) -> int:
             file=file,
         )
 
-        _banner("6. TRUST AFTER FAILURE", file)
+        _banner("7. TRUST AFTER FAILURE", file)
         health = biz.get_ingest_health(con)
         print(format_trust(health.data), end="", file=file)
         print("business state after the bad file:", file=file)
         print(format_snapshot(biz.get_business_snapshot(con).data), end="", file=file)
 
-        _banner("7. REPLAY", file)
+        _banner("8. REPLAY", file)
         print(
             "re-ingest sample_data/ — canonical files are unchanged, "
             "so content-hash skip fires",

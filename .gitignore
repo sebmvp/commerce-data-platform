@@ -4,6 +4,7 @@ __pycache__/
 .pytest_cache/
 /data/
 /warehouse.duckdb
+/actions.sqlite
 *.egg-info/
 /reports/*.md
 .DS_Store

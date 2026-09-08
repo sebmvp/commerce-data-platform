@@ -14,6 +14,7 @@ Fragmented sourcing, inventory, listing, order, engagement, and content files do
 - SCD-2 channel history (as-of lookup) and event-sourced item state
 - Ingest reconciliation (`read = loaded + rejected`) and a warehouse trust report
 - Typed business tools: snapshot, attention queue, item + history, channel as-of, metric definitions — CLI and FastAPI
+- Sandbox action log: propose → human approve/reject (does not mutate the warehouse)
 
 ## Architecture
 
@@ -89,7 +90,7 @@ Covers validation, idempotency, atomicity, quarantine, reconciliation, business 
 
 ## API
 
-`cdp serve` — `/health`, `/inventory/*`, `/listings/performance`, `/insights/voice-profiles`, `/ingest/runs`, `/ingest/trust`, `/business/snapshot`, `/business/attention`, `/business/metrics`, `/business/items/{sku}`, `/business/items/{sku}/history`. Docs at `/docs`.
+`cdp serve` — `/health`, `/inventory/*`, `/listings/performance`, `/insights/voice-profiles`, `/ingest/runs`, `/ingest/trust`, `/business/snapshot`, `/business/attention`, `/business/metrics`, `/business/items/{sku}`, `/business/items/{sku}/history`, `/business/actions`. Docs at `/docs`.
 
 ## Reference
 

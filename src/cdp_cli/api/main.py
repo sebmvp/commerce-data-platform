@@ -9,8 +9,24 @@ Run: `cdp serve` then http://127.0.0.1:8000/docs
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel
 
 from .. import db
+
+
+class ActionPropose(BaseModel):
+    target_type: str = "item"
+    target_id: str
+    action_type: str
+    reason: str
+    actor: str = "operator"
+    payload: dict | None = None
+    recommendation_action: str | None = None
+
+
+class ActionDecide(BaseModel):
+    actor: str = "operator"
+    reason: str | None = None
 
 
 def _rows(con, sql: str, params: list | None = None) -> list[dict]:
@@ -187,5 +203,70 @@ def create_app() -> FastAPI:
             raise HTTPException(404, str(e)) from e
         finally:
             con.close()
+
+    @app.post("/business/actions")
+    def propose_action(body: ActionPropose):
+        from .. import actions as act
+
+        try:
+            return act.propose(
+                target_type=body.target_type,
+                target_id=body.target_id,
+                action_type=body.action_type,
+                reason=body.reason,
+                actor=body.actor,
+                payload=body.payload,
+                recommendation_action=body.recommendation_action,
+            )
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+
+    @app.get("/business/actions")
+    def list_actions(status: str | None = Query(None), limit: int = Query(50, le=200)):
+        from .. import actions as act
+
+        try:
+            return act.list_actions(status=status, limit=limit)
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+
+    @app.get("/business/actions/{action_id}")
+    def get_action(action_id: str):
+        from .. import actions as act
+
+        try:
+            return act.get_action(action_id)
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+
+    @app.post("/business/actions/{action_id}/approve")
+    def approve_action(action_id: str, body: ActionDecide | None = None):
+        from .. import actions as act
+
+        body = body or ActionDecide()
+        try:
+            return act.approve_action(
+                action_id, actor=body.actor, reason=body.reason
+            )
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+
+    @app.post("/business/actions/{action_id}/reject")
+    def reject_action(action_id: str, body: ActionDecide | None = None):
+        from .. import actions as act
+
+        body = body or ActionDecide()
+        try:
+            return act.reject_action(
+                action_id, actor=body.actor, reason=body.reason
+            )
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
 
     return app

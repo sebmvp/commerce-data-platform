@@ -18,8 +18,8 @@ DuckDB (gitignored cache)
         ├─ metrics.METRICS
         └─ business tools (snapshot, attention, item, history, channel as-of, health, explain_metric)
                 │
-                ├─ CLI  cdp status | business | demo
-                └─ FastAPI  /ingest/trust  /business/*
+                ├─ CLI  cdp status | business | demo | action
+                └─ FastAPI  /ingest/trust  /business/*  /business/actions
                         │
                         └─ (future) AI copilot — not in this repo
 ```
@@ -95,11 +95,13 @@ Attention ranking is deterministic: unlisted owned (by capital, then age) → st
 
 `realized_gross_after_fees_usd` is not full margin.
 
+Sandbox actions (`cdp action`, `/business/actions`) are a separate SQLite log. They record propose → human approve/reject. They do not mutate DuckDB or any marketplace. Postgres replaces SQLite when concurrent writers exist.
+
 ## Surfaces
 
-- CLI: `init / build / ingest / validate / query / report / status / business / demo / serve`
-- API: view-backed inventory/listing/insight routes, plus `/ingest/trust` and `/business/*` (including item + history + channel as-of) which call the same Python tools
-- Demo: `cdp demo` builds an isolated temp warehouse from `sample_data/` (never unlinks the configured DB), prints state, stages dirty input in a temp copy, shows quarantine, replays
+- CLI: `init / build / ingest / validate / query / report / status / business / action / demo / serve`
+- API: view-backed inventory/listing/insight routes, plus `/ingest/trust` and `/business/*` (including item + history + channel as-of + sandbox actions) which call the same Python tools
+- Demo: `cdp demo` builds an isolated temp warehouse from `sample_data/` (never unlinks the configured DB), prints state, proposes/approves one sandbox action (SQLite log, warehouse unchanged), stages dirty input in a temp copy, shows quarantine, replays
 
 ## Future AI boundary
 

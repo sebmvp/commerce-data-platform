@@ -207,3 +207,24 @@ def format_rejects(rows: list[tuple]) -> str:
         if snippet:
             lines.append(f"    {snippet}")
     return "\n".join(lines) + "\n"
+
+
+def format_action(data: dict[str, Any]) -> str:
+    lines = [
+        "SANDBOX ACTION",
+        "",
+        _row("Action", data.get("action_id") or ""),
+        _row("Type", data.get("action_type") or ""),
+        _row("Target", f"{data.get('target_type')} {data.get('target_id')}"),
+        _row("Status", data.get("status") or ""),
+        _row("Actor", data.get("actor") or ""),
+        _row("Reason", data.get("reason") or ""),
+    ]
+    if data.get("recommendation_action"):
+        lines.append(_row("From rec", data["recommendation_action"]))
+    if data.get("decided_by"):
+        lines.append(_row("Decided by", data["decided_by"]))
+    if data.get("decided_at"):
+        lines.append(_row("Decided at", data["decided_at"]))
+    lines.append(_row("", "does not mutate the warehouse"))
+    return "\n".join(lines) + "\n"
