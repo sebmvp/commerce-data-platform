@@ -97,7 +97,7 @@ The engine is not arbitrary LLM-SQL and not `vector_search(question)`.
 - Validation quarantine; rejects are never silent.
 - One transaction per ingest run; mid-run exceptions roll back upserts
   and still write a durable `failed` audit row.
-- Event-sourced items; SCD-2 channels with half-open `[valid_from, valid_to)`.
+- Event-sourced items; listing_events for as-of reconstruction; SCD-2 channels with half-open `[valid_from, valid_to)`.
 - Full margin is not claimed.
 - FACT / DERIVED / RECOMMENDATION / ACTION stay labeled.
 - FastAPI and MCP share `business.py` / `assemble_context`; no duplicated
@@ -108,7 +108,7 @@ The engine is not arbitrary LLM-SQL and not `vector_search(question)`.
 ## Developer surface
 
 Makefile = developer lifecycle (`doctor`, `up`, `down`, `seed`, `test`,
-`eval`, `frontend`, `demo`, `clean`).
+`eval`, `frontend`, `demo` visual inspector, `demo-cli`, `clean`).
 
 `cdp` = product behavior (`status`, `context`, `eval`, `demo`, `item`, …).
 

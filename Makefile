@@ -1,4 +1,4 @@
-.PHONY: help doctor up down seed test eval frontend demo clean migrate
+.PHONY: help doctor up down seed test eval frontend demo demo-cli test-e2e clean migrate
 
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
@@ -14,9 +14,11 @@ help:
 	@echo "  make down       Stop compose services"
 	@echo "  make seed       Load the public synthetic evaluation world"
 	@echo "  make test       Run backend tests"
-	@echo "  make eval       Run gold Context Engine evaluation"
+	@echo "  make eval       Run gold Context Engine evaluation (strict)"
 	@echo "  make frontend   Start the Context Inspector (Vite)"
-	@echo "  make demo       Isolated demo path"
+	@echo "  make demo       Visual product demo (API + inspector)"
+	@echo "  make demo-cli   Isolated CLI/system behavior demo"
+	@echo "  make test-e2e   Playwright smoke against a running inspector"
 	@echo "  make clean      Remove safe generated artifacts (not private data)"
 	@echo "  make migrate    Apply Alembic migrations"
 
@@ -48,8 +50,14 @@ eval: up
 frontend:
 	cd $(WEB) && npm install && npm run dev -- --port 5173 --host 127.0.0.1
 
-demo: up seed
+demo: up
+	$(PYTHON) scripts/run_visual_demo.py
+
+demo-cli: up seed
 	$(CDP) demo
+
+test-e2e:
+	cd $(WEB) && npm install && npx playwright test
 
 clean:
 	rm -rf .pytest_cache .ruff_cache src/*.egg-info web/dist web/node_modules/.vite

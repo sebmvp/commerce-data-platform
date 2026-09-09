@@ -1,5 +1,8 @@
 web/node_modules/
 web/dist/
+web/test-results/
+web/playwright-report/
+web/blob-report/
 .env
 .venv/
 __pycache__/

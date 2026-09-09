@@ -56,5 +56,18 @@ jobs:
           npm install
           npx tsc --noEmit
 
+      - name: Browser smoke
+        run: |
+          cdp serve --host 127.0.0.1 --port 8000 &
+          cd web
+          npx playwright install --with-deps chromium
+          npm run build
+          npx vite preview --host 127.0.0.1 --port 5173 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health && curl -sf http://127.0.0.1:5173 >/dev/null && break
+            sleep 1
+          done
+          npx playwright test
+
       - name: Lint (informational)
         run: ruff check src/ tests/ || true

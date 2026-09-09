@@ -76,4 +76,5 @@ sandbox actions.
 
 `evals/context_questions.py` scores the engine, not an LLM.
 `cdp eval` / `GET /eval` run the catalog against the seeded world.
-Unimplemented rows stay visible (listing as-of, compare_channels).
+CI fails on FAIL or SKIP. Listing as-of, channel comparison, and
+listing-performance are implemented intents.

@@ -6,21 +6,46 @@ type Tab = "inspect" | "eval" | "item";
 const SAMPLES = [
   "Should I reprice j4-military-s?",
   "Should I reprice stone-cargo-l?",
+  "What was the active listing state for j4-military-s two weeks ago?",
+  "Which listings have strong attention but weak offer conversion?",
   "What should I focus on today?",
-  "What do seller notes say about stone-cargo-l?",
-  "Can I trust the current business snapshot?",
 ];
 
-function Pill({ ok, label }: { ok: boolean; label: string }) {
-  return <span className={`pill ${ok ? "ok" : "bad"}`}>{label}</span>;
+function kv(value: unknown): string {
+  if (value == null) return "—";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({
+  title,
+  children,
+  testId,
+}: {
+  title: string;
+  children: ReactNode;
+  testId?: string;
+}) {
   return (
-    <section className="card">
+    <section className="card" data-testid={testId}>
       <h2>{title}</h2>
       {children}
     </section>
+  );
+}
+
+function Field({ label, value }: { label: string; value: unknown }) {
+  return (
+    <div className="field">
+      <dt>{label}</dt>
+      <dd className="mono">{kv(value)}</dd>
+    </div>
   );
 }
 
@@ -90,16 +115,26 @@ export default function App() {
     [objects],
   );
 
+  const facts = bundle?.facts ?? {};
+  const itemData = item?.data?.item ?? item?.data ?? {};
+  const listings = item?.data?.listings ?? [];
+  const orders = item?.data?.orders ?? [];
+  const timeline = history?.data?.timeline ?? [];
+
   return (
     <div className="app">
-      <h1>Context Inspector</h1>
-      <p className="lede">
-        This system decides what business context an AI actually needs —
-        objects, relationships, history, rules, and an explicit statement
-        when required context is missing.
-      </p>
+      <header>
+        <h1>Context Inspector</h1>
+        <p className="lede">
+          This is the context the system assembled for this question —
+          not a chatbot, and not a dump of the whole business.
+        </p>
+      </header>
       <div className="tabs">
-        <button className={tab === "inspect" ? "active" : ""} onClick={() => setTab("inspect")}>
+        <button
+          className={tab === "inspect" ? "active" : ""}
+          onClick={() => setTab("inspect")}
+        >
           Question
         </button>
         <button
@@ -127,6 +162,7 @@ export default function App() {
             }}
           >
             <input
+              data-testid="question-input"
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Ask an operational question"
@@ -135,12 +171,11 @@ export default function App() {
               Assemble
             </button>
           </form>
-          <p className="lede">
+          <div className="samples">
             {SAMPLES.map((s) => (
               <button
                 key={s}
-                className="obj-link"
-                style={{ marginRight: 6, marginBottom: 6 }}
+                className="chip"
                 onClick={() => {
                   setQuestion(s);
                   void runQuestion(s);
@@ -149,67 +184,105 @@ export default function App() {
                 {s}
               </button>
             ))}
-          </p>
+          </div>
           {bundle && (
             <>
-              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <Pill ok={bundle.sufficient} label={bundle.sufficient ? "sufficient" : "insufficient"} />
-                <span className="lede" style={{ margin: 0 }}>
-                  intent {bundle.intent}
-                </span>
+              <div
+                className={`banner ${bundle.sufficient ? "ok" : "bad"}`}
+                data-testid="sufficiency"
+              >
+                <div>
+                  <div className="banner-kicker">{bundle.intent}</div>
+                  <div className="banner-title">
+                    {bundle.sufficient ? "SUFFICIENT" : "INSUFFICIENT"}
+                  </div>
+                </div>
+                <p className="banner-q" data-testid="assembled-question">
+                  {bundle.question}
+                </p>
               </div>
-              <div className="grid" style={{ marginTop: 12 }}>
-                <Section title="Missing context">
-                  {bundle.missing_context?.length ? (
-                    <ul className="missing">
-                      {bundle.missing_context.map((m: any) => (
-                        <li key={m.concept}>
-                          <strong>{m.concept}</strong> — {m.reason}
-                        </li>
-                      ))}
-                    </ul>
+
+              {!!bundle.missing_context?.length && (
+                <section className="missing-panel" data-testid="missing-context">
+                  <h2>Missing context</h2>
+                  <ul>
+                    {bundle.missing_context.map((m: any) => (
+                      <li key={m.concept}>
+                        <strong>{m.concept}</strong>
+                        <span>{m.reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
+              <div className="grid">
+                <Section title="Objects" testId="objects">
+                  {objects.length ? (
+                    objects.map((o: any) => (
+                      <div key={o.type + o.id} className="row">
+                        <span>
+                          {o.type} <span className="mono">{o.id}</span>
+                        </span>
+                        {o.type === "Item" && (
+                          <button className="obj-link" onClick={() => void loadItem(o.id)}>
+                            open
+                          </button>
+                        )}
+                      </div>
+                    ))
                   ) : (
-                    <p className="lede">None. Required concepts are present.</p>
+                    <p className="lede">None assembled.</p>
                   )}
                 </Section>
-                <Section title="Objects">
-                  {objects.map((o: any) => (
-                    <div key={o.type + o.id} className="row">
-                      <span>
-                        {o.type} <span className="mono">{o.id}</span>
-                      </span>
-                      {o.type === "Item" && (
-                        <button className="obj-link" onClick={() => void loadItem(o.id)}>
-                          open
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </Section>
-                <Section title="Relationships">
+                <Section title="Relationships" testId="relationships">
                   <pre className="mono">
                     {(bundle.relationships || [])
                       .map((r: any) => `${r.from_ref} —${r.type}→ ${r.to_ref}`)
                       .join("\n") || "—"}
                   </pre>
                 </Section>
-                <Section title="Facts / metrics">
-                  <pre className="mono">{JSON.stringify(bundle.metrics, null, 2)}</pre>
+                <Section title="Facts" testId="facts">
+                  {Object.keys(facts).length ? (
+                    Object.entries(facts).map(([k, v]) => <Field key={k} label={k} value={v} />)
+                  ) : (
+                    <p className="lede">None.</p>
+                  )}
                 </Section>
-                <Section title="History">
+                <Section title="Metrics" testId="metrics">
+                  {bundle.metrics && Object.keys(bundle.metrics).length ? (
+                    Object.entries(bundle.metrics).map(([k, v]) => (
+                      <Field key={k} label={k} value={v} />
+                    ))
+                  ) : (
+                    <p className="lede">None.</p>
+                  )}
+                </Section>
+                <Section title="History" testId="history">
                   <pre className="mono">
                     {(bundle.events || [])
                       .map((e: any) => `${e.at ?? "?"}  ${e.type}`)
                       .join("\n") || "—"}
                   </pre>
                 </Section>
-                <Section title="Rules">
-                  <pre className="mono">{JSON.stringify(bundle.applicable_rules, null, 2)}</pre>
+                <Section title="Rules" testId="rules">
+                  {(bundle.applicable_rules || []).length ? (
+                    (bundle.applicable_rules as any[]).map((r, i) => (
+                      <p key={i}>
+                        <strong>{typeof r === "string" ? r : r.name || "rule"}</strong>
+                        {typeof r === "object" && r.definition ? (
+                          <span className="lede"> — {r.definition}</span>
+                        ) : null}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="lede">None.</p>
+                  )}
                 </Section>
-                <Section title="Unstructured evidence">
+                <Section title="Unstructured evidence" testId="evidence">
                   {bundle.retrieved_evidence?.length ? (
                     bundle.retrieved_evidence.map((ev: any) => (
-                      <p key={ev.note_id}>
+                      <p key={ev.note_id || ev.title}>
                         <strong>{ev.title || ev.kind}</strong> — {ev.body}
                       </p>
                     ))
@@ -217,8 +290,8 @@ export default function App() {
                     <p className="lede">None for this question.</p>
                   )}
                 </Section>
-                <Section title="Provenance">
-                  <pre className="mono">{JSON.stringify(bundle.provenance, null, 2)}</pre>
+                <Section title="Provenance" testId="provenance">
+                  <pre className="mono">{kv(bundle.provenance)}</pre>
                 </Section>
               </div>
             </>
@@ -233,14 +306,25 @@ export default function App() {
           </button>
           {evalReport && (
             <>
-              <p>
-                <Pill ok={evalReport.ok} label={`${evalReport.passed}/${evalReport.implemented} passing`} />{" "}
-                {evalReport.failed} failing · {evalReport.skipped} skipped · {evalReport.total} catalog
-              </p>
+              <div className="eval-bar" data-testid="eval-summary">
+                <span>
+                  TOTAL <strong data-testid="eval-total">{evalReport.total}</strong>
+                </span>
+                <span className="pass">
+                  PASS <strong data-testid="eval-pass">{evalReport.passed}</strong>
+                </span>
+                <span className={evalReport.failed ? "fail" : ""}>
+                  FAIL <strong data-testid="eval-fail">{evalReport.failed}</strong>
+                </span>
+                <span className={evalReport.skipped ? "fail" : "skip"}>
+                  SKIP <strong data-testid="eval-skip">{evalReport.skipped}</strong>
+                </span>
+              </div>
               {evalReport.cases.map((c: any) => (
                 <div
                   key={c.id}
                   className="row"
+                  data-testid={`eval-case-${c.id}`}
                   onClick={() => {
                     setQuestion(c.question);
                     void runQuestion(c.question);
@@ -271,33 +355,75 @@ export default function App() {
               void loadItem(sku);
             }}
           >
-            <input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="sku" />
+            <input
+              data-testid="sku-input"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              placeholder="sku"
+            />
             <button type="submit" disabled={busy}>
               Load
             </button>
           </form>
           {itemSkus.length > 0 && (
-            <p>
+            <p className="samples">
               {itemSkus.map((id: string) => (
-                <button key={id} className="obj-link" onClick={() => void loadItem(id)}>
+                <button key={id} className="chip" onClick={() => void loadItem(id)}>
                   {id}
                 </button>
               ))}
             </p>
           )}
           {item && (
-            <div className="grid">
-              <Section title="Current state">
-                <pre className="mono">{JSON.stringify(item.data?.item ?? item.data, null, 2)}</pre>
+            <div className="grid" data-testid="item-view">
+              <Section title="Identity / current state" testId="item-state">
+                <Field label="sku" value={itemData.sku} />
+                <Field label="status" value={itemData.status} />
+                <Field label="title" value={itemData.title} />
+                <Field label="category" value={itemData.category} />
+                <Field label="inventory age (days)" value={itemData.inventory_age_days} />
               </Section>
-              <Section title="Listings">
-                <pre className="mono">{JSON.stringify(item.data?.listings, null, 2)}</pre>
+              <Section title="Acquisition">
+                <Field label="acquisition cost CNY" value={itemData.acquisition_cost_cny} />
+                <Field label="ordered at" value={itemData.ordered_at} />
+                <Field label="received at" value={itemData.received_at} />
+              </Section>
+              <Section title="Listings / channel / engagement">
+                {listings.length ? (
+                  listings.map((l: any, i: number) => (
+                    <div key={i} className="listing-block">
+                      <Field label="platform" value={l.platform} />
+                      <Field label="status" value={l.status} />
+                      <Field label="price usd" value={l.price_usd} />
+                      <Field label="listed at" value={l.listed_at} />
+                      <Field label="views" value={l.views ?? l.engagement?.views} />
+                      <Field label="watchers" value={l.watchers ?? l.engagement?.watchers} />
+                      <Field label="offers" value={l.offers ?? l.engagement?.offers} />
+                    </div>
+                  ))
+                ) : (
+                  <p className="lede">No listings.</p>
+                )}
               </Section>
               <Section title="Orders">
-                <pre className="mono">{JSON.stringify(item.data?.orders, null, 2)}</pre>
+                {orders.length ? (
+                  orders.map((o: any, i: number) => (
+                    <div key={i}>
+                      <Field label="order" value={o.order_id || o.id} />
+                      <Field label="sold at" value={o.sold_at} />
+                      <Field label="sale usd" value={o.sale_price_usd || o.price_usd} />
+                    </div>
+                  ))
+                ) : (
+                  <p className="lede">No orders.</p>
+                )}
               </Section>
-              <Section title="Timeline">
-                <pre className="mono">{JSON.stringify(history?.data?.timeline, null, 2)}</pre>
+              <Section title="Timeline / history" testId="item-timeline">
+                <pre className="mono">
+                  {timeline
+                    .map((e: any) => `${e.at ?? "?"}  ${e.type}`)
+                    .join("\n") || "—"}
+                </pre>
               </Section>
             </div>
           )}

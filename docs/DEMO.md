@@ -18,13 +18,15 @@ Builds an **isolated Postgres database** from `sample_data/`. About three minute
 3. **Attention** — deterministic queue. `LIST NEXT` on unlisted capital; `REVIEW PRICE OR CHANNEL` on stale listings. Numbers under each action are the facts.
 4. **Item** — `stone-cargo-l` retrieved as an object: identity, acquisition, age, empty listings/orders, event timeline. Facts, not a recommendation.
 5. **Sandbox action** — the top recommendation is proposed, then human-approved into `ops.actions`. Catalog tables do not change.
-6. **Failure** — malformed JSON + negative cost. Run stays successful; two rows quarantine; `catalog.items` still has 12.
+6. **Failure** — malformed JSON + negative cost. Run stays successful; two rows quarantine; `catalog.items` still has the valid synthetic world (40–80 items).
 7. **Trust** — `read = loaded + rejected`, no integrity alarms, same business counts.
 8. **Replay** — canonical files unchanged → content-hash skip. No duplicate items. Quarantine remains.
 
 Same commands by hand: `cdp build --sample`, `cdp business snapshot`, `cdp business attention --limit 5`, `cdp business item stone-cargo-l`, `cdp business history stone-cargo-l`, `cdp context "Should I reprice stone-cargo-l?"`, `cdp eval`, `cdp status`. `--json` if you want provenance payloads.
 
-Then `cdp serve` + `make frontend` for the Context Inspector.
+Then `make demo` for the Context Inspector (`http://127.0.0.1:5173`).
+`cdp demo` remains the CLI story. `cdp serve` + `make frontend` is the
+manual equivalent.
 
 ## After the demo
 

@@ -1,7 +1,9 @@
 """Local environment checks for `make doctor`."""
 from __future__ import annotations
 
+import shutil
 import socket
+import subprocess
 import sys
 
 from urllib.parse import urlparse, urlunparse
@@ -44,22 +46,34 @@ def main() -> int:
     else:
         print("env        .env.example present")
 
+    docker_ok = False
+    try:
+        docker = shutil.which("docker")
+        if docker:
+            probe = subprocess.run(
+                ["docker", "info"], capture_output=True, timeout=4
+            )
+            docker_ok = probe.returncode == 0
+        print(
+            "docker     "
+            + ("engine reachable" if docker_ok else "not usable (optional if postgres is local)")
+        )
+    except (OSError, subprocess.SubprocessError, subprocess.TimeoutExpired):
+        print("docker     not usable (optional if postgres is local)")
+
     if not _port_open("127.0.0.1", 5432):
         errors.append("port 5432 closed — start postgres (make up or brew services)")
     else:
-        print("port 5432  open")
+        mode = "docker compose or local listener"
+        print(f"port 5432  open ({mode})")
+        print(
+            "db mode    "
+            + ("docker-capable; make up prefers compose" if docker_ok else "local postgres (Homebrew/other) — Docker not required")
+        )
 
     for port, name in ((8000, "api"), (5173, "frontend")):
         state = "in use" if _port_open("127.0.0.1", port) else "free"
         print(f"port {port}  {state} ({name})")
-
-    try:
-        import shutil
-
-        docker = shutil.which("docker")
-        print(f"docker     {'present' if docker else 'not on PATH (optional if postgres is local)'}")
-    except Exception:
-        print("docker     unknown")
 
     if not db.ping():
         errors.append("postgres not reachable")

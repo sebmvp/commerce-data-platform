@@ -2,31 +2,29 @@
 
 [![test](https://github.com/sebmvp/commerce-data-platform/actions/workflows/test.yml/badge.svg)](https://github.com/sebmvp/commerce-data-platform/actions/workflows/test.yml)
 
-A business is not a pile of documents. Operational questions depend on
-objects, relationships, history, metrics, rules, and an explicit statement
-when required context is missing.
+Business questions depend on exact operational state and relationships,
+not merely semantically similar documents.
 
-This repo is a **business context engine** for a small multi-channel resale
-operation. Structured facts are retrieved as structured facts. Unstructured
-notes are searched. RAG is not the architecture.
+This project models that business context explicitly — items, listings,
+channels, events, metrics, rules, notes — and assembles only the evidence
+required for a question. When required context is missing, it says so.
 
-## What exists
+![Context Inspector](docs/screenshots/context-inspector.png)
+
+## How it works
 
 ```
 synthetic JSONL seed
         → validated ingest (quarantine, idempotent, one transaction per run)
         → PostgreSQL canonical operational store
-        → typed business tools + Context Engine
-        → ContextBundle (objects, links, history, rules, missing_context)
-        → CLI / FastAPI / MCP
-        → React Context Inspector + gold evaluation
-        → sandbox actions (propose → human approve/reject)
+        → Context Engine → ContextBundle
+        → CLI / FastAPI / MCP / React Context Inspector
 ```
 
-DuckDB is no longer in the active architecture. Redis is not used: nothing
-here is an async job queue yet.
+RAG is a possible context *source*, not the architecture. Redis is not used:
+nothing here is an async job queue yet.
 
-## Developer loop
+## Run
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
@@ -35,39 +33,26 @@ make doctor
 make up          # docker compose postgres, or a local Postgres on :5432
 make seed
 make test
-make eval
-make demo
+make eval        # TOTAL 20 / PASS 20 / FAIL 0 / SKIP 0
+make demo        # http://127.0.0.1:5173  visual Context Inspector
 ```
 
-Then, in another terminal:
+`make demo` starts the API and inspector. `cdp demo` is the CLI/system
+behavior story (isolated database). `Makefile` is the developer lifecycle;
+`cdp` is product behavior (`status`, `context`, `eval`, `demo`,
+`business item <sku>`).
 
-```bash
-cdp serve        # http://127.0.0.1:8000/docs
-make frontend    # http://127.0.0.1:5173  Context Inspector
-```
+## Evaluation
 
-`Makefile` is the developer lifecycle. `cdp` is product behavior
-(`status`, `context`, `eval`, `demo`, `business item <sku>`).
-
-## Demo
-
-```bash
-cdp demo
-cdp context "Should I reprice j4-military-s?"
-cdp context "Should I reprice stone-cargo-l?"
-cdp context "What do seller notes say about stone-cargo-l?"
-```
-
-The listed item returns objects, links, metrics, rules, and seller notes.
-The unlisted item returns `sufficient: false` and `missing_context` instead
-of inventing a market.
+Gold questions score `assemble_context`, not an LLM. Cases include
+current facts, as-of listing state, channel comparison, listing
+performance, missing context, and a hybrid structured + note question.
 
 ## Boundaries
 
-- Public data is synthetic / sanitized.
+- Public data is synthetic / sanitized. Private resale records stay local.
 - This is not a scale claim and not live marketplace integration.
-- There is no LLM in this repository. MCP exposes the context engine;
-  a grounded copilot is next.
+- There is no LLM in this repository yet. MCP exposes the context engine.
 - The published LICENSE is MIT (already on GitHub). That is not an
   invitation to treat private business data as public.
 
@@ -77,6 +62,7 @@ of inventing a market.
 |-------|------|
 | Charter | [AGENTS.md](AGENTS.md) |
 | Schema | `schema/001_init.sql` + Alembic |
+| Public world | `scripts/generate_public_world.py` |
 | Context engine | `src/cdp_cli/context/` |
 | Eval catalog | `evals/context_questions.py` |
 | Inspector | `web/` |
