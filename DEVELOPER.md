@@ -2,72 +2,35 @@
 
 Design decisions worth knowing before extending this.
 
-CLI surface: `init / build / ingest / validate / query / report / status / business / context / demo / action / serve / mcp`.
+CLI surface: `init / build / ingest / validate / query / report / status / business / context / eval / demo / action / serve / mcp`.
 
-## The warehouse file is a cache
+Makefile is the developer lifecycle (`doctor`, `up`, `seed`, `test`, `eval`, `frontend`, `demo`).
 
-`warehouse.duckdb` is gitignored and rebuildable. Never hand-edit it in
-a way that can't be reproduced from `schema/001_init.sql` +
-`sample_data/*.jsonl`. If a migration is needed, bump the schema file,
-delete the .duckdb, and re-run `cdp build`.
+## PostgreSQL is canonical
+
+`CDP_DATABASE_URL` (default `postgresql://cdp:cdp@127.0.0.1:5432/cdp`) is
+the operational store. JSONL under `sample_data/` is the public seed.
+`make seed` / `cdp build --sample` rebuilds it. Do not hand-edit Postgres
+in a way that cannot be reproduced from `schema/001_init.sql` + JSONL.
+
+Alembic: `make migrate` / `alembic upgrade head`. Tests reset schemas
+instead of running Alembic each time; the SQL files are the source.
 
 ## Ingest order matters
 
-`cdp_cli.ingest.ALL_JOBS` runs in dependency order:
-1. dimensions (`core.channels`) before facts that reference them
-2. `catalog.items` before `catalog.item_events` / `sales.listings`
-3. `catalog.item_events` and `sales.*` before `insights.*` aggregations
-
-`ingest/base.py` enforces this at load time by checking that referenced
-rows exist (`event references unknown item sku`).
+`cdp_cli.ingest.ALL_JOBS` runs in dependency order. See ARCHITECTURE.md.
 
 ## Idempotency has two levels
 
-- **Row level**: every file is hashed (SHA-256). If today's file
-  content-hash matches the last successful ingest run for that source,
-  the whole file is skipped (see `IngestJob._already_succeeded`).
-- **Batch level**: every row upserts on a natural key
-  (`ON CONFLICT ... DO UPDATE`), so re-running on an unchanged file is
-  also a no-op even without the hash skip.
-
-## Validation is pre-insert, not post-hoc
-
-Pydantic models (one per stream) define the shape. Every row failing
-goes to `core.rejected_records` with the pydantic error serialized —
-visible in `cdp query "SELECT * FROM core.rejected_records"` or
-`cdp validate`.
+Content-hash skip per source file, plus `ON CONFLICT` upserts on natural keys.
 
 ## SCD-2 vs. ON CONFLICT
 
-Channels use SCD-2 (`valid_from` / `valid_to`) because fees and standing
-actually change over time and point-in-time queries matter. A new version
-closes the open row at the new `valid_from`, so intervals are
-`[valid_from, valid_to)` and do not overlap. Ask `get_channel_as_of`
-(CLI: `cdp business channel grailed --as-of 2025-06-01`) instead of
-filtering `valid_to IS NULL` by hand.
-
-Items, listings, orders use `ON CONFLICT DO UPDATE` — a listing's *price*
-can change, but we don't keep that history in the warehouse (it lives in
-the source platforms' "listing updated at" APIs if we ever need it).
-`sales.listings.channel_key` is the SCD-2 *version* current at ingest,
-not "the version that covered listed_at". Join on that key without also
-requiring `valid_to IS NULL`, or the platform disappears after a later
-fee change.
+Channels use SCD-2. Ask `get_channel_as_of`. Listings/items/orders upsert.
 
 ## Adding a new source
 
-1. Pick a natural key.
-2. Add a pydantic model in `src/cdp_cli/validate.py` with constraints.
-3. Add a `IngestJob` subclass in the right aggregation module.
-4. Register it in `src/cdp_cli/ingest/__init__.py` **in dependency
-   order**.
-5. Add a `CREATE TABLE` in `schema/001_init.sql` with matching columns
-   + upsert key. Add end-to-end coverage in `tests/test_build_smoke.py`.
-
-## The voice profile is evidence, not vibes
-
-`insights.voice_profile` is aggregated *from* what actually converted.
-When writing new listing copy, read the current profile:
-`SELECT summary_md FROM insights.voice_profile WHERE is_current`.
-Don't trust it as instruction — trust the underlying numbers
-(`avg_watchers`, `avg_conversion`) as evidence.
+1. Natural key + pydantic model in `validate.py`.
+2. `IngestJob` subclass, registered in dependency order.
+3. `CREATE TABLE` in `schema/001_init.sql` + Alembic revision.
+4. Coverage in `tests/test_build_smoke.py`.

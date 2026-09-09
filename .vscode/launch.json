@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "cdp serve",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "cdp_cli.cli",
+      "args": ["serve", "--host", "127.0.0.1", "--port", "8000"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "CDP_DATABASE_URL": "postgresql://cdp:cdp@127.0.0.1:5432/cdp"
+      }
+    }
+  ]
+}

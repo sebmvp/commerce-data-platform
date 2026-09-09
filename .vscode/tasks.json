@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "make doctor",
+      "type": "shell",
+      "command": "make doctor",
+      "problemMatcher": [],
+      "group": "none"
+    },
+    {
+      "label": "make test",
+      "type": "shell",
+      "command": "make test",
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "make eval",
+      "type": "shell",
+      "command": "make eval",
+      "problemMatcher": []
+    },
+    {
+      "label": "cdp serve",
+      "type": "shell",
+      "command": "cdp serve",
+      "isBackground": true,
+      "problemMatcher": []
+    }
+  ]
+}

@@ -1,0 +1,72 @@
+:root {
+  --bg: #0d0b16;
+  --fg: var(--foreground, #ece8f4);
+  --muted: var(--muted-foreground, #9b93ab);
+  --accent: var(--accent, #8b5cf6);
+  --border: var(--border, #2a2438);
+  --card: var(--card, #161221);
+}
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; min-height: 100%; }
+body {
+  background: transparent;
+  color: var(--fg);
+  font: 14px/1.45 ui-sans-serif, system-ui, sans-serif;
+}
+
+.app { max-width: 920px; padding: 20px 16px 48px; }
+.lede { color: var(--muted); margin: 0 0 16px; max-width: 62ch; }
+h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.02em; }
+h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 20px 0 8px; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+.tabs button, .ask button, .obj-link {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+.tabs button.active { border-color: var(--accent); color: var(--accent); }
+
+.ask { display: flex; gap: 8px; margin-bottom: 16px; }
+.ask input {
+  flex: 1;
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+}
+.pill.ok { color: #86efac; border-color: #14532d; }
+.pill.bad { color: #fca5a5; border-color: #7f1d1d; }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--card);
+}
+.card pre, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: pre-wrap; margin: 0; }
+.missing { color: #fca5a5; }
+.fail { color: #fca5a5; }
+.pass { color: #86efac; }
+.skip { color: var(--muted); }
+.err { color: #fca5a5; margin: 8px 0; }
+.row { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+.row:last-child { border-bottom: 0; }
+
+@media (max-width: 720px) {
+  .grid { grid-template-columns: 1fr; }
+}
