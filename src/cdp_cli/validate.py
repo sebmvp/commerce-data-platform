@@ -62,6 +62,15 @@ class ListingRecord(BaseModel):
         return self
 
 
+class ListingEventRecord(BaseModel):
+    item_sku: str
+    platform: str
+    event_type: Literal["opened", "price_change", "ended", "sold"]
+    event_at: datetime
+    price_usd: float | None = Field(default=None, ge=0)
+    status: Literal["draft", "active", "sold", "ended"] | None = None
+
+
 class EngagementRecord(BaseModel):
     listing_ref: str  # platform listing key or item sku
     platform: str

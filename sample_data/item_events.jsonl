@@ -1,39 +1,137 @@
-{"item_sku": "fog-ess-hoodie-l", "event_type": "ordered", "event_at": "2026-05-02T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "tech-cargo-l", "event_type": "ordered", "event_at": "2026-05-03T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "y350-onyx-s", "event_type": "ordered", "event_at": "2026-05-04T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "carhartt-mich-m", "event_type": "ordered", "event_at": "2026-05-05T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "nb-992-grey-s", "event_type": "ordered", "event_at": "2026-05-06T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "j4-military-s", "event_type": "ordered", "event_at": "2026-05-07T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "fog-ess-hoodie-l", "event_type": "received", "event_at": "2026-05-08T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "tech-cargo-l", "event_type": "received", "event_at": "2026-05-09T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "y350-onyx-s", "event_type": "received", "event_at": "2026-05-10T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "samba-white-m", "event_type": "ordered", "event_at": "2026-05-10T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "carhartt-mich-m", "event_type": "received", "event_at": "2026-05-11T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "nb-992-grey-s", "event_type": "received", "event_at": "2026-05-12T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "j4-military-s", "event_type": "received", "event_at": "2026-05-13T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "bogo-hoodie-grey-s", "event_type": "ordered", "event_at": "2026-05-13T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "tech-cargo-l", "event_type": "listed", "event_at": "2026-05-15T00:00:00", "payload": {"price_usd": 155.97}}
-{"item_sku": "stone-cargo-l", "event_type": "ordered", "event_at": "2026-05-15T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "j1-panda-m", "event_type": "ordered", "event_at": "2026-05-16T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "samba-white-m", "event_type": "received", "event_at": "2026-05-16T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "nb-992-grey-s", "event_type": "listed", "event_at": "2026-05-17T00:00:00", "payload": {"price_usd": 464.52}}
-{"item_sku": "vtg-swoosh-l", "event_type": "ordered", "event_at": "2026-05-17T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "j1-hyper-l", "event_type": "ordered", "event_at": "2026-05-18T00:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
-{"item_sku": "bogo-hoodie-grey-s", "event_type": "received", "event_at": "2026-05-19T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "stone-cargo-l", "event_type": "received", "event_at": "2026-05-21T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "j1-panda-m", "event_type": "received", "event_at": "2026-05-22T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "nb-992-grey-s", "event_type": "sold", "event_at": "2026-05-22T00:00:00"}
-{"item_sku": "vtg-swoosh-l", "event_type": "received", "event_at": "2026-05-23T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "tech-cargo-l", "event_type": "sold", "event_at": "2026-05-24T00:00:00"}
-{"item_sku": "j1-hyper-l", "event_type": "received", "event_at": "2026-05-24T00:00:00", "actor": "batchimport", "payload": {}}
-{"item_sku": "j4-military-s", "event_type": "listed", "event_at": "2026-05-27T00:00:00", "payload": {"price_usd": 727.28}}
-{"item_sku": "carhartt-mich-m", "event_type": "listed", "event_at": "2026-05-27T00:00:00", "payload": {"price_usd": 610.5}}
-{"item_sku": "samba-white-m", "event_type": "listed", "event_at": "2026-05-27T00:00:00", "payload": {"price_usd": 335.12}}
-{"item_sku": "j1-hyper-l", "event_type": "listed", "event_at": "2026-05-30T00:00:00", "payload": {"price_usd": 1203.47}}
-{"item_sku": "bogo-hoodie-grey-s", "event_type": "listed", "event_at": "2026-06-01T00:00:00", "payload": {"price_usd": 763.1}}
-{"item_sku": "j1-hyper-l", "event_type": "sold", "event_at": "2026-06-03T00:00:00"}
-{"item_sku": "bogo-hoodie-grey-s", "event_type": "sold", "event_at": "2026-06-08T00:00:00"}
-{"item_sku": "samba-white-m", "event_type": "sold", "event_at": "2026-06-08T00:00:00"}
-{"item_sku": "j1-panda-m", "event_type": "listed", "event_at": "2026-06-10T00:00:00", "payload": {"price_usd": 385.06}}
-{"item_sku": "vtg-swoosh-l", "event_type": "listed", "event_at": "2026-06-11T00:00:00", "payload": {"price_usd": 229.53}}
-{"item_sku": "j1-panda-m", "event_type": "sold", "event_at": "2026-06-17T00:00:00"}
+{"item_sku": "j1-panda-m", "event_type": "ordered", "event_at": "2026-06-29T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "j4-military-s", "event_type": "ordered", "event_at": "2026-07-01T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "slow-asics-11", "event_type": "ordered", "event_at": "2026-07-04T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "j1-panda-m", "event_type": "received", "event_at": "2026-07-05T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "j4-military-s", "event_type": "received", "event_at": "2026-07-07T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "slow-asics-11", "event_type": "received", "event_at": "2026-07-10T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "j1-panda-m", "event_type": "listed", "event_at": "2026-07-11T12:00:00", "payload": {"price_usd": 385.06}}
+{"item_sku": "sold-tn-9", "event_type": "ordered", "event_at": "2026-07-15T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "slow-asics-11", "event_type": "listed", "event_at": "2026-07-16T12:00:00", "payload": {"price_usd": 175.0}}
+{"item_sku": "j1-panda-m", "event_type": "sold", "event_at": "2026-07-19T12:00:00", "payload": {}}
+{"item_sku": "sold-tn-9", "event_type": "received", "event_at": "2026-07-19T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "j4-military-s", "event_type": "listed", "event_at": "2026-07-20T12:00:00", "payload": {"price_usd": 727.28}}
+{"item_sku": "reprice-sold-palace-m", "event_type": "ordered", "event_at": "2026-07-21T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "sold-tn-9", "event_type": "listed", "event_at": "2026-07-23T12:00:00", "payload": {"price_usd": 200.0}}
+{"item_sku": "reprice-sold-palace-m", "event_type": "received", "event_at": "2026-07-26T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "stone-cargo-l", "event_type": "ordered", "event_at": "2026-07-31T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "stale-bogo-m", "event_type": "ordered", "event_at": "2026-07-31T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "reprice-sold-palace-m", "event_type": "listed", "event_at": "2026-07-31T12:00:00", "payload": {"price_usd": 260.0}}
+{"item_sku": "sold-tn-9", "event_type": "sold", "event_at": "2026-08-03T12:00:00", "payload": {}}
+{"item_sku": "fast-j1-chicago-9", "event_type": "ordered", "event_at": "2026-08-05T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "stone-cargo-l", "event_type": "received", "event_at": "2026-08-06T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "stale-bogo-m", "event_type": "received", "event_at": "2026-08-06T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "reprice-live-kith-s", "event_type": "ordered", "event_at": "2026-08-06T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-07", "event_type": "ordered", "event_at": "2026-08-06T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-owned-07", "event_type": "ordered", "event_at": "2026-08-07T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "carhartt-mich-m", "event_type": "ordered", "event_at": "2026-08-08T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-owned-06", "event_type": "ordered", "event_at": "2026-08-08T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-transit-02", "event_type": "ordered", "event_at": "2026-08-09T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fast-j1-chicago-9", "event_type": "received", "event_at": "2026-08-10T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-transit-01", "event_type": "ordered", "event_at": "2026-08-10T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "reprice-live-kith-s", "event_type": "received", "event_at": "2026-08-11T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-sold-04", "event_type": "ordered", "event_at": "2026-08-11T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "y350-onyx-s", "event_type": "ordered", "event_at": "2026-08-12T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fog-ess-hoodie-l", "event_type": "ordered", "event_at": "2026-08-12T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "stale-bogo-m", "event_type": "listed", "event_at": "2026-08-12T12:00:00", "payload": {"price_usd": 240.0}}
+{"item_sku": "reprice-sold-palace-m", "event_type": "price_change", "event_at": "2026-08-12T12:00:00", "payload": {"price_usd": 230.0}}
+{"item_sku": "dual-nb990-10", "event_type": "ordered", "event_at": "2026-08-12T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-sold-03", "event_type": "ordered", "event_at": "2026-08-12T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-07", "event_type": "received", "event_at": "2026-08-12T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-sold-02", "event_type": "ordered", "event_at": "2026-08-13T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-owned-07", "event_type": "received", "event_at": "2026-08-13T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "carhartt-mich-m", "event_type": "received", "event_at": "2026-08-14T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-sold-01", "event_type": "ordered", "event_at": "2026-08-14T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-owned-06", "event_type": "received", "event_at": "2026-08-14T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fast-j1-chicago-9", "event_type": "listed", "event_at": "2026-08-15T12:00:00", "payload": {"price_usd": 420.0}}
+{"item_sku": "fill-listed-06", "event_type": "ordered", "event_at": "2026-08-15T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "reprice-live-kith-s", "event_type": "listed", "event_at": "2026-08-16T12:00:00", "payload": {"price_usd": 210.0}}
+{"item_sku": "fill-listed-05", "event_type": "ordered", "event_at": "2026-08-16T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-04", "event_type": "ordered", "event_at": "2026-08-17T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-sold-04", "event_type": "received", "event_at": "2026-08-17T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "y350-onyx-s", "event_type": "received", "event_at": "2026-08-18T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fog-ess-hoodie-l", "event_type": "received", "event_at": "2026-08-18T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "viewy-dunk-9", "event_type": "ordered", "event_at": "2026-08-18T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fast-j1-chicago-9", "event_type": "sold", "event_at": "2026-08-18T12:00:00", "payload": {}}
+{"item_sku": "reprice-sold-palace-m", "event_type": "sold", "event_at": "2026-08-18T12:00:00", "payload": {}}
+{"item_sku": "dual-nb990-10", "event_type": "received", "event_at": "2026-08-18T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-listed-03", "event_type": "ordered", "event_at": "2026-08-18T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-sold-03", "event_type": "received", "event_at": "2026-08-18T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "j4-military-s", "event_type": "price_change", "event_at": "2026-08-19T12:00:00", "payload": {"price_usd": 699.0}}
+{"item_sku": "watchy-aj3-10", "event_type": "ordered", "event_at": "2026-08-19T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-02", "event_type": "ordered", "event_at": "2026-08-19T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-sold-02", "event_type": "received", "event_at": "2026-08-19T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-sold-06", "event_type": "ordered", "event_at": "2026-08-19T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "recv-nb2002-9", "event_type": "ordered", "event_at": "2026-08-20T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-01", "event_type": "ordered", "event_at": "2026-08-20T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-sold-01", "event_type": "received", "event_at": "2026-08-20T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-listed-07", "event_type": "listed", "event_at": "2026-08-20T12:00:00", "payload": {"price_usd": 125.0}}
+{"item_sku": "fill-owned-10", "event_type": "ordered", "event_at": "2026-08-20T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-owned-05", "event_type": "ordered", "event_at": "2026-08-21T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-06", "event_type": "received", "event_at": "2026-08-21T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-listed-09", "event_type": "ordered", "event_at": "2026-08-21T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "carhartt-mich-m", "event_type": "listed", "event_at": "2026-08-22T12:00:00", "payload": {"price_usd": 610.5}}
+{"item_sku": "fill-owned-04", "event_type": "ordered", "event_at": "2026-08-22T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-05", "event_type": "received", "event_at": "2026-08-22T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-owned-09", "event_type": "ordered", "event_at": "2026-08-22T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "viewy-dunk-9", "event_type": "received", "event_at": "2026-08-23T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "offers-yzy-7", "event_type": "ordered", "event_at": "2026-08-23T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "slow-asics-11", "event_type": "sold", "event_at": "2026-08-23T12:00:00", "payload": {}}
+{"item_sku": "miss-eng-tee-l", "event_type": "ordered", "event_at": "2026-08-23T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-owned-03", "event_type": "ordered", "event_at": "2026-08-23T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-04", "event_type": "received", "event_at": "2026-08-23T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-sold-05", "event_type": "ordered", "event_at": "2026-08-23T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "watchy-aj3-10", "event_type": "received", "event_at": "2026-08-24T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "dual-nb990-10", "event_type": "listed", "event_at": "2026-08-24T12:00:00", "payload": {"price_usd": 260.0}}
+{"item_sku": "fill-owned-02", "event_type": "ordered", "event_at": "2026-08-24T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-03", "event_type": "received", "event_at": "2026-08-24T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-owned-08", "event_type": "ordered", "event_at": "2026-08-24T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "miss-cost-hoodie-m", "event_type": "ordered", "event_at": "2026-08-25T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-owned-01", "event_type": "ordered", "event_at": "2026-08-25T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-02", "event_type": "received", "event_at": "2026-08-25T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-listed-06", "event_type": "listed", "event_at": "2026-08-25T12:00:00", "payload": {"price_usd": 185.0}}
+{"item_sku": "fill-sold-01", "event_type": "listed", "event_at": "2026-08-25T12:00:00", "payload": {"price_usd": 340.0}}
+{"item_sku": "fill-sold-02", "event_type": "listed", "event_at": "2026-08-25T12:00:00", "payload": {"price_usd": 165.0}}
+{"item_sku": "fill-sold-03", "event_type": "listed", "event_at": "2026-08-25T12:00:00", "payload": {"price_usd": 95.0}}
+{"item_sku": "fill-sold-04", "event_type": "listed", "event_at": "2026-08-25T12:00:00", "payload": {"price_usd": 210.0}}
+{"item_sku": "fill-listed-08", "event_type": "ordered", "event_at": "2026-08-25T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-sold-06", "event_type": "received", "event_at": "2026-08-25T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "recv-nb2002-9", "event_type": "received", "event_at": "2026-08-26T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-listed-01", "event_type": "received", "event_at": "2026-08-26T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-owned-10", "event_type": "received", "event_at": "2026-08-26T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "offers-yzy-7", "event_type": "received", "event_at": "2026-08-27T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-owned-05", "event_type": "received", "event_at": "2026-08-27T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-listed-09", "event_type": "received", "event_at": "2026-08-27T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fresh-samba-8", "event_type": "ordered", "event_at": "2026-08-28T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "viewy-dunk-9", "event_type": "listed", "event_at": "2026-08-28T12:00:00", "payload": {"price_usd": 190.0}}
+{"item_sku": "miss-eng-tee-l", "event_type": "received", "event_at": "2026-08-28T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-owned-04", "event_type": "received", "event_at": "2026-08-28T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-owned-09", "event_type": "received", "event_at": "2026-08-28T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "watchy-aj3-10", "event_type": "listed", "event_at": "2026-08-29T12:00:00", "payload": {"price_usd": 280.0}}
+{"item_sku": "fill-owned-03", "event_type": "received", "event_at": "2026-08-29T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-sold-05", "event_type": "received", "event_at": "2026-08-29T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "miss-cost-hoodie-m", "event_type": "received", "event_at": "2026-08-30T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-owned-02", "event_type": "received", "event_at": "2026-08-30T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-listed-01", "event_type": "listed", "event_at": "2026-08-30T12:00:00", "payload": {"price_usd": 175.0}}
+{"item_sku": "fill-listed-02", "event_type": "listed", "event_at": "2026-08-30T12:00:00", "payload": {"price_usd": 240.0}}
+{"item_sku": "fill-listed-03", "event_type": "listed", "event_at": "2026-08-30T12:00:00", "payload": {"price_usd": 120.0}}
+{"item_sku": "fill-listed-04", "event_type": "listed", "event_at": "2026-08-30T12:00:00", "payload": {"price_usd": 250.0}}
+{"item_sku": "fill-listed-05", "event_type": "listed", "event_at": "2026-08-30T12:00:00", "payload": {"price_usd": 140.0}}
+{"item_sku": "fill-sold-02", "event_type": "sold", "event_at": "2026-08-30T12:00:00", "payload": {}}
+{"item_sku": "fill-owned-08", "event_type": "received", "event_at": "2026-08-30T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-sold-06", "event_type": "listed", "event_at": "2026-08-30T12:00:00", "payload": {"price_usd": 80.0}}
+{"item_sku": "offers-yzy-7", "event_type": "listed", "event_at": "2026-08-31T12:00:00", "payload": {"price_usd": 140.0}}
+{"item_sku": "fill-owned-01", "event_type": "received", "event_at": "2026-08-31T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-sold-03", "event_type": "sold", "event_at": "2026-08-31T12:00:00", "payload": {}}
+{"item_sku": "fill-listed-08", "event_type": "received", "event_at": "2026-08-31T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fill-sold-04", "event_type": "sold", "event_at": "2026-09-01T12:00:00", "payload": {}}
+{"item_sku": "miss-eng-tee-l", "event_type": "listed", "event_at": "2026-09-02T12:00:00", "payload": {"price_usd": 229.53}}
+{"item_sku": "fresh-samba-8", "event_type": "received", "event_at": "2026-09-03T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "src-airmax-10", "event_type": "ordered", "event_at": "2026-09-04T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-listed-08", "event_type": "listed", "event_at": "2026-09-04T12:00:00", "payload": {"price_usd": 70.0}}
+{"item_sku": "fill-sold-05", "event_type": "listed", "event_at": "2026-09-04T12:00:00", "payload": {"price_usd": 180.0}}
+{"item_sku": "fill-listed-09", "event_type": "listed", "event_at": "2026-09-04T12:00:00", "payload": {"price_usd": 360.0}}
+{"item_sku": "src-aj5-11", "event_type": "ordered", "event_at": "2026-09-06T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx433"}}
+{"item_sku": "fill-sold-06", "event_type": "sold", "event_at": "2026-09-06T12:00:00", "payload": {}}
+{"item_sku": "fresh-samba-8", "event_type": "listed", "event_at": "2026-09-07T12:00:00", "payload": {"price_usd": 165.0}}
+{"item_sku": "fill-sold-01", "event_type": "sold", "event_at": "2026-09-10T12:00:00", "payload": {}}
+{"item_sku": "fill-sold-05", "event_type": "sold", "event_at": "2026-09-19T12:00:00", "payload": {}}

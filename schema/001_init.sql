@@ -212,6 +212,21 @@ CREATE TABLE IF NOT EXISTS sales.listings (
 
 CREATE INDEX IF NOT EXISTS listings_item ON sales.listings (item_id);
 
+-- Append-only listing timeline. Current sales.listings is the latest
+-- projection. as-of questions walk these events.
+CREATE TABLE IF NOT EXISTS sales.listing_events (
+  event_id    TEXT PRIMARY KEY,
+  listing_id  TEXT NOT NULL REFERENCES sales.listings (listing_id),
+  event_type  TEXT NOT NULL,
+  event_at    TIMESTAMP NOT NULL,
+  price_usd   DOUBLE PRECISION,
+  status      TEXT,
+  payload_json JSONB
+);
+
+CREATE INDEX IF NOT EXISTS listing_events_listing
+  ON sales.listing_events (listing_id, event_at);
+
 CREATE TABLE IF NOT EXISTS sales.engagement_metric (
   metric_id   TEXT PRIMARY KEY,
   listing_id  TEXT NOT NULL REFERENCES sales.listings (listing_id),

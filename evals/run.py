@@ -7,15 +7,14 @@ from evals.context_questions import QUESTIONS
 
 
 def score_case(bundle, case: dict[str, Any]) -> dict[str, Any]:
-    if bundle is None or not case.get("implemented"):
+    if bundle is None:
         return {
             "id": case["id"],
             "category": case.get("category"),
             "question": case["question"],
-            "implemented": False,
             "passed": False,
-            "skipped": True,
-            "errors": ["not implemented"],
+            "skipped": False,
+            "errors": ["bundle was not assembled"],
             "expected": {
                 "sufficient": case.get("expected_sufficient"),
                 "missing": case.get("expected_missing"),
@@ -27,41 +26,33 @@ def score_case(bundle, case: dict[str, Any]) -> dict[str, Any]:
     types = {obj.type for obj in bundle.objects}
     expected_missing = set(case.get("expected_missing") or [])
     required_types = set(case.get("required_object_types") or [])
-    unexpected_types = types - required_types - {
-        "Item",
-        "Listing",
-        "Channel",
-        "Order",
-        "EngagementObservation",
-        "IngestRun",
-        "Recommendation",
-        "Action",
-    }
     errors: list[str] = []
-    if case.get("implemented") and case.get("intent"):
-        if bundle.intent != case["intent"]:
-            errors.append(f"intent {bundle.intent!r} != {case['intent']!r}")
-        if bundle.sufficient is not case["expected_sufficient"]:
-            errors.append(
-                f"sufficient {bundle.sufficient} != {case['expected_sufficient']}"
-            )
-        for concept in expected_missing:
-            if concept not in missing:
-                errors.append(f"missing_context lacked {concept!r}")
-        for needed in required_types:
-            if needed not in types:
-                errors.append(f"missing object type {needed}")
-        if case["expected_sufficient"] and bundle.missing_context:
-            errors.append("expected no missing_context")
-    elif not case.get("implemented"):
-        errors.append("not implemented")
+    if case.get("intent") and bundle.intent != case["intent"]:
+        errors.append(f"intent {bundle.intent!r} != {case['intent']!r}")
+    if bundle.sufficient is not case["expected_sufficient"]:
+        errors.append(
+            f"sufficient {bundle.sufficient} != {case['expected_sufficient']}"
+        )
+    for concept in expected_missing:
+        if concept not in missing:
+            errors.append(f"missing_context lacked {concept!r}")
+    for needed in required_types:
+        if needed not in types:
+            errors.append(f"missing object type {needed}")
+    if case["expected_sufficient"] and bundle.missing_context:
+        errors.append("expected no missing_context")
+    unexpected = []
+    if case.get("max_objects") is not None and len(bundle.objects) > case["max_objects"]:
+        unexpected.append(
+            f"object bloat {len(bundle.objects)} > {case['max_objects']}"
+        )
+        errors.extend(unexpected)
     return {
         "id": case["id"],
         "category": case.get("category"),
         "question": case["question"],
-        "implemented": bool(case.get("implemented")),
-        "passed": not errors if case.get("implemented") else False,
-        "skipped": not case.get("implemented"),
+        "passed": not errors,
+        "skipped": False,
         "errors": errors,
         "expected": {
             "sufficient": case.get("expected_sufficient"),
@@ -69,37 +60,35 @@ def score_case(bundle, case: dict[str, Any]) -> dict[str, Any]:
             "object_types": case.get("required_object_types"),
         },
         "actual": {
-            "sufficient": bundle.sufficient if case.get("implemented") else None,
-            "missing": sorted(missing) if case.get("implemented") else [],
-            "object_types": sorted(types) if case.get("implemented") else [],
+            "sufficient": bundle.sufficient,
+            "missing": sorted(missing),
+            "object_types": sorted(types),
         },
     }
 
 
-def run_eval(con) -> dict[str, Any]:
+def run_eval(con, *, strict: bool = True) -> dict[str, Any]:
     from cdp_cli.context import assemble_context
 
     results = []
     for case in QUESTIONS:
-        if not case.get("implemented"):
-            results.append(score_case(None, case))
-            continue
         bundle = assemble_context(
             con,
             question=case["question"],
-            intent=case["intent"],
+            intent=case.get("intent"),
             sku=case.get("sku"),
         )
         results.append(score_case(bundle, case))
-    implemented = [r for r in results if r["implemented"]]
-    passed = sum(1 for r in implemented if r["passed"])
-    failed = [r for r in implemented if not r["passed"]]
+    passed = sum(1 for r in results if r["passed"])
+    failed = [r for r in results if not r["passed"]]
+    skipped = [r for r in results if r["skipped"]]
+    ok = not failed and (not strict or not skipped)
     return {
         "total": len(QUESTIONS),
-        "implemented": len(implemented),
         "passed": passed,
         "failed": len(failed),
-        "skipped": len(QUESTIONS) - len(implemented),
-        "ok": not failed,
+        "skipped": len(skipped),
+        "ok": ok,
+        "strict": strict,
         "cases": results,
     }

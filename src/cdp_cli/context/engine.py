@@ -14,13 +14,22 @@ from ..business import (
     action_for_reason,
     get_business_snapshot,
     get_channel_as_of,
+    get_channel_comparison,
     get_ingest_health,
     get_inventory_attention_queue,
     get_item,
     get_item_history,
+    get_listing_as_of,
+    get_listing_performance,
     search_notes,
 )
-from .intents import ITEM_SCOPED, REQUIRED_CONCEPTS, extract_sku, resolve_intent
+from .intents import (
+    ITEM_SCOPED,
+    REQUIRED_CONCEPTS,
+    extract_as_of,
+    extract_sku,
+    resolve_intent,
+)
 from .model import (
     ContextBundle,
     ContextEvent,
@@ -591,6 +600,117 @@ def _hybrid_notes(
     }
 
 
+def _listing_as_of_intent(
+    con: Connection, sku: str, intent: str, as_of_dt
+) -> dict[str, Any]:
+    graph = _assemble_item_graph(con, sku, need_history=True)
+    payload = get_listing_as_of(con, sku, as_of=as_of_dt)
+    missing: list[MissingContext] = []
+    if not payload.data.get("covered"):
+        missing.append(
+            _missing("listing_as_of", "no listing event covers that instant", intent)
+        )
+    states = payload.data.get("listings") or []
+    for st in states:
+        lid = st.get("listing_id")
+        if not lid:
+            continue
+        if all(o.ref() != f"Listing:{lid}" for o in graph["objects"]):
+            graph["objects"].append(
+                _object("Listing", lid, st)
+            )
+    return {
+        **graph,
+        "missing": missing,
+        "metrics": {
+            "asking_price_usd": (states[0] or {}).get("price_usd") if states else None,
+        },
+        "rules": [],
+        "facts": {
+            "sku": sku,
+            "listing_as_of": payload.data,
+        },
+        "source_tools": list(
+            dict.fromkeys(graph["source_tools"] + ["get_listing_as_of"])
+        ),
+        "source_relations": list(
+            dict.fromkeys(graph["source_relations"] + payload.provenance.source_relations)
+        ),
+    }
+
+
+def _compare_channels_intent(con: Connection) -> dict[str, Any]:
+    cmp = get_channel_comparison(con)
+    objects: list[ContextObject] = []
+    links: list[ContextLink] = []
+    for ch in cmp.data.get("channels") or []:
+        platform = ch.get("platform") or "unknown"
+        objects.append(_object("Channel", platform, ch))
+    for row in (cmp.data.get("unlisted_owned") or [])[:8]:
+        item_obj = _object("Item", row["sku"], row)
+        objects.append(item_obj)
+    return {
+        "objects": objects,
+        "links": links,
+        "events": [],
+        "missing": [],
+        "metrics": {
+            "capital_tied_up_cny": cmp.data.get("capital_tied_up_cny"),
+            "unlisted_count": cmp.data.get("unlisted_count"),
+        },
+        "rules": [],
+        "facts": {
+            "unlisted_owned": cmp.data.get("unlisted_owned"),
+            "capital_tied_up": cmp.data.get("capital_tied_up_cny"),
+            "channel_history": cmp.data.get("channels"),
+        },
+        "source_tools": ["get_channel_comparison"],
+        "source_relations": list(cmp.provenance.source_relations),
+    }
+
+
+def _listing_performance_intent(con: Connection) -> dict[str, Any]:
+    perf = get_listing_performance(con)
+    objects: list[ContextObject] = []
+    links: list[ContextLink] = []
+    for row in perf.data.get("listings") or []:
+        lid = row.get("listing_id") or row.get("sku")
+        listing_obj = _object("Listing", lid, row)
+        objects.append(listing_obj)
+        if row.get("sku"):
+            item_obj = _object("Item", row["sku"], {"sku": row["sku"]})
+            if all(o.ref() != item_obj.ref() for o in objects):
+                objects.append(item_obj)
+            links.append(_link("HAS_LISTING", item_obj, listing_obj))
+    weak = perf.data.get("high_attention_no_offers") or []
+    return {
+        "objects": objects,
+        "links": links,
+        "events": [],
+        "missing": [],
+        "metrics": {
+            "watch_rate_threshold": perf.data.get("threshold_watch_rate"),
+            "high_attention_no_offers_count": len(weak),
+        },
+        "rules": [
+            {
+                "name": "high_attention_no_offers",
+                "kind": "heuristic",
+                "threshold_watch_rate": M.HIGH_WATCH_RATE,
+                "definition": "Active listing with high watch_rate and zero offers.",
+            }
+        ],
+        "facts": {
+            "watch_rate": True,
+            "offers": True,
+            "listings": perf.data.get("listings"),
+            "high_attention_no_offers": weak,
+        },
+        "source_tools": ["get_listing_performance"],
+        "source_relations": list(perf.provenance.source_relations),
+    }
+
+
 def assemble_context(
     con: Connection,
     *,
@@ -601,7 +721,8 @@ def assemble_context(
     """Build a typed context bundle for a bounded operational question."""
     resolved = resolve_intent(question, intent)
     target = extract_sku(question, sku)
-    as_of = _utcnow()
+    as_of_dt = extract_as_of(question)
+    as_of = _utcnow() if as_of_dt is None else as_of_dt.isoformat(timespec="seconds") + "Z"
 
     if resolved in ITEM_SCOPED:
         if not target:
@@ -612,6 +733,8 @@ def assemble_context(
             assembled = _explain_attention(con, target, resolved)
         elif resolved == "item_history":
             assembled = _item_history_intent(con, target, resolved)
+        elif resolved == "listing_as_of":
+            assembled = _listing_as_of_intent(con, target, resolved, as_of_dt)
         elif resolved == "hybrid_notes":
             assembled = _hybrid_notes(con, target, question, resolved)
         else:
@@ -624,6 +747,10 @@ def assemble_context(
         assembled = _health(con)
     elif resolved == "recent_changes":
         assembled = _recent_changes()
+    elif resolved == "compare_channels":
+        assembled = _compare_channels_intent(con)
+    elif resolved == "listing_performance":
+        assembled = _listing_performance_intent(con)
     else:
         raise ValueError(f"unhandled intent {resolved}")
 
@@ -649,6 +776,30 @@ def assemble_context(
     if "retrieved_evidence" in required and not assembled.get("retrieved_evidence"):
         extra_missing.append(
             _missing("retrieved_evidence", "no unstructured evidence assembled", resolved)
+        )
+    if "listing_as_of" in required and "listing_as_of" not in facts:
+        extra_missing.append(
+            _missing("listing_as_of", "listing as-of was not assembled", resolved)
+        )
+    if "channel_history" in required and "channel_history" not in facts:
+        extra_missing.append(
+            _missing("channel_history", "channel comparison was not assembled", resolved)
+        )
+    if "unlisted_owned" in required and "unlisted_owned" not in facts:
+        extra_missing.append(
+            _missing("unlisted_owned", "unlisted owned items were not assembled", resolved)
+        )
+    if "capital_tied_up" in required and "capital_tied_up" not in facts:
+        extra_missing.append(
+            _missing("capital_tied_up", "capital figure was not assembled", resolved)
+        )
+    if "watch_rate" in required and "watch_rate" not in facts:
+        extra_missing.append(
+            _missing("watch_rate", "listing performance was not assembled", resolved)
+        )
+    if "offers" in required and "offers" not in facts:
+        extra_missing.append(
+            _missing("offers", "offer counts were not assembled", resolved)
         )
 
     missing = list(assembled["missing"]) + extra_missing

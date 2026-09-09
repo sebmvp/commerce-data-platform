@@ -5,13 +5,14 @@ from .base import IngestJob, recover_orphaned_runs
 from .catalog import ChannelIngest, ItemEventIngest, ItemIngest
 from .insights import ContentIngest, ContentSnapshotIngest
 from .notes import NoteIngest
-from .sales import EngagementIngest, ListingIngest, OrderIngest
+from .sales import EngagementIngest, ListingEventIngest, ListingIngest, OrderIngest
 
 ALL_JOBS: list[type[IngestJob]] = [
     ChannelIngest,
     ItemIngest,
     ItemEventIngest,
     ListingIngest,
+    ListingEventIngest,
     EngagementIngest,
     OrderIngest,
     ContentIngest,

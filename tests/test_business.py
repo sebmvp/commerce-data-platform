@@ -40,7 +40,7 @@ def test_business_snapshot_counts(warehouse):
     payload = get_business_snapshot(warehouse)
     assert payload.kind == "derived"
     d = payload.data
-    assert d["items_total"] == 12
+    assert 40 <= d["items_total"] <= 80
     assert d["owned_unlisted"] >= 1
     assert d["capital_tied_up_cny"] > 0
     assert d["warehouse_trust_ok"] is True

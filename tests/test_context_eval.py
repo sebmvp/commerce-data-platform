@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from cdp_cli import db
 from cdp_cli.context import assemble_context
 from cdp_cli.ingest import ALL_JOBS
-from evals.context_questions import QUESTIONS, implemented
+from evals.context_questions import QUESTIONS
 
 
 def _build(con):
@@ -39,8 +39,8 @@ def test_eval_catalog_has_stable_ids():
         assert needed in categories
 
 
-@pytest.mark.parametrize("case", implemented(), ids=lambda c: c["id"])
-def test_implemented_eval_case(warehouse, case):
+@pytest.mark.parametrize("case", QUESTIONS, ids=lambda c: c["id"])
+def test_gold_eval_case(warehouse, case):
     _build(warehouse)
     bundle = assemble_context(
         warehouse,
@@ -58,3 +58,9 @@ def test_implemented_eval_case(warehouse, case):
         assert needed in types
     if case["expected_sufficient"]:
         assert bundle.missing_context == []
+
+
+def test_eval_catalog_has_twenty_questions():
+    ids = [q["id"] for q in QUESTIONS]
+    assert len(ids) == len(set(ids))
+    assert len(QUESTIONS) == 20

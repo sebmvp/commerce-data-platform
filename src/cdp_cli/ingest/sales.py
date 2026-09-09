@@ -5,7 +5,7 @@ import json
 from typing import Any
 
 from .base import IngestJob
-from ..validate import EngagementRecord, ListingRecord, OrderRecord
+from ..validate import EngagementRecord, ListingEventRecord, ListingRecord, OrderRecord
 
 
 class ListingIngest(IngestJob[ListingRecord]):
@@ -42,6 +42,44 @@ class ListingIngest(IngestJob[ListingRecord]):
              rec.platform_url, rec.price_usd, rec.status, rec.listed_at,
              rec.sold_at, rec.sold_price_usd, str(self.path),
              json.dumps(raw, default=str)],
+        )
+
+
+class ListingEventIngest(IngestJob[ListingEventRecord]):
+    source = "sales.listing_events"
+    filename = "listing_events.jsonl"
+    model = ListingEventRecord
+
+    def natural_key(self, rec) -> str:
+        return f"{rec.item_sku}:{rec.platform}:{rec.event_type}:{rec.event_at.isoformat()}"
+
+    def upsert(self, rec, raw: dict[str, Any]) -> None:
+        listing = self.con.execute(
+            """SELECT l.listing_id FROM sales.listings l
+               JOIN catalog.items i ON i.item_id = l.item_id
+               JOIN core.channels ch ON ch.channel_key = l.channel_key
+              WHERE i.sku = ? AND ch.platform = ?""",
+            [rec.item_sku, rec.platform],
+        ).fetchone()
+        if not listing:
+            raise ValueError(
+                f"listing event references unknown listing {rec.item_sku}@{rec.platform}"
+            )
+        event_id = self._id("lev", self.natural_key(rec))
+        self.con.execute(
+            """INSERT INTO sales.listing_events
+               (event_id, listing_id, event_type, event_at, price_usd, status, payload_json)
+               VALUES (?, ?, ?, ?, ?, ?, ?::jsonb)
+               ON CONFLICT (event_id) DO NOTHING""",
+            [
+                event_id,
+                listing[0],
+                rec.event_type,
+                rec.event_at,
+                rec.price_usd,
+                rec.status,
+                json.dumps(raw, default=str),
+            ],
         )
 
 

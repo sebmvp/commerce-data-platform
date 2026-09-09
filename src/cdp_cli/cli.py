@@ -449,8 +449,10 @@ def cmd_eval(args: argparse.Namespace) -> int:
         print(json.dumps(report, indent=2, default=str))
         return 0 if report["ok"] else 1
     print(
-        f"gold eval  {report['passed']}/{report['implemented']} implemented passing"
-        f"  ({report['skipped']} skipped, {report['total']} catalog)"
+        f"TOTAL       {report['total']}\n"
+        f"PASS        {report['passed']}\n"
+        f"FAIL        {report['failed']}\n"
+        f"SKIP        {report['skipped']}"
     )
     for case in report["cases"]:
         mark = "PASS" if case["passed"] else ("SKIP" if case["skipped"] else "FAIL")
@@ -590,6 +592,12 @@ def main(argv: list[str] | None = None) -> int:
 
     pe = sub.add_parser("eval", help="Gold context-assembly evaluation")
     pe.add_argument("--json", action="store_true")
+    pe.add_argument(
+        "--strict",
+        action="store_true",
+        default=True,
+        help="Fail on FAIL or SKIP (default)",
+    )
 
     ps = sub.add_parser("serve", help="FastAPI read layer")
     ps.add_argument("--host", default="127.0.0.1")

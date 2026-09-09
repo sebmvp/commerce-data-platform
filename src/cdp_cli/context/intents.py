@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timedelta, timezone
 
 INTENTS = frozenset({
     "reprice_item",
@@ -12,9 +13,11 @@ INTENTS = frozenset({
     "data_health",
     "recent_changes",
     "hybrid_notes",
+    "listing_as_of",
+    "compare_channels",
+    "listing_performance",
 })
 
-# Concepts the engine must retrieve or explicitly mark missing.
 REQUIRED_CONCEPTS: dict[str, tuple[str, ...]] = {
     "reprice_item": (
         "item",
@@ -38,6 +41,9 @@ REQUIRED_CONCEPTS: dict[str, tuple[str, ...]] = {
     "data_health": ("warehouse_trust",),
     "recent_changes": ("previous_snapshot",),
     "hybrid_notes": ("retrieved_evidence",),
+    "listing_as_of": ("item", "listing_as_of"),
+    "compare_channels": ("unlisted_owned", "capital_tied_up", "channel_history"),
+    "listing_performance": ("watch_rate", "offers"),
 }
 
 ITEM_SCOPED = frozenset({
@@ -45,6 +51,7 @@ ITEM_SCOPED = frozenset({
     "explain_attention",
     "item_state",
     "item_history",
+    "listing_as_of",
 })
 
 _SKU_RE = re.compile(r"\b[a-z0-9]+(?:-[a-z0-9]+)+\b", re.IGNORECASE)
@@ -66,6 +73,12 @@ def resolve_intent(question: str, intent: str | None = None) -> str:
         return "data_health"
     if "changed" in text or "previous snapshot" in text:
         return "recent_changes"
+    if "two weeks ago" in text or "listing state" in text or "as-of" in text or "as of" in text:
+        return "listing_as_of"
+    if "channel" in text and ("historically" in text or "better" in text or "compare" in text):
+        return "compare_channels"
+    if ("attention" in text and "offer" in text) or "watch_rate" in text or "weak offer" in text:
+        return "listing_performance"
     if "reprice" in text or "price too" in text:
         return "reprice_item"
     if "why" in text and ("attention" in text or "recommend" in text or "queue" in text):
@@ -86,3 +99,15 @@ def extract_sku(question: str, sku: str | None = None) -> str | None:
         return str(sku).strip()
     matches = _SKU_RE.findall(question or "")
     return matches[-1] if matches else None
+
+
+def extract_as_of(question: str, as_of: str | None = None) -> datetime | None:
+    if as_of and str(as_of).strip():
+        text = str(as_of).strip()
+        if text.endswith("Z"):
+            text = text[:-1]
+        return datetime.fromisoformat(text)
+    q = (question or "").lower()
+    if "two weeks ago" in q or "14 days ago" in q:
+        return datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=14)
+    return None

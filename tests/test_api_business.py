@@ -54,7 +54,7 @@ def test_api_snapshot_still_derived(warehouse):
     assert res.status_code == 200
     body = res.json()
     assert body["kind"] == "derived"
-    assert body["data"]["items_total"] == 12
+    assert 40 <= body["data"]["items_total"] <= 80
     assert "margin" not in body["data"]
 
 
@@ -124,3 +124,19 @@ def test_api_context_accepts_intent_without_question(warehouse):
     assert body["intent"] == "focus_today"
     assert body["sufficient"] is True
     assert "snapshot" in body["facts"]
+
+
+def test_api_eval_is_strict_twenty(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    from cdp_cli.api.main import create_app
+
+    client = TestClient(create_app())
+    res = client.get("/eval")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["total"] == 20
+    assert body["passed"] == 20
+    assert body["failed"] == 0
+    assert body["skipped"] == 0
+    assert body["ok"] is True

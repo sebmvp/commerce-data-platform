@@ -163,6 +163,11 @@ def create_app() -> FastAPI:
 
     @app.get("/eval")
     def eval_results():
+        import sys
+
+        from .. import db as _db
+
+        sys.path.insert(0, str(_db.project_root()))
         from evals.run import run_eval
 
         _require_db()
