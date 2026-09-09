@@ -33,10 +33,10 @@ PostgreSQL (canonical operational store)
                 ├─ MCP stdio  assemble_context + read tools (no approve/execute)
                 └─ React Context Inspector  (web/)
 
-NEXT (not implemented)
-======================
-grounded copilot (provider-abstracted LLM)
-honest RAG baseline vs Context Engine vs full-context
+NEXT (partial)
+==============
+grounded copilot: FakeProvider default; env provider when CDP_LLM_API_KEY is set
+honest RAG baseline vs Context Engine vs full-context  — not started
 Redis only if evaluation/model runs become async jobs
 ```
 

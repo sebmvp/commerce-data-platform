@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { getContext, getEval, getItem, getItemHistory } from "./api";
+import { getAnswer, getContext, getEval, getItem, getItemHistory } from "./api";
 
 type Tab = "inspect" | "eval" | "item";
 
@@ -57,6 +57,7 @@ export default function App() {
   const [sku, setSku] = useState("j4-military-s");
   const [item, setItem] = useState<any>(null);
   const [history, setHistory] = useState<any>(null);
+  const [answer, setAnswer] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -66,6 +67,7 @@ export default function App() {
     try {
       const data = await getContext(q);
       setBundle(data);
+      setAnswer(null);
       setTab("inspect");
     } catch (err) {
       setError(String(err));
@@ -79,6 +81,18 @@ export default function App() {
     setError(null);
     try {
       setEvalReport(await getEval());
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runAnswer(q: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      setAnswer(await getAnswer(q));
     } catch (err) {
       setError(String(err));
     } finally {
@@ -201,6 +215,33 @@ export default function App() {
                   {bundle.question}
                 </p>
               </div>
+              <div className="samples">
+                <button
+                  className="chip"
+                  data-testid="grounded-answer"
+                  disabled={busy}
+                  onClick={() => void runAnswer(question)}
+                >
+                  Grounded answer
+                </button>
+              </div>
+              {answer && (
+                <section
+                  className={`missing-panel ${answer.abstained ? "" : "ok-panel"}`}
+                  data-testid="grounded-output"
+                  style={
+                    answer.abstained
+                      ? undefined
+                      : { borderColor: "#14532d", background: "#101610", color: "var(--fg)" }
+                  }
+                >
+                  <h2>{answer.abstained ? "Abstained" : "Grounded answer"}</h2>
+                  <p>{answer.answer}</p>
+                  <p className="lede" style={{ marginTop: 8 }}>
+                    provider {answer.provider}
+                  </p>
+                </section>
+              )}
 
               {!!bundle.missing_context?.length && (
                 <section className="missing-panel" data-testid="missing-context">

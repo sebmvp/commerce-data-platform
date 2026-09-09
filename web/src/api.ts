@@ -8,6 +8,14 @@ export async function getContext(question: string) {
   return res.json();
 }
 
+export async function getAnswer(question: string) {
+  const url = new URL("/answer", API);
+  url.searchParams.set("question", question);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export async function getEval() {
   const res = await fetch(`${API}/eval`);
   if (!res.ok) throw new Error(await res.text());

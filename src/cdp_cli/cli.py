@@ -463,6 +463,35 @@ def cmd_eval(args: argparse.Namespace) -> int:
     return 0 if report["ok"] else 1
 
 
+def cmd_answer(args: argparse.Namespace) -> int:
+    from .llm import ground_answer
+
+    question = (args.question or "").strip()
+    if not question and not args.intent:
+        print("question or --intent is required", file=sys.stderr)
+        return 1
+    if not db.is_initialized():
+        print(f"schema not initialized — run: cdp build (expected {db.database_url()})")
+        return 1
+    con = db.connect(read_only=True)
+    try:
+        result = ground_answer(
+            con, question=question, intent=args.intent, sku=args.sku
+        )
+    except (KeyError, ValueError) as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    finally:
+        con.close()
+    if args.json:
+        print(json.dumps(result, indent=2, default=str))
+        return 0
+    print(f"provider  {result['provider']}")
+    print(f"abstained {result['abstained']}")
+    print(result["answer"])
+    return 0
+
+
 def cmd_mcp(_: argparse.Namespace) -> int:
     """Stdio MCP server — agent adapter over the same tools as FastAPI."""
     try:
@@ -599,6 +628,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Fail on FAIL or SKIP (default)",
     )
 
+    pa = sub.add_parser("answer", help="Grounded answer over a ContextBundle")
+    pa.add_argument("question", nargs="?", default="", help="Question to ground")
+    pa.add_argument("--intent", choices=sorted(INTENTS))
+    pa.add_argument("--sku", default=None)
+    pa.add_argument("--json", action="store_true")
+
     ps = sub.add_parser("serve", help="FastAPI read layer")
     ps.add_argument("--host", default="127.0.0.1")
     ps.add_argument("--port", type=int, default=8000)
@@ -619,6 +654,7 @@ def main(argv: list[str] | None = None) -> int:
         "business": cmd_business,
         "context": cmd_context,
         "eval": cmd_eval,
+        "answer": cmd_answer,
         "report": cmd_report,
         "serve": cmd_serve,
         "mcp": cmd_mcp,

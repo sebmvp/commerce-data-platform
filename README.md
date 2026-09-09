@@ -48,11 +48,15 @@ Gold questions score `assemble_context`, not an LLM. Cases include
 current facts, as-of listing state, channel comparison, listing
 performance, missing context, and a hybrid structured + note question.
 
+`cdp answer` runs a thin grounded path over that bundle. The default
+provider is fake. A real model is used only when `CDP_LLM_API_KEY` is
+set. Insufficient bundles abstain.
+
 ## Boundaries
 
 - Public data is synthetic / sanitized. Private resale records stay local.
 - This is not a scale claim and not live marketplace integration.
-- There is no LLM in this repository yet. MCP exposes the context engine.
+- Grounded answers use the ContextBundle. Default provider is fake; no keys in the repo.
 - The published LICENSE is MIT (already on GitHub). That is not an
   invitation to treat private business data as public.
 

@@ -161,6 +161,27 @@ def create_app() -> FastAPI:
         finally:
             con.close()
 
+    @app.get("/answer")
+    def grounded_answer(
+        question: str = Query(""),
+        intent: str | None = Query(None),
+        sku: str | None = Query(None),
+    ):
+        from ..llm import ground_answer
+
+        if not (question or "").strip() and not intent:
+            raise HTTPException(400, "question or intent is required")
+        _require_db()
+        con = db.connect(read_only=True)
+        try:
+            return ground_answer(con, question=question, intent=intent, sku=sku)
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
+        finally:
+            con.close()
+
     @app.get("/eval")
     def eval_results():
         import sys
