@@ -13,6 +13,7 @@ COPY schema/ schema/
 COPY sql/ sql/
 COPY src/ src/
 COPY sample_data/ sample_data/
+COPY evals/ evals/
 COPY docs/ docs/
 COPY tests/ tests/
 

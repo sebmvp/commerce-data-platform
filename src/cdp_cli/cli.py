@@ -10,6 +10,7 @@ Commands:
   report <kind>         inventory | pricing | funnel  -> markdown export
   status                Health snapshot + ingest reconciliation
   business <topic>      snapshot | attention | health | metric | item | history | channel
+  context               assemble a typed context bundle (objects/links/missing)
   demo                  3-minute warehouse → decision → failure story
   action                propose | list | get | approve | reject  (sandbox)
   tables                Row counts per table
@@ -363,6 +364,40 @@ def _print_business(payload: dict, *, as_json: bool) -> None:
     print(data)
 
 
+def cmd_context(args: argparse.Namespace) -> int:
+    from .context import assemble_context
+    from .present import format_context
+
+    question = args.question or ""
+    if not question.strip() and not args.intent:
+        print("question or --intent is required", file=sys.stderr)
+        return 1
+    path = db.db_path()
+    if not path.exists():
+        print(f"warehouse not initialized — run: cdp build (expected at {path})")
+        return 1
+    con = db.connect(read_only=True)
+    try:
+        bundle = assemble_context(
+            con,
+            question=question,
+            intent=args.intent,
+            sku=args.sku,
+        )
+    except (KeyError, ValueError) as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    finally:
+        con.close()
+
+    payload = bundle.to_dict()
+    if args.json:
+        print(json.dumps(payload, indent=2, default=str))
+        return 0
+    print(format_context(payload), end="")
+    return 0
+
+
 def cmd_report(args: argparse.Namespace) -> int:
     from .analytics import reports
 
@@ -495,6 +530,17 @@ def main(argv: list[str] | None = None) -> int:
         help="Emit structured payload (kind + data + provenance)",
     )
 
+    from .context import INTENTS
+
+    pc = sub.add_parser(
+        "context",
+        help="Assemble a typed context bundle for a business question",
+    )
+    pc.add_argument("question", nargs="?", default="", help="Question to ground")
+    pc.add_argument("--intent", choices=sorted(INTENTS))
+    pc.add_argument("--sku", default=None)
+    pc.add_argument("--json", action="store_true")
+
     pr = sub.add_parser("report", help="Write a markdown report to reports/")
     pr.add_argument("kind", choices=["inventory", "pricing", "funnel"])
 
@@ -514,6 +560,7 @@ def main(argv: list[str] | None = None) -> int:
         "demo": cmd_demo,
         "action": cmd_action,
         "business": cmd_business,
+        "context": cmd_context,
         "report": cmd_report,
         "serve": cmd_serve,
     }[args.cmd](args)

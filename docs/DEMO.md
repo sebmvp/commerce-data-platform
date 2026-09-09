@@ -20,7 +20,7 @@ Builds an **isolated temp warehouse** from `sample_data/`. About three minutes. 
 7. **Trust** — `read = loaded + rejected`, no integrity alarms, same business counts.
 8. **Replay** — canonical files unchanged → content-hash skip. No duplicate items. Quarantine remains.
 
-Same commands by hand: `cdp build --sample`, `cdp business snapshot`, `cdp business attention --limit 5`, `cdp business item stone-cargo-l`, `cdp business history stone-cargo-l`, `cdp status`. `--json` if you want provenance payloads.
+Same commands by hand: `cdp build --sample`, `cdp business snapshot`, `cdp business attention --limit 5`, `cdp business item stone-cargo-l`, `cdp business history stone-cargo-l`, `cdp context "Should I reprice stone-cargo-l?"`, `cdp status`. `--json` if you want provenance payloads.
 
 ## After the demo
 

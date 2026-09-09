@@ -39,7 +39,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Commerce Data Platform API",
         version="0.1.0",
-        description="Read-only analytics surface over the CDP warehouse.",
+        description="Read layer over the CDP warehouse and context engine.",
     )
 
     @app.get("/health")
@@ -115,6 +115,28 @@ def create_app() -> FastAPI:
         con = db.connect(read_only=True)
         try:
             return trust_report(con).to_dict()
+        finally:
+            con.close()
+
+    @app.get("/context")
+    def context_bundle(
+        question: str = Query(..., min_length=1),
+        intent: str | None = Query(None),
+        sku: str | None = Query(None),
+    ):
+        from ..context import assemble_context
+
+        if not db.db_path().exists():
+            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        con = db.connect(read_only=True)
+        try:
+            return assemble_context(
+                con, question=question, intent=intent, sku=sku
+            ).to_dict()
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+        except ValueError as e:
+            raise HTTPException(400, str(e)) from e
         finally:
             con.close()
 

@@ -228,3 +228,45 @@ def format_action(data: dict[str, Any]) -> str:
         lines.append(_row("Decided at", data["decided_at"]))
     lines.append(_row("", "does not mutate the warehouse"))
     return "\n".join(lines) + "\n"
+
+
+def format_context(bundle: dict[str, Any]) -> str:
+    sufficient = "yes" if bundle.get("sufficient") else "no"
+    lines = [
+        "CONTEXT BUNDLE",
+        "",
+        _row("Intent", bundle.get("intent") or ""),
+        _row("Sufficient", sufficient),
+        _row("Question", bundle.get("question") or ""),
+    ]
+    missing = bundle.get("missing_context") or []
+    if missing:
+        lines.append("")
+        lines.append("  missing")
+        for row in missing:
+            concept = row.get("concept") if isinstance(row, dict) else row.concept
+            reason = row.get("reason") if isinstance(row, dict) else row.reason
+            lines.append(f"    - {concept}: {reason}")
+    objects = bundle.get("objects") or []
+    if objects:
+        lines.append("")
+        lines.append("  objects")
+        for obj in objects:
+            if isinstance(obj, dict):
+                lines.append(f"    {obj.get('type')}:{obj.get('id')}")
+            else:
+                lines.append(f"    {obj.type}:{obj.id}")
+    metrics = bundle.get("metrics") or {}
+    if metrics:
+        lines.append("")
+        lines.append("  metrics")
+        for name, value in metrics.items():
+            lines.append(_row(name, _num(value), width=22))
+    rules = bundle.get("applicable_rules") or []
+    if rules:
+        lines.append("")
+        lines.append("  rules")
+        for rule in rules:
+            applies = "applies" if rule.get("applies") else "considered"
+            lines.append(f"    {rule.get('name')} ({applies})")
+    return "\n".join(lines) + "\n"

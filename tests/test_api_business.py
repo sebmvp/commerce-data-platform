@@ -87,3 +87,26 @@ def test_api_channel_as_of_contract(warehouse):
         "/business/channels/grailed", params={"as_of": "not-a-date"}
     )
     assert bad.status_code == 400
+
+
+def test_api_context_bundle_contract(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    from cdp_cli.api.main import create_app
+
+    client = TestClient(create_app())
+    res = client.get(
+        "/context",
+        params={
+            "question": "Should I reprice stone-cargo-l?",
+            "intent": "reprice_item",
+            "sku": "stone-cargo-l",
+        },
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["intent"] == "reprice_item"
+    assert body["sufficient"] is False
+    concepts = {row["concept"] for row in body["missing_context"]}
+    assert "listing" in concepts
+    assert body["provenance"]["tool"] == "assemble_context"

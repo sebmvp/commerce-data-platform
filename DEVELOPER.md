@@ -2,7 +2,7 @@
 
 Design decisions worth knowing before extending this.
 
-CLI surface: `init / build / ingest / validate / query / report / status / business / demo / serve`.
+CLI surface: `init / build / ingest / validate / query / report / status / business / context / demo / action / serve`.
 
 ## The warehouse file is a cache
 

@@ -1,8 +1,12 @@
 # Architecture
 
-How the warehouse is built and read. The README is the overview.
+How operational context is built and read. The README is the overview.
+
+**CURRENT** is what the code does. **NEXT** is not in the repository.
 
 ```
+CURRENT
+=======
 canonical JSONL (sample_data/)
         │
         ▼
@@ -16,13 +20,44 @@ DuckDB (gitignored cache)
         │
         ├─ observability.trust_report
         ├─ metrics.METRICS
-        └─ business tools (snapshot, attention, item, history, channel as-of, health, explain_metric)
+        └─ business tools (snapshot, attention, item, history, channel as-of, health)
                 │
-                ├─ CLI  cdp status | business | demo | action
-                └─ FastAPI  /ingest/trust  /business/*  /business/actions
-                        │
-                        └─ (future) AI copilot — not in this repo
+                ▼
+        context engine
+          intents → objects / links / events / metrics / rules
+          missing_context + sufficient (rule-based)
+                │
+                ├─ CLI  cdp status | business | context | demo | action
+                └─ FastAPI  /ingest/trust  /business/*  /context  /business/actions
+
+NEXT (not implemented)
+======================
+MCP (same services as FastAPI)
+grounded copilot (provider-abstracted LLM)
+RAG baseline over serialized business text (comparison, not replacement)
+React operator UI
+PostgreSQL operational store (actions + mutable objects)
 ```
+
+## Technology decisions (2026-09-08)
+
+Re-evaluated against the original thesis: a business is not a pile of documents, and the warehouse is not the product.
+
+| Tech | Decision | Responsibility |
+|------|----------|----------------|
+| DuckDB | **DEMOTE** as architectural center; **KEEP** as current analytical/fact cache | Rebuildable laptop warehouse from JSONL. Distinct from an application database. Remove later if ingest writes canonical objects elsewhere and this role disappears. |
+| PostgreSQL | **ADOPT later**, not this slice | Concurrent operational objects, actions, approvals, agent-run records. Introducing an empty Postgres now would be two databases for show. SQLite already holds sandbox actions. |
+| SQLite actions | **EVOLVE** | Correct propose/approve model. Migrate into Postgres when that store exists. |
+| dbt | **DO NOT ADOPT** | Not enough reusable SQL transform/metric complexity to justify a second modeling layer. `metrics.py` + tools remain the source of truth. |
+| Polars | **DO NOT ADOPT** | Ingest is still row-at-a-time pydantic, not a dataframe path. |
+| Graph DB | **DO NOT ADOPT** | Object + link semantics are modeled in the context engine. Scale does not justify Neo4j. |
+| MCP | **REQUIRED next** | Typed tools over the context engine, sharing services with FastAPI. Not a second domain layer. |
+| React/TS | **REQUIRED later** | Operator visibility into the same objects/links the engine assembles. |
+| LLM copilot | **REQUIRED later** | After context bundles + missing-context behavior are stable. Fake provider for tests. |
+| RAG baseline | **REQUIRED later** | Honest comparison: serialize business state to chunks vs context engine, same questions, same model. Do not sabotage the baseline. |
+| Kafka/Spark/Airflow/K8s/Redis | **REJECT** | No capability they uniquely unlock at this scale. |
+
+DuckDB stays because a reviewer can rebuild it with zero services, and the context engine currently reads it. That is a real responsibility, not nostalgia. It is no longer the story.
 
 ## Source domains
 
@@ -55,6 +90,31 @@ Eight JSONL streams, dependency-ordered in `ALL_JOBS`:
 
 `--force` bypasses the hash skip.
 
+## Context model
+
+The engine speaks a small domain language, not table names:
+
+| Kind | Examples |
+|------|----------|
+| OBJECT | Item, Listing, Channel, Order, EngagementObservation, IngestRun, Recommendation, Action |
+| LINK | HAS_LISTING, ON_CHANNEL, HAS_ENGAGEMENT, RESULTED_IN, TARGETS, DERIVED_FROM |
+| EVENT | ordered, received, listed, sold, listing_opened |
+| ACTION | propose_list, propose_reprice, propose_channel_change, mark_reviewed (sandbox) |
+
+A `ContextBundle` contains: question, intent, as_of, objects, relationships, facts, metrics, events, applicable_rules, retrieved_evidence, provenance, missing_context, sufficient.
+
+`sufficient` is true only when every required concept for the intent is present. It is not a numeric confidence.
+
+Bounded intents in v1: `reprice_item`, `focus_today`, `explain_attention`, `item_state`, `item_history`, `data_health`, `recent_changes`. Free-form NL planning is not claimed.
+
+Unstructured retrieval (`retrieved_evidence`) is empty until there is genuinely unstructured evidence to fetch. Structured facts are not vectorized.
+
+## Context-assembly eval
+
+`evals/context_questions.py` is the start of the comparison suite. Implemented rows assert that the engine retrieved required objects or disclosed missing context. Unimplemented rows (temporal listing as-of, multi-hop channel history) stay in the catalog so the gap is visible.
+
+A later RAG baseline will answer the same ids. If retrieval wins some categories, that result will be reported.
+
 ## Validation and quarantine
 
 Pydantic models live in `validate.py`. Rejects go to `core.rejected_records` with `error_code`, `detail`, `raw_json`, and `run_id`. A run can be `success` with `rows_rejected > 0` — processed, not necessarily clean. All-reject success is a trust *warning*, not a hard fail.
@@ -79,7 +139,7 @@ Warnings (do not flip `ok`): historical `failed` runs that rolled back, all-reje
 
 ## Metrics and business tools
 
-`metrics.py` is the registry. Tools in `business.py` must implement those definitions.
+`metrics.py` is the registry. Tools in `business.py` must implement those definitions. The context engine calls those tools; it does not duplicate their SQL.
 
 | Tool | Kind | Question |
 |---|---|---|
@@ -90,27 +150,20 @@ Warnings (do not flip `ok`): historical `failed` runs that rolled back, all-reje
 | `get_item` | fact | What is this item right now? |
 | `get_item_history` | fact | What happened to this item over time? |
 | `get_channel_as_of` | fact | What channel version (fee/standing) covered this instant? |
+| `assemble_context` | context | What operational context does this question require, and is it present? |
 
 Attention ranking is deterministic: unlisted owned (by capital, then age) → stale listings → high watch_rate with zero offers. Actions (`LIST NEXT`, `REVIEW PRICE OR CHANNEL`, `CONSIDER REPRICE`) are heuristics labeled separately from the metric columns.
 
 `realized_gross_after_fees_usd` is not full margin.
 
-Sandbox actions (`cdp action`, `/business/actions`) are a separate SQLite log. They record propose → human approve/reject. They do not mutate DuckDB or any marketplace. Postgres replaces SQLite when concurrent writers exist.
+Sandbox actions (`cdp action`, `/business/actions`) are a separate SQLite log. They record propose → human approve/reject. They do not mutate DuckDB or any marketplace.
 
 ## Surfaces
 
-- CLI: `init / build / ingest / validate / query / report / status / business / action / demo / serve`
-- API: view-backed inventory/listing/insight routes, plus `/ingest/trust` and `/business/*` (including item + history + channel as-of + sandbox actions) which call the same Python tools
-- Demo: `cdp demo` builds an isolated temp warehouse from `sample_data/` (never unlinks the configured DB), prints state, proposes/approves one sandbox action (SQLite log, warehouse unchanged), stages dirty input in a temp copy, shows quarantine, replays
-
-## Future AI boundary
-
-A copilot would call the tools above at question time and cite provenance. It would not embed warehouse rows, generate arbitrary SQL, or write back. Nothing in that layer exists in this repository.
-
-## Why DuckDB
-
-The public fixture is small by design. A file the reviewer can rebuild on a laptop beats a service they cannot. The SQL surface is ordinary enough to move later if the data ever required it. That is not a scale claim.
+- CLI: `init / build / ingest / validate / query / report / status / business / context / action / demo / serve`
+- API: view-backed inventory/listing/insight routes, plus `/ingest/trust`, `/context`, and `/business/*`
+- Demo: `cdp demo` builds an isolated temp warehouse from `sample_data/` (never unlinks the configured DB)
 
 ## Tests
 
-Covers validation, smoke build, idempotency, malformed JSON, atomicity, views, observability, business tools (including channel as-of), labeled attention-queue eval, adversarial fixtures, demo path. CI: pytest, `cdp build --sample`, Docker image smoke.
+Covers validation, smoke build, idempotency, malformed JSON, atomicity, views, observability, business tools, labeled attention-queue eval, context assembly, context eval catalog, adversarial fixtures, demo path. CI: pytest, `cdp build --sample`, Docker image smoke.

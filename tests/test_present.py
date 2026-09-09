@@ -1,6 +1,7 @@
 """Formatting of business payloads — no warehouse required."""
 from cdp_cli.present import (
     format_attention,
+    format_context,
     format_item,
     format_item_history,
     format_snapshot,
@@ -119,3 +120,23 @@ def test_format_item_history_timeline_lines():
     assert "ordered" in text
     assert "listing_opened" in text
     assert "grailed" in text
+
+
+def test_format_context_shows_missing():
+    text = format_context(
+        {
+            "intent": "reprice_item",
+            "sufficient": False,
+            "question": "Should I reprice stone-cargo-l?",
+            "missing_context": [
+                {"concept": "listing", "reason": "item has no listings"},
+            ],
+            "objects": [{"type": "Item", "id": "stone-cargo-l"}],
+            "metrics": {"acquisition_cost_cny": 3943},
+            "applicable_rules": [{"name": "stale_listing", "applies": False}],
+        }
+    )
+    assert "CONTEXT BUNDLE" in text
+    assert "sufficient" in text.lower() or "Sufficient" in text
+    assert "listing" in text
+    assert "Item:stone-cargo-l" in text
