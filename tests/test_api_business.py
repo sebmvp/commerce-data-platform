@@ -110,3 +110,17 @@ def test_api_context_bundle_contract(warehouse):
     concepts = {row["concept"] for row in body["missing_context"]}
     assert "listing" in concepts
     assert body["provenance"]["tool"] == "assemble_context"
+
+
+def test_api_context_accepts_intent_without_question(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    from cdp_cli.api.main import create_app
+
+    client = TestClient(create_app())
+    res = client.get("/context", params={"intent": "focus_today"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["intent"] == "focus_today"
+    assert body["sufficient"] is True
+    assert "snapshot" in body["facts"]

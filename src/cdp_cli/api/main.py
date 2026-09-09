@@ -120,12 +120,14 @@ def create_app() -> FastAPI:
 
     @app.get("/context")
     def context_bundle(
-        question: str = Query(..., min_length=1),
+        question: str = Query(""),
         intent: str | None = Query(None),
         sku: str | None = Query(None),
     ):
         from ..context import assemble_context
 
+        if not (question or "").strip() and not intent:
+            raise HTTPException(400, "question or intent is required")
         if not db.db_path().exists():
             raise HTTPException(503, "warehouse not built yet (run: cdp build)")
         con = db.connect(read_only=True)

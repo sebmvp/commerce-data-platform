@@ -17,7 +17,7 @@ View-backed routes read SQL. `/business/*`, `/context`, and `/ingest/trust` call
 | GET | `/insights/voice-profiles` | current `insights.voice_profile` |
 | GET | `/ingest/runs?limit=N` | `core.v_ingest_health` |
 | GET | `/ingest/trust` | `observability.trust_report` |
-| GET | `/context?question=&intent=&sku=` | `assemble_context` |
+| GET | `/context?question=&intent=&sku=` | `assemble_context` (question or intent required) |
 | GET | `/business/snapshot` | `get_business_snapshot` |
 | GET | `/business/attention?limit=N` | `get_inventory_attention_queue` |
 | GET | `/business/metrics?name=` | metric registry / `explain_metric` |
