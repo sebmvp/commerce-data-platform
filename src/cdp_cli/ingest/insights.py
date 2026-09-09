@@ -23,7 +23,7 @@ class ContentIngest(IngestJob[ContentRecord]):
                 status, published_at, raw_json)
                VALUES (?, ?, (SELECT channel_key FROM core.channels
                               WHERE platform=? AND valid_to IS NULL),
-                       ?, ?, ?, ?, ?, ?, ?)
+                       ?, ?, ?, ?, ?, ?, ?::jsonb)
                ON CONFLICT (caption_id) DO UPDATE SET
                  status=excluded.status, tone=excluded.tone, cta=excluded.cta,
                  hooks=excluded.hooks, updated_at=now()""",
@@ -54,7 +54,7 @@ class ContentSnapshotIngest(IngestJob[ContentEngagementRecord]):
             """INSERT INTO insights.content_snapshot
                (snapshot_id, caption_id, observed_at, window_hours, impressions,
                 interactions, saves, inquiries, engagement_rate, conversions, raw_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
                ON CONFLICT (snapshot_id) DO UPDATE SET
                  impressions=excluded.impressions, saves=excluded.saves,
                  inquiries=excluded.inquiries, conversions=excluded.conversions,

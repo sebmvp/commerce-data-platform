@@ -1,14 +1,14 @@
 """FastAPI read layer.
 
-Inventory/listing/insight routes read warehouse views. `/business/*` and
-`/ingest/trust` call `cdp_cli.business` / `observability` — same tools as
-the CLI. Metrics are defined in `cdp_cli.metrics`, not invented per route.
+Inventory/listing/insight routes read views. `/business/*`, `/context`,
+and `/eval` call shared services — same tools as the CLI and MCP.
 
 Run: `cdp serve` then http://127.0.0.1:8000/docs
 """
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from .. import db
@@ -35,26 +35,40 @@ def _rows(con, sql: str, params: list | None = None) -> list[dict]:
     return [dict(zip(cols, r)) for r in rel.fetchall()]
 
 
+def _require_db() -> None:
+    if not db.is_initialized():
+        raise HTTPException(
+            503, "database not initialized (run: cdp build / make seed)"
+        )
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Commerce Data Platform API",
-        version="0.1.0",
-        description="Read layer over the CDP warehouse and context engine.",
+        version="0.6.0",
+        description="Read layer over the context engine and operational store.",
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
     @app.get("/health")
     def health():
-        if not db.db_path().exists():
-            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        _require_db()
         con = db.connect(read_only=True)
         try:
             con.execute("SELECT 1")
-            return {"status": "ok", "db": str(db.db_path())}
+            return {"status": "ok", "db": db.database_url()}
         finally:
             con.close()
 
     @app.get("/inventory/summary")
     def inventory_summary():
+        _require_db()
         con = db.connect(read_only=True)
         try:
             return _rows(con, "SELECT * FROM catalog.v_inventory_summary")
@@ -63,15 +77,18 @@ def create_app() -> FastAPI:
 
     @app.get("/inventory/unlisted")
     def unlisted(limit: int = Query(50, le=200)):
+        _require_db()
         con = db.connect(read_only=True)
         try:
-            return _rows(con,
-                         "SELECT * FROM catalog.v_unlisted_queue LIMIT ?", [limit])
+            return _rows(
+                con, "SELECT * FROM catalog.v_unlisted_queue LIMIT ?", [limit]
+            )
         finally:
             con.close()
 
     @app.get("/listings/performance")
     def listing_performance(platform: str | None = None):
+        _require_db()
         sql = "SELECT * FROM sales.v_listing_performance"
         params: list = []
         if platform:
@@ -86,32 +103,35 @@ def create_app() -> FastAPI:
 
     @app.get("/insights/voice-profiles")
     def voice_profiles():
+        _require_db()
         con = db.connect(read_only=True)
         try:
-            return _rows(con, """
+            return _rows(
+                con,
+                """
                 SELECT tone, hook_style, sample_size, avg_watchers,
                        avg_conversion, summary_md, version
                 FROM insights.voice_profile
-                WHERE is_current ORDER BY avg_conversion DESC""")
+                WHERE is_current ORDER BY avg_conversion DESC
+                """,
+            )
         finally:
             con.close()
 
     @app.get("/ingest/runs")
     def ingest_runs(limit: int = Query(20, le=100)):
+        _require_db()
         con = db.connect(read_only=True)
         try:
-            return _rows(con,
-                         "SELECT * FROM core.v_ingest_health LIMIT ?", [limit])
+            return _rows(con, "SELECT * FROM core.v_ingest_health LIMIT ?", [limit])
         finally:
             con.close()
 
     @app.get("/ingest/trust")
     def ingest_trust():
-        """Warehouse trustworthiness: reconciliation + orphan/failure alarms."""
         from ..observability import trust_report
 
-        if not db.db_path().exists():
-            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        _require_db()
         con = db.connect(read_only=True)
         try:
             return trust_report(con).to_dict()
@@ -128,8 +148,7 @@ def create_app() -> FastAPI:
 
         if not (question or "").strip() and not intent:
             raise HTTPException(400, "question or intent is required")
-        if not db.db_path().exists():
-            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        _require_db()
         con = db.connect(read_only=True)
         try:
             return assemble_context(
@@ -142,12 +161,22 @@ def create_app() -> FastAPI:
         finally:
             con.close()
 
+    @app.get("/eval")
+    def eval_results():
+        from evals.run import run_eval
+
+        _require_db()
+        con = db.connect(read_only=True)
+        try:
+            return run_eval(con)
+        finally:
+            con.close()
+
     @app.get("/business/snapshot")
     def business_snapshot():
         from ..business import get_business_snapshot
 
-        if not db.db_path().exists():
-            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        _require_db()
         con = db.connect(read_only=True)
         try:
             return get_business_snapshot(con).to_dict()
@@ -158,8 +187,7 @@ def create_app() -> FastAPI:
     def business_attention(limit: int = Query(25, le=200)):
         from ..business import get_inventory_attention_queue
 
-        if not db.db_path().exists():
-            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        _require_db()
         con = db.connect(read_only=True)
         try:
             return get_inventory_attention_queue(con, limit=limit).to_dict()
@@ -186,8 +214,7 @@ def create_app() -> FastAPI:
     ):
         from ..business import get_channel_as_of
 
-        if not db.db_path().exists():
-            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        _require_db()
         con = db.connect(read_only=True)
         try:
             return get_channel_as_of(
@@ -204,8 +231,7 @@ def create_app() -> FastAPI:
     def business_item(sku: str):
         from ..business import get_item
 
-        if not db.db_path().exists():
-            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        _require_db()
         con = db.connect(read_only=True)
         try:
             return get_item(con, sku).to_dict()
@@ -218,8 +244,7 @@ def create_app() -> FastAPI:
     def business_item_history(sku: str):
         from ..business import get_item_history
 
-        if not db.db_path().exists():
-            raise HTTPException(503, "warehouse not built yet (run: cdp build)")
+        _require_db()
         con = db.connect(read_only=True)
         try:
             return get_item_history(con, sku).to_dict()

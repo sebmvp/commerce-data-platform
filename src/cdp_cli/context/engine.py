@@ -8,9 +8,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any
 
-import duckdb
-
 from .. import metrics as M
+from ..db import Connection
 from ..business import (
     action_for_reason,
     get_business_snapshot,
@@ -19,6 +18,7 @@ from ..business import (
     get_inventory_attention_queue,
     get_item,
     get_item_history,
+    search_notes,
 )
 from .intents import ITEM_SCOPED, REQUIRED_CONCEPTS, extract_sku, resolve_intent
 from .model import (
@@ -82,7 +82,7 @@ def _repricing_rules(
 
 
 def _assemble_item_graph(
-    con: duckdb.DuckDBPyConnection,
+    con: Connection,
     sku: str,
     *,
     need_history: bool,
@@ -230,11 +230,22 @@ def _assemble_item_graph(
         "source_tools": list(dict.fromkeys(source_tools)),
         "source_relations": source_relations,
         "history": history,
+        "retrieved_evidence": [
+            {
+                "note_id": n["note_id"],
+                "kind": n["kind"],
+                "title": n["title"],
+                "body": n["body"],
+                "object_type": n.get("object_type"),
+                "object_id": n.get("object_id"),
+            }
+            for n in search_notes(con, object_id=sku)
+        ],
     }
 
 
 def _reprice(
-    con: duckdb.DuckDBPyConnection, sku: str, intent: str
+    con: Connection, sku: str, intent: str
 ) -> dict[str, Any]:
     graph = _assemble_item_graph(con, sku, need_history=True)
     missing: list[MissingContext] = []
@@ -310,7 +321,7 @@ def _reprice(
     }
 
 
-def _focus(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
+def _focus(con: Connection) -> dict[str, Any]:
     snap = get_business_snapshot(con)
     queue = get_inventory_attention_queue(con)
     health = get_ingest_health(con)
@@ -368,7 +379,7 @@ def _focus(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
 
 
 def _explain_attention(
-    con: duckdb.DuckDBPyConnection, sku: str, intent: str
+    con: Connection, sku: str, intent: str
 ) -> dict[str, Any]:
     graph = _assemble_item_graph(con, sku, need_history=True)
     queue = get_inventory_attention_queue(con)
@@ -443,7 +454,7 @@ def _explain_attention(
     }
 
 
-def _item_state(con: duckdb.DuckDBPyConnection, sku: str) -> dict[str, Any]:
+def _item_state(con: Connection, sku: str) -> dict[str, Any]:
     graph = _assemble_item_graph(con, sku, need_history=False)
     listing = graph["listings"][0] if graph["listings"] else None
     metrics: dict[str, Any] = {
@@ -468,7 +479,7 @@ def _item_state(con: duckdb.DuckDBPyConnection, sku: str) -> dict[str, Any]:
 
 
 def _item_history_intent(
-    con: duckdb.DuckDBPyConnection, sku: str, intent: str
+    con: Connection, sku: str, intent: str
 ) -> dict[str, Any]:
     graph = _assemble_item_graph(con, sku, need_history=True)
     missing: list[MissingContext] = []
@@ -505,7 +516,7 @@ def _recent_changes() -> dict[str, Any]:
     }
 
 
-def _health(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
+def _health(con: Connection) -> dict[str, Any]:
     health = get_ingest_health(con)
     obj = _object("IngestRun", "trust", health.data)
     return {
@@ -521,8 +532,67 @@ def _health(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
     }
 
 
+def _hybrid_notes(
+    con: Connection, sku: str | None, question: str, intent: str
+) -> dict[str, Any]:
+    q = (question or "").lower()
+    if sku:
+        notes = search_notes(con, object_id=sku)
+        graph = _assemble_item_graph(con, sku, need_history=False)
+        objects = graph["objects"]
+        links = graph["links"]
+        source_tools = list(graph["source_tools"]) + ["search_notes"]
+        source_relations = list(graph["source_relations"]) + ["ops.notes"]
+    else:
+        kind = None
+        if "playbook" in q:
+            kind = "playbook"
+        elif "policy" in q:
+            kind = "policy"
+        if kind:
+            notes = search_notes(con, query=None)
+            notes = [n for n in notes if n.get("kind") == kind]
+            if not notes:
+                notes = search_notes(con)
+                notes = [n for n in notes if n.get("kind") == kind]
+        else:
+            notes = search_notes(con, query=question)
+        objects = []
+        links = []
+        source_tools = ["search_notes"]
+        source_relations = ["ops.notes"]
+    evidence = [
+        {
+            "note_id": n["note_id"],
+            "kind": n["kind"],
+            "title": n["title"],
+            "body": n["body"],
+            "object_type": n.get("object_type"),
+            "object_id": n.get("object_id"),
+        }
+        for n in notes
+    ]
+    missing = []
+    if not evidence:
+        missing.append(
+            _missing("retrieved_evidence", "no matching unstructured notes", intent)
+        )
+    return {
+        "objects": objects,
+        "links": links,
+        "events": [],
+        "missing": missing,
+        "metrics": {},
+        "rules": [],
+        "facts": {"note_count": len(evidence), "sku": sku},
+        "source_tools": source_tools,
+        "source_relations": list(dict.fromkeys(source_relations)),
+        "retrieved_evidence": evidence,
+    }
+
+
 def assemble_context(
-    con: duckdb.DuckDBPyConnection,
+    con: Connection,
     *,
     question: str,
     intent: str | None = None,
@@ -542,8 +612,12 @@ def assemble_context(
             assembled = _explain_attention(con, target, resolved)
         elif resolved == "item_history":
             assembled = _item_history_intent(con, target, resolved)
+        elif resolved == "hybrid_notes":
+            assembled = _hybrid_notes(con, target, question, resolved)
         else:
             assembled = _item_state(con, target)
+    elif resolved == "hybrid_notes":
+        assembled = _hybrid_notes(con, target, question, resolved)
     elif resolved == "focus_today":
         assembled = _focus(con)
     elif resolved == "data_health":
@@ -572,6 +646,10 @@ def assemble_context(
         extra_missing.append(
             _missing("warehouse_trust", "trust report was not assembled", resolved)
         )
+    if "retrieved_evidence" in required and not assembled.get("retrieved_evidence"):
+        extra_missing.append(
+            _missing("retrieved_evidence", "no unstructured evidence assembled", resolved)
+        )
 
     missing = list(assembled["missing"]) + extra_missing
     sufficient = not missing
@@ -594,7 +672,7 @@ def assemble_context(
         metrics=assembled["metrics"],
         events=assembled["events"],
         applicable_rules=assembled["rules"],
-        retrieved_evidence=[],
+        retrieved_evidence=assembled.get("retrieved_evidence") or [],
         provenance={
             "tool": "assemble_context",
             "as_of": as_of,

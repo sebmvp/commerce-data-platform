@@ -1,4 +1,4 @@
-"""Shared fixtures: temporary warehouse + temp sample data."""
+"""Shared fixtures: temporary PostgreSQL schema + sample data."""
 from __future__ import annotations
 
 import os
@@ -13,13 +13,13 @@ from cdp_cli import db  # noqa: E402
 
 
 @pytest.fixture()
-def warehouse(tmp_path, monkeypatch):
-    """Fresh warehouse + real sample_data for each test."""
-    monkeypatch.setenv("CDP_DB", str(tmp_path / "test_warehouse.duckdb"))
+def warehouse(monkeypatch):
+    """Fresh schema in the test database for each test."""
+    url = os.environ.get("CDP_TEST_DATABASE_URL", db.TEST_URL)
+    monkeypatch.setenv("CDP_DATABASE_URL", url)
     monkeypatch.setenv("CDP_DATA", str(Path(__file__).resolve().parents[1] / "sample_data"))
+    db.ensure_database(url)
     con = db.connect()
-    db.init_schema(con)
+    db.reset_schema(con)
     yield con
     con.close()
-    os.environ.pop("CDP_DB", None)
-    os.environ.pop("CDP_DATA", None)

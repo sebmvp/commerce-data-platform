@@ -9,18 +9,18 @@ were superseded and writes a new version, keeping history auditable.
 """
 from __future__ import annotations
 
-import duckdb
+from ..db import Connection
 
 MIN_SAMPLE = 2  # don't assert a profile off a single post
 
 
-def refresh_voice_profiles(con: duckdb.DuckDBPyConnection) -> int:
+def refresh_voice_profiles(con: Connection) -> int:
     """Recompute current voice profiles. Returns number of new versions."""
     groups = con.execute(
         """
         SELECT
           c.tone,
-          coalesce(nullif(string_split(c.cta, ' ')[1], ''), 'none') AS hook_style,
+          coalesce(nullif(split_part(c.cta, ' ', 1), ''), 'none') AS hook_style,
           coalesce(ch.channel_key, '')                     AS channel_key,
           count(DISTINCT c.caption_id)                    AS sample_size,
           avg(coalesce(s.saves, 0))                       AS avg_saves,
@@ -45,7 +45,7 @@ def refresh_voice_profiles(con: duckdb.DuckDBPyConnection) -> int:
         # existing current version with identical rounded inputs -> skip
         existing = con.execute(
             """SELECT version, sample_size,
-                      round(avg_watchers, 4), round(avg_conversion, 4)
+                      round(avg_watchers::numeric, 4), round(avg_conversion::numeric, 4)
                FROM insights.voice_profile
                WHERE content_type='listing_description' AND tone=?
                  AND hook_style=? AND coalesce(channel_key, '') = coalesce(?, '')
@@ -78,7 +78,7 @@ def refresh_voice_profiles(con: duckdb.DuckDBPyConnection) -> int:
                 sample_size, avg_watchers, avg_conversion, summary_md,
                 rules_json, version, is_current, source_window_start,
                 source_window_end)
-               VALUES (?, 'listing_description', ?, ?, ?, ?, ?, ?, ?, ?, ?, true, ?, ?)""",
+               VALUES (?, 'listing_description', ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, true, ?, ?)""",
             [f"vp_{tone}_{hook_style}_{(channel_key or 'any')}_{version}",
              tone, hook_style, channel_key, sample, watchers, conv, summary,
              '{"rule": "match tone+hook to evidence, not preference"}',

@@ -1,24 +1,32 @@
 services:
-  # One-shot: builds the warehouse from sample data, then exits.
-  build:
-    build: .
-    command: ["build", "--sample"]
+  postgres:
+    image: postgres:16-alpine
     environment:
-      CDP_DB: /app/data/warehouse.duckdb
+      POSTGRES_USER: cdp
+      POSTGRES_PASSWORD: cdp
+      POSTGRES_DB: cdp
+    ports:
+      - "5432:5432"
     volumes:
-      # Mount the host dir (not the file) — duckdb needs to create/replace the
-      # file atomically, and a mounted file that doesn't exist becomes a dir.
-      - ./data:/app/data
+      - cdp_pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cdp -d cdp"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
 
-  # Long-running: FastAPI read layer over ./warehouse.duckdb.
   api:
     build: .
     command: ["serve", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
     environment:
-      CDP_DB: /app/data/warehouse.duckdb
-    volumes:
-      - ./data:/app/data
+      CDP_DATABASE_URL: postgresql://cdp:cdp@postgres:5432/cdp
+      CDP_DATA: /app/sample_data
     depends_on:
-      - build
+      postgres:
+        condition: service_healthy
+
+volumes:
+  cdp_pgdata:

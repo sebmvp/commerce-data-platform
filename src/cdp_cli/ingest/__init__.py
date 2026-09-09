@@ -4,10 +4,9 @@ from __future__ import annotations
 from .base import IngestJob, recover_orphaned_runs
 from .catalog import ChannelIngest, ItemEventIngest, ItemIngest
 from .insights import ContentIngest, ContentSnapshotIngest
+from .notes import NoteIngest
 from .sales import EngagementIngest, ListingIngest, OrderIngest
 
-# Dependency-ordered: a later job may validate references against rows
-# loaded by an earlier one.
 ALL_JOBS: list[type[IngestJob]] = [
     ChannelIngest,
     ItemIngest,
@@ -17,6 +16,7 @@ ALL_JOBS: list[type[IngestJob]] = [
     OrderIngest,
     ContentIngest,
     ContentSnapshotIngest,
+    NoteIngest,
 ]
 
 JOBS_BY_SOURCE: dict[str, type[IngestJob]] = {j.source: j for j in ALL_JOBS}

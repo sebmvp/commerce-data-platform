@@ -11,6 +11,7 @@ INTENTS = frozenset({
     "item_history",
     "data_health",
     "recent_changes",
+    "hybrid_notes",
 })
 
 # Concepts the engine must retrieve or explicitly mark missing.
@@ -36,6 +37,7 @@ REQUIRED_CONCEPTS: dict[str, tuple[str, ...]] = {
     "item_history": ("item", "events"),
     "data_health": ("warehouse_trust",),
     "recent_changes": ("previous_snapshot",),
+    "hybrid_notes": ("retrieved_evidence",),
 }
 
 ITEM_SCOPED = frozenset({
@@ -58,6 +60,8 @@ def resolve_intent(question: str, intent: str | None = None) -> str:
     text = (question or "").strip().lower()
     if not text:
         raise ValueError("question or intent is required")
+    if "note" in text or "policy" in text or "playbook" in text:
+        return "hybrid_notes"
     if "trust" in text or "data health" in text or "can i trust" in text:
         return "data_health"
     if "changed" in text or "previous snapshot" in text:

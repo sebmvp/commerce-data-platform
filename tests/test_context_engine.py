@@ -55,7 +55,8 @@ def test_reprice_listed_item_is_sufficient(warehouse):
     assert bundle.events
     assert bundle.provenance["tool"] == "assemble_context"
     assert "get_item" in bundle.provenance["source_tools"]
-    assert bundle.retrieved_evidence == []
+    assert bundle.retrieved_evidence
+    assert all("body" in ev and ev.get("kind") for ev in bundle.retrieved_evidence)
 
 
 def test_reprice_unlisted_item_reports_missing_listing(warehouse):

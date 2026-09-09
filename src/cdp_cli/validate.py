@@ -114,3 +114,12 @@ class PurchaseOrderRecord(BaseModel):
     total_cny: float = Field(ge=0)
     shipping_cny: float = Field(default=0, ge=0)
     lines: list[dict[str, Any]] = Field(min_length=1)
+
+
+class NoteRecord(BaseModel):
+    note_id: str
+    kind: Literal["seller_note", "policy", "playbook"]
+    object_type: str | None = None
+    object_id: str | None = None
+    title: str | None = None
+    body: str = Field(min_length=1)

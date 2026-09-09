@@ -25,6 +25,7 @@ def test_eval_catalog_has_stable_ids():
     assert len(QUESTIONS) >= 12
     categories = {q["category"] for q in QUESTIONS}
     for needed in (
+        "hybrid",
         "simple_fact",
         "temporal",
         "multi_hop",

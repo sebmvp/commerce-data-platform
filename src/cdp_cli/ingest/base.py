@@ -23,8 +23,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Generic, Iterable, TypeVar
 
-import duckdb
 from pydantic import BaseModel, ValidationError
+
+from ..db import Connection, DatabaseError
 
 R = TypeVar("R", bound=BaseModel)
 
@@ -41,7 +42,7 @@ def _now() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def recover_orphaned_runs(con: duckdb.DuckDBPyConnection) -> int:
+def recover_orphaned_runs(con: Connection) -> int:
     """Mark any leftover `running` ingest audits as `failed`.
 
     A process kill mid-run can leave status='running' with no finished_at.
@@ -69,23 +70,21 @@ def recover_orphaned_runs(con: duckdb.DuckDBPyConnection) -> int:
 class IngestJob(Generic[R]):
     """One JSONL file -> one destination table."""
 
-    source: str = ""            # logical source name, e.g. 'catalog.items'
-    filename: str = ""          # file under the data dir
-    model: type[R]              # pydantic model for validation
+    source: str = ""
+    filename: str = ""
+    model: type[R]
 
-    def __init__(self, con: duckdb.DuckDBPyConnection, data_dir: Path):
+    def __init__(self, con: Connection, data_dir: Path):
         self.con = con
         self.data_dir = data_dir
         self.path = data_dir / self.filename
 
-    # -- subclass hooks ----------------------------------------------------
     def upsert(self, rec: R, raw: dict[str, Any]) -> None:
         raise NotImplementedError
 
     def natural_key(self, rec: R) -> str:
         raise NotImplementedError
 
-    # -- main entry --------------------------------------------------------
     def run(self, force: bool = False) -> dict[str, Any]:
         file_hash = file_sha256(self.path) if self.path.exists() else ""
         idem_key = hashlib.sha256(f"{self.source}:{file_hash}".encode()).hexdigest()[:16]
@@ -100,10 +99,7 @@ class IngestJob(Generic[R]):
         error: str | None = None
         status = "failed"
 
-        # One transaction for the whole run. On unexpected exception we
-        # ROLLBACK every upsert/quarantine from this attempt, then write a
-        # durable failed audit row in a fresh transaction.
-        self.con.execute("BEGIN TRANSACTION")
+        self.con.execute("BEGIN")
         try:
             self.con.execute(
                 """INSERT INTO core.ingest_runs
@@ -123,25 +119,32 @@ class IngestJob(Generic[R]):
                 try:
                     raw = json.loads(line)
                 except json.JSONDecodeError as je:
-                    # A corrupt line must not abort the batch: quarantine the
-                    # raw text and keep loading the rows that follow it.
-                    self._quarantine(run_id, {"_unparseable": line},
-                                     "malformed_json",
-                                     f"line {line_no}: {je.msg}")
+                    self._quarantine(
+                        run_id,
+                        {"_unparseable": line},
+                        "malformed_json",
+                        f"line {line_no}: {je.msg}",
+                    )
                     stats["rejected"] += 1
                     continue
                 try:
                     rec = self.model.model_validate(raw)
                 except ValidationError as ve:
-                    self._quarantine(run_id, raw, "schema_violation",
-                                     "; ".join(f"{'.'.join(map(str, e['loc']))}: {e['msg']}"
-                                               for e in ve.errors()))
+                    self._quarantine(
+                        run_id,
+                        raw,
+                        "schema_violation",
+                        "; ".join(
+                            f"{'.'.join(map(str, e['loc']))}: {e['msg']}"
+                            for e in ve.errors()
+                        ),
+                    )
                     stats["rejected"] += 1
                     continue
                 try:
                     self.upsert(rec, raw)
                     stats["loaded"] += 1
-                except (duckdb.Error, ValueError) as e:
+                except (DatabaseError, ValueError) as e:
                     self._quarantine(run_id, raw, "load_error", str(e))
                     stats["rejected"] += 1
 
@@ -151,21 +154,26 @@ class IngestJob(Generic[R]):
                    SET finished_at=?, status=?, rows_read=?, rows_loaded=?,
                        rows_rejected=?, error_message=?, duration_ms=?
                    WHERE run_id=?""",
-                [_now(), status, stats["read"], stats["loaded"], stats["rejected"],
-                 None, int((time.perf_counter() - t0) * 1000), run_id],
+                [
+                    _now(),
+                    status,
+                    stats["read"],
+                    stats["loaded"],
+                    stats["rejected"],
+                    None,
+                    int((time.perf_counter() - t0) * 1000),
+                    run_id,
+                ],
             )
             self.con.execute("COMMIT")
         except Exception as e:
-            # File-level / unexpected failure: undo partial writes, then
-            # durable-fail the audit outside the rolled-back transaction.
             error = str(e)
             status = "failed"
             try:
                 self.con.execute("ROLLBACK")
-            except duckdb.Error:
+            except DatabaseError:
                 pass
             duration_ms = int((time.perf_counter() - t0) * 1000)
-            # Post-rollback truth: nothing from this attempt survived.
             stats["loaded"] = 0
             stats["rejected"] = 0
             self._record_failed_run(
@@ -197,8 +205,7 @@ class IngestJob(Generic[R]):
         error: str | None,
         duration_ms: int,
     ) -> None:
-        """Write a failed audit row after a rollback (its own transaction)."""
-        self.con.execute("BEGIN TRANSACTION")
+        self.con.execute("BEGIN")
         try:
             self.con.execute(
                 """INSERT INTO core.ingest_runs
@@ -225,11 +232,10 @@ class IngestJob(Generic[R]):
         except Exception:
             try:
                 self.con.execute("ROLLBACK")
-            except duckdb.Error:
+            except DatabaseError:
                 pass
             raise
 
-    # -- helpers ------------------------------------------------------------
     def _already_succeeded(self, idem_key: str) -> bool:
         row = self.con.execute(
             """SELECT 1 FROM core.ingest_runs
@@ -240,20 +246,26 @@ class IngestJob(Generic[R]):
 
     def _quarantine(self, run_id: str, raw: dict[str, Any], code: str, detail: str) -> None:
         key = None
-        for candidate in ("sku", "order_id", "content_id", "item_sku"):
+        for candidate in ("sku", "order_id", "content_id", "item_sku", "note_id"):
             if candidate in raw:
                 key = f"{candidate}:{raw[candidate]}"
                 break
         self.con.execute(
             """INSERT INTO core.rejected_records
                (rejected_id, run_id, source, record_key, error_code, detail, raw_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            [str(uuid.uuid4()), run_id, self.source, key, code, detail,
-             json.dumps(raw, default=str)],
+               VALUES (?, ?, ?, ?, ?, ?, ?::jsonb)""",
+            [
+                str(uuid.uuid4()),
+                run_id,
+                self.source,
+                key,
+                code,
+                detail,
+                json.dumps(raw, default=str),
+            ],
         )
 
     def _id(self, *parts: Any) -> str:
-        """Deterministic id from parts (for upserts keyed by uuid-like PKs)."""
         return hashlib.sha256(":".join(str(p) for p in parts).encode()).hexdigest()[:16]
 
 

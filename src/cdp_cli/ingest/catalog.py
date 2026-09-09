@@ -81,7 +81,7 @@ class ItemIngest(IngestJob[ItemRecord]):
                (item_id, sku, product, variant, size, category_key, condition,
                 acquisition_channel, acquisition_cost_cny, qty, qty_available,
                 status, target_price_usd, notes, source_file, raw_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
                ON CONFLICT (sku) DO UPDATE SET
                  product=excluded.product, variant=excluded.variant,
                  size=excluded.size, category_key=excluded.category_key,
@@ -117,7 +117,7 @@ class ItemEventIngest(IngestJob[ItemEventRecord]):
         self.con.execute(
             """INSERT INTO catalog.item_events
                (event_id, item_id, event_type, event_at, actor, payload_json)
-               VALUES (?, ?, ?, ?, ?, ?)
+               VALUES (?, ?, ?, ?, ?, ?::jsonb)
                ON CONFLICT (event_id) DO NOTHING""",
             [event_id, row[0], rec.event_type,
              rec.event_at or datetime.now(), rec.actor,

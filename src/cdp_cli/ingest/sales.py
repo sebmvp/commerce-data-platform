@@ -32,7 +32,7 @@ class ListingIngest(IngestJob[ListingRecord]):
             """INSERT INTO sales.listings
                (listing_id, item_id, channel_key, platform_url, price_usd,
                 status, listed_at, sold_at, sold_price_usd, source_file, raw_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)
                ON CONFLICT (listing_id) DO UPDATE SET
                  status=excluded.status, sold_at=excluded.sold_at,
                  sold_price_usd=excluded.sold_price_usd,
@@ -74,7 +74,7 @@ class EngagementIngest(IngestJob[EngagementRecord]):
         self.con.execute(
             """INSERT INTO sales.engagement_metric
                (metric_id, listing_id, snapshot_at, views, watchers, offers, raw_json)
-               VALUES (?, ?, ?, ?, ?, ?, ?)
+               VALUES (?, ?, ?, ?, ?, ?, ?::jsonb)
                ON CONFLICT (listing_id, snapshot_at) DO UPDATE SET
                  views=excluded.views, watchers=excluded.watchers,
                  offers=excluded.offers""",
@@ -110,7 +110,7 @@ class OrderIngest(IngestJob[OrderRecord]):
                (order_line_key, order_id, line_no, channel_key, item_id, listing_id,
                 qty, price_usd, revenue_usd, fees_usd, shipping_usd, status,
                 order_at, payload_json, source_file)
-               VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+               VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?)
                ON CONFLICT (order_line_key) DO UPDATE SET
                  status=excluded.status, updated_at=now()""",
             [rec.order_id, rec.order_id, channel[0] if channel else None,

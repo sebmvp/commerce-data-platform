@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-import duckdb
+from ..db import Connection
 
 
 def _md_table(cols: list[str], rows: list[tuple]) -> list[str]:
@@ -20,7 +20,7 @@ def _md_table(cols: list[str], rows: list[tuple]) -> list[str]:
     return lines or ["_no rows_"]
 
 
-def _inventory(con: duckdb.DuckDBPyConnection) -> list[str]:
+def _inventory(con: Connection) -> list[str]:
     out = ["## Inventory position", ""]
     out += _md_table(
         ["status", "items", "units", "invested_cny", "invested_usd_est", "listed"],
@@ -35,7 +35,7 @@ def _inventory(con: duckdb.DuckDBPyConnection) -> list[str]:
     return out
 
 
-def _pricing(con: duckdb.DuckDBPyConnection) -> list[str]:
+def _pricing(con: Connection) -> list[str]:
     out = ["## Pricing lens — watch-rate vs. price position", "",
            "Listings where watchers accumulate but no sale: price is the likely friction.", ""]
     out += _md_table(
@@ -49,7 +49,7 @@ def _pricing(con: duckdb.DuckDBPyConnection) -> list[str]:
     return out
 
 
-def _funnel(con: duckdb.DuckDBPyConnection) -> list[str]:
+def _funnel(con: Connection) -> list[str]:
     out = ["## Funnel by channel", ""]
     out += _md_table(
         ["platform", "listings", "sold", "sell_through", "avg_days_to_sell", "gross_usd"],
@@ -73,7 +73,7 @@ def _funnel(con: duckdb.DuckDBPyConnection) -> list[str]:
 _RENDERERS = {"inventory": _inventory, "pricing": _pricing, "funnel": _funnel}
 
 
-def render(con: duckdb.DuckDBPyConnection, kind: str) -> str:
+def render(con: Connection, kind: str) -> str:
     if kind not in _RENDERERS:
         raise ValueError(f"unknown report kind: {kind}")
     header = [

@@ -21,6 +21,7 @@ def test_full_build_loads_all_sources(warehouse):
         ("insights", "content_pieces"): 9,
         ("insights", "content_snapshot"): 9,
         ("core", "channels"): 3,
+        ("ops", "notes"): 4,
     }
     for (schema, table), want in expected.items():
         (got,) = warehouse.execute(

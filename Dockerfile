@@ -5,26 +5,21 @@ WORKDIR /app
 
 COPY requirements.txt requirements-dev.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-# Include the api extra (fastapi + uvicorn) so `cdp serve` works in the image.
 RUN pip install --no-cache-dir fastapi uvicorn
 
-COPY pyproject.toml README.md ./
+COPY pyproject.toml README.md alembic.ini ./
+COPY alembic/ alembic/
 COPY schema/ schema/
 COPY sql/ sql/
 COPY src/ src/
 COPY sample_data/ sample_data/
 COPY evals/ evals/
 COPY docs/ docs/
-COPY tests/ tests/
 
-# Install the package itself so `python -m cdp_cli.cli` / `cdp` resolve.
 RUN pip install --no-cache-dir -e .
 
-# Keep the image simple; it runs the CLI as root for the demo.
 ENV CDP_DATA=/app/sample_data
-ENV CDP_DB=/app/warehouse.duckdb
+ENV CDP_DATABASE_URL=postgresql://cdp:cdp@postgres:5432/cdp
 
-# Default: build the warehouse from sample data, then drop to a shell-ish
-# REPL-friendly state. First run: `docker run --rm -it <img> build --sample`
 ENTRYPOINT ["python", "-m", "cdp_cli.cli"]
 CMD ["--help"]

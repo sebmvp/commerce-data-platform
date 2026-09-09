@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
-import duckdb
+from .db import Connection
 
 
 @dataclass(frozen=True)
@@ -57,7 +57,7 @@ def _int(v: Any) -> int:
     return int(v or 0)
 
 
-def latest_runs(con: duckdb.DuckDBPyConnection, limit: int = 20) -> list[RunReconciliation]:
+def latest_runs(con: Connection, limit: int = 20) -> list[RunReconciliation]:
     rows = con.execute(
         """
         SELECT run_id, source, status,
@@ -93,7 +93,7 @@ def latest_runs(con: duckdb.DuckDBPyConnection, limit: int = 20) -> list[RunReco
     return out
 
 
-def trust_report(con: duckdb.DuckDBPyConnection, recent_limit: int = 20) -> TrustReport:
+def trust_report(con: Connection, recent_limit: int = 20) -> TrustReport:
     orphaned = _int(
         con.execute(
             "SELECT count(*) FROM core.ingest_runs WHERE status = 'running'"
@@ -165,7 +165,7 @@ def trust_report(con: duckdb.DuckDBPyConnection, recent_limit: int = 20) -> Trus
 
 
 def format_status(
-    con: duckdb.DuckDBPyConnection,
+    con: Connection,
     *,
     db_path_str: str,
     size_kb: float,

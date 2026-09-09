@@ -52,7 +52,10 @@ def test_malformed_json_line_is_quarantined_and_run_continues(warehouse, tmp_pat
 
     malformed = next(r for r in rows if r[0] == "malformed_json")
     assert malformed[1] is None  # no natural key parseable from corrupt JSON
-    assert "sku-broken" in malformed[2]  # raw line kept for debugging
+    raw = malformed[2]
+    if not isinstance(raw, str):
+        raw = json.dumps(raw)
+    assert "sku-broken" in raw  # raw line kept for debugging
 
 
 def test_malformed_run_does_not_count_as_idempotent_success(warehouse, tmp_path):

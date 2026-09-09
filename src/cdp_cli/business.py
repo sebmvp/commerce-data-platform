@@ -9,12 +9,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
+from decimal import Decimal
 from datetime import date, datetime, timezone
 from typing import Any, Literal
 
-import duckdb
-
 from . import metrics as M
+from .db import Connection
 from .observability import trust_report
 
 Kind = Literal["fact", "derived", "recommendation"]
@@ -95,6 +95,8 @@ def _jsonable(value: Any) -> Any:
         return value.isoformat(timespec="seconds")
     if isinstance(value, date):
         return value.isoformat()
+    if isinstance(value, Decimal):
+        return float(value)
     if isinstance(value, dict):
         return {str(k): _jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
@@ -103,7 +105,7 @@ def _jsonable(value: Any) -> Any:
 
 
 def _records(
-    con: duckdb.DuckDBPyConnection, sql: str, params: list | None = None
+    con: Connection, sql: str, params: list | None = None
 ) -> list[dict[str, Any]]:
     rel = con.execute(sql, params or [])
     cols = [c[0] for c in rel.description]
@@ -121,7 +123,7 @@ def _records(
     return out
 
 
-def _require_item(con: duckdb.DuckDBPyConnection, sku: str) -> dict[str, Any]:
+def _require_item(con: Connection, sku: str) -> dict[str, Any]:
     sku = (sku or "").strip()
     if not sku:
         raise ValueError("sku is required")
@@ -162,7 +164,7 @@ def _require_item(con: duckdb.DuckDBPyConnection, sku: str) -> dict[str, Any]:
     return rows[0]
 
 
-def _item_listings(con: duckdb.DuckDBPyConnection, item_id: str) -> list[dict[str, Any]]:
+def _item_listings(con: Connection, item_id: str) -> list[dict[str, Any]]:
     return _records(
         con,
         """
@@ -177,7 +179,7 @@ def _item_listings(con: duckdb.DuckDBPyConnection, item_id: str) -> list[dict[st
           coalesce(sum(em.watchers), 0) AS watchers,
           coalesce(sum(em.offers), 0) AS offers,
           CASE WHEN coalesce(sum(em.views), 0) = 0 THEN NULL
-               ELSE round(sum(em.watchers)::DOUBLE / sum(em.views), 4)
+               ELSE round((sum(em.watchers)::numeric / sum(em.views)), 4)
           END AS watch_rate
         FROM sales.listings l
         LEFT JOIN core.channels ch
@@ -192,7 +194,7 @@ def _item_listings(con: duckdb.DuckDBPyConnection, item_id: str) -> list[dict[st
     )
 
 
-def _item_orders(con: duckdb.DuckDBPyConnection, item_id: str) -> list[dict[str, Any]]:
+def _item_orders(con: Connection, item_id: str) -> list[dict[str, Any]]:
     return _records(
         con,
         """
@@ -207,7 +209,7 @@ def _item_orders(con: duckdb.DuckDBPyConnection, item_id: str) -> list[dict[str,
     )
 
 
-def get_business_snapshot(con: duckdb.DuckDBPyConnection) -> BusinessPayload:
+def get_business_snapshot(con: Connection) -> BusinessPayload:
     """Current resale operation state — counts + capital, not a recommendation."""
     items = con.execute(
         """
@@ -294,7 +296,7 @@ def get_business_snapshot(con: duckdb.DuckDBPyConnection) -> BusinessPayload:
 
 
 def get_inventory_attention_queue(
-    con: duckdb.DuckDBPyConnection,
+    con: Connection,
     *,
     limit: int = M.ATTENTION_QUEUE_DEFAULT_LIMIT,
 ) -> BusinessPayload:
@@ -343,7 +345,7 @@ def get_inventory_attention_queue(
             coalesce(sum(em.watchers), 0) AS watchers,
             coalesce(sum(em.offers), 0) AS offers,
             CASE WHEN coalesce(sum(em.views), 0) = 0 THEN NULL
-                 ELSE round(sum(em.watchers)::DOUBLE / sum(em.views), 4)
+                 ELSE round((sum(em.watchers)::numeric / sum(em.views)), 4)
             END AS watch_rate
           FROM sales.listings l
           LEFT JOIN core.channels ch
@@ -410,7 +412,7 @@ def get_inventory_attention_queue(
         "views", "watchers", "offers", "watch_rate",
         "attention_reason", "priority_class",
     ]
-    queue = [dict(zip(cols, r)) for r in rows]
+    queue = [_jsonable(dict(zip(cols, r))) for r in rows]
 
     recommendations = []
     for row in queue[:5]:
@@ -491,7 +493,7 @@ def get_inventory_attention_queue(
     )
 
 
-def get_ingest_health(con: duckdb.DuckDBPyConnection) -> BusinessPayload:
+def get_ingest_health(con: Connection) -> BusinessPayload:
     from .observability import trust_report as tr
 
     report = tr(con)
@@ -533,7 +535,7 @@ def explain_metric(name: str) -> BusinessPayload:
 
 
 def get_channel_as_of(
-    con: duckdb.DuckDBPyConnection,
+    con: Connection,
     platform: str,
     *,
     as_of: datetime | date | str | None = None,
@@ -600,7 +602,7 @@ def get_channel_as_of(
     )
 
 
-def get_item(con: duckdb.DuckDBPyConnection, sku: str) -> BusinessPayload:
+def get_item(con: Connection, sku: str) -> BusinessPayload:
     """Current state of one catalog item. Facts + named derived ages, not a recommendation."""
     item = _require_item(con, sku)
     listings = _item_listings(con, item["item_id"])
@@ -635,7 +637,7 @@ def get_item(con: duckdb.DuckDBPyConnection, sku: str) -> BusinessPayload:
     )
 
 
-def get_item_history(con: duckdb.DuckDBPyConnection, sku: str) -> BusinessPayload:
+def get_item_history(con: Connection, sku: str) -> BusinessPayload:
     """Event timeline for one item: supply events, listings, engagement, orders."""
     item = _require_item(con, sku)
     item_id = item["item_id"]
@@ -749,3 +751,29 @@ def get_item_history(con: duckdb.DuckDBPyConnection, sku: str) -> BusinessPayloa
             ],
         ),
     )
+
+
+def search_notes(
+    con: Connection,
+    *,
+    object_id: str | None = None,
+    query: str | None = None,
+    limit: int = 8,
+) -> list[dict[str, Any]]:
+    """Keyword search over genuinely unstructured operational notes."""
+    clauses: list[str] = []
+    params: list[Any] = []
+    if object_id:
+        clauses.append("object_id = ?")
+        params.append(object_id)
+    if query and query.strip():
+        needle = f"%{query.strip()}%"
+        clauses.append("(body ILIKE ? OR coalesce(title, '') ILIKE ?)")
+        params.extend([needle, needle])
+    where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+    sql = (
+        "SELECT note_id, kind, object_type, object_id, title, body "
+        f"FROM ops.notes{where} ORDER BY created_at DESC LIMIT ?"
+    )
+    params.append(max(1, min(int(limit), 50)))
+    return _records(con, sql, params)

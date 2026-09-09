@@ -1,0 +1,2 @@
+CREATE DATABASE cdp_test;
+CREATE DATABASE cdp_demo;

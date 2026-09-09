@@ -45,8 +45,8 @@ READ_TOOL_NAMES = (
 
 
 def _with_warehouse(fn: Callable[[Any], Any]) -> Any:
-    if not db.db_path().exists():
-        raise FileNotFoundError("warehouse not built yet (run: cdp build)")
+    if not db.is_initialized():
+        raise FileNotFoundError("database not initialized (run: cdp build / make seed)")
     con = db.connect(read_only=True)
     try:
         return fn(con)

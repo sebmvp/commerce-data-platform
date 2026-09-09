@@ -7,10 +7,8 @@ from cdp_cli import actions
 
 
 @pytest.fixture()
-def action_db(tmp_path, monkeypatch):
-    path = tmp_path / "actions.sqlite"
-    monkeypatch.setenv("CDP_ACTIONS_DB", str(path))
-    yield path
+def action_db(warehouse):
+    yield warehouse
 
 
 def test_propose_approve_reject_and_unknown(action_db):

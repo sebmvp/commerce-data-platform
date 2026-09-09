@@ -39,10 +39,11 @@ def _print_table(cols: list[str], rows: list[tuple]) -> None:
 # ── commands ──────────────────────────────────────────────────────────────
 
 def cmd_init(_: argparse.Namespace) -> int:
+    db.ensure_database()
     con = db.connect()
     db.init_schema(con)
     con.close()
-    print(f"Initialized schema + views in {db.db_path()}")
+    print(f"Initialized schema + views in {db.database_url()}")
     return 0
 
 
@@ -115,6 +116,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 
 def cmd_build(args: argparse.Namespace) -> int:
+    db.ensure_database()
     con = db.connect()
     try:
         db.init_schema(con)
@@ -150,9 +152,11 @@ def cmd_tables(_: argparse.Namespace) -> int:
 
 
 def cmd_status(_: argparse.Namespace) -> int:
-    path = db.db_path()
-    if not path.exists():
-        print(f"warehouse not initialized — run: cdp build (expected at {path})")
+    if not db.ping():
+        print(f"database not reachable — run: make up (expected {db.database_url()})")
+        return 1
+    if not db.is_initialized():
+        print(f"schema not initialized — run: cdp build (expected {db.database_url()})")
         return 1
     con = db.connect(read_only=True)
     try:
@@ -160,8 +164,8 @@ def cmd_status(_: argparse.Namespace) -> int:
 
         body = format_status(
             con,
-            db_path_str=str(path),
-            size_kb=path.stat().st_size / 1024,
+            db_path_str=db.database_url(),
+            size_kb=0.0,
         )
         print(body, end="")
         return 0 if trust_report(con).ok else 2
@@ -199,9 +203,8 @@ def cmd_business(args: argparse.Namespace) -> int:
         _print_business(payload, as_json=as_json)
         return 0
 
-    path = db.db_path()
-    if not path.exists():
-        print(f"warehouse not initialized — run: cdp build (expected at {path})")
+    if not db.is_initialized():
+        print(f"schema not initialized — run: cdp build (expected {db.database_url()})")
         return 1
 
     con = db.connect(read_only=True)
@@ -373,9 +376,8 @@ def cmd_context(args: argparse.Namespace) -> int:
     if not question.strip() and not args.intent:
         print("question or --intent is required", file=sys.stderr)
         return 1
-    path = db.db_path()
-    if not path.exists():
-        print(f"warehouse not initialized — run: cdp build (expected at {path})")
+    if not db.is_initialized():
+        print(f"schema not initialized — run: cdp build (expected {db.database_url()})")
         return 1
     con = db.connect(read_only=True)
     try:
@@ -427,6 +429,36 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
     uvicorn.run(create_app(), host=args.host, port=args.port)
     return 0
+
+
+def cmd_eval(args: argparse.Namespace) -> int:
+    import sys
+
+    sys.path.insert(0, str(db.project_root()))
+    from evals.run import run_eval
+
+    if not db.is_initialized():
+        print(f"schema not initialized — run: cdp build (expected {db.database_url()})")
+        return 1
+    con = db.connect(read_only=True)
+    try:
+        report = run_eval(con)
+    finally:
+        con.close()
+    if args.json:
+        print(json.dumps(report, indent=2, default=str))
+        return 0 if report["ok"] else 1
+    print(
+        f"gold eval  {report['passed']}/{report['implemented']} implemented passing"
+        f"  ({report['skipped']} skipped, {report['total']} catalog)"
+    )
+    for case in report["cases"]:
+        mark = "PASS" if case["passed"] else ("SKIP" if case["skipped"] else "FAIL")
+        print(f"  [{mark}] {case['id']:4} {case['question']}")
+        for err in case["errors"]:
+            if err != "not implemented":
+                print(f"         {err}")
+    return 0 if report["ok"] else 1
 
 
 def cmd_mcp(_: argparse.Namespace) -> int:
@@ -556,6 +588,9 @@ def main(argv: list[str] | None = None) -> int:
     pr = sub.add_parser("report", help="Write a markdown report to reports/")
     pr.add_argument("kind", choices=["inventory", "pricing", "funnel"])
 
+    pe = sub.add_parser("eval", help="Gold context-assembly evaluation")
+    pe.add_argument("--json", action="store_true")
+
     ps = sub.add_parser("serve", help="FastAPI read layer")
     ps.add_argument("--host", default="127.0.0.1")
     ps.add_argument("--port", type=int, default=8000)
@@ -575,6 +610,7 @@ def main(argv: list[str] | None = None) -> int:
         "action": cmd_action,
         "business": cmd_business,
         "context": cmd_context,
+        "eval": cmd_eval,
         "report": cmd_report,
         "serve": cmd_serve,
         "mcp": cmd_mcp,

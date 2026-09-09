@@ -1,8 +1,8 @@
 """Interviewer demo: warehouse → business state → failure → still usable.
 
 Does not modify committed sample_data/. Dirty input is staged in a temp copy.
-The warehouse used for the story is an isolated temp file — never
-warehouse.duckdb and never whatever CDP_DB the caller already configured.
+The database used for the story is an isolated Postgres database — never
+the caller's configured CDP_DATABASE_URL.
 """
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ import os
 import shutil
 import sys
 import tempfile
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
@@ -48,29 +49,25 @@ def _count(con, sql: str) -> int:
 
 
 @contextmanager
-def _isolated_warehouse() -> Iterator[Path]:
-    """Point CDP_DB at a throwaway file; restore the caller environment.
-
-    `cdp demo` is a story, not `cdp build`. Unlinking the configured
-    warehouse would destroy an interviewer's already-built cache.
-    """
-    previous = os.environ.get("CDP_DB")
-    previous_actions = os.environ.get("CDP_ACTIONS_DB")
-    with tempfile.TemporaryDirectory(prefix="cdp-demo-db-") as tmp:
-        path = Path(tmp) / "warehouse.duckdb"
-        os.environ["CDP_DB"] = str(path)
-        os.environ["CDP_ACTIONS_DB"] = str(Path(tmp) / "actions.sqlite")
+def _isolated_warehouse() -> Iterator[str]:
+    """Point CDP_DATABASE_URL at a throwaway database; restore the caller env."""
+    previous = os.environ.get("CDP_DATABASE_URL")
+    base = previous or db.DEFAULT_URL
+    name = f"cdp_iso_{uuid.uuid4().hex[:12]}"
+    url = db.url_with_db(base, name)
+    db.ensure_database(url)
+    os.environ["CDP_DATABASE_URL"] = url
+    try:
+        yield url
+    finally:
+        if previous is None:
+            os.environ.pop("CDP_DATABASE_URL", None)
+        else:
+            os.environ["CDP_DATABASE_URL"] = previous
         try:
-            yield path
-        finally:
-            if previous is None:
-                os.environ.pop("CDP_DB", None)
-            else:
-                os.environ["CDP_DB"] = previous
-            if previous_actions is None:
-                os.environ.pop("CDP_ACTIONS_DB", None)
-            else:
-                os.environ["CDP_ACTIONS_DB"] = previous_actions
+            db.drop_database(url)
+        except Exception:
+            pass
 
 
 def run_demo(*, file: TextIO = sys.stdout) -> int:
@@ -83,18 +80,18 @@ def run_demo(*, file: TextIO = sys.stdout) -> int:
     print("Commerce Data Platform — demo", file=file)
     print("synthetic data only · ~3 minutes", file=file)
 
-    with _isolated_warehouse() as path:
-        return _run_isolated_demo(catalog, path, file)
+    with _isolated_warehouse() as url:
+        return _run_isolated_demo(catalog, url, file)
 
 
-def _run_isolated_demo(catalog: Path, path: Path, file: TextIO) -> int:
+def _run_isolated_demo(catalog: Path, url: str, file: TextIO) -> int:
     _banner("1. BUILD", file)
-    print(f"isolated warehouse {path}", file=file)
-    print("configured CDP_DB / warehouse.duckdb left untouched", file=file)
+    print(f"isolated warehouse {url}", file=file)
+    print("configured CDP_DATABASE_URL left untouched", file=file)
     con = db.connect()
     try:
         db.init_schema(con)
-        print(f"schema: {path}", file=file)
+        print(f"schema: {url}", file=file)
         from .cli import _run_ingest
 
         rc = _run_ingest(con, list(JOBS_BY_SOURCE), False)
@@ -146,7 +143,7 @@ def _run_isolated_demo(catalog: Path, path: Path, file: TextIO) -> int:
             print("human approved:", file=file)
             print(format_action(approved["data"]), end="", file=file)
             print(
-                "warehouse listings/items unchanged — this log is the new state.",
+                "catalog listings/items unchanged — this log is the new state.",
                 file=file,
             )
 

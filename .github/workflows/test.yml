@@ -8,12 +8,33 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: cdp
+          POSTGRES_PASSWORD: cdp
+          POSTGRES_DB: cdp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cdp -d cdp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CDP_DATABASE_URL: postgresql://cdp:cdp@localhost:5432/cdp
+      CDP_TEST_DATABASE_URL: postgresql://cdp:cdp@localhost:5432/cdp_test
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
       - name: Install
         run: |
@@ -25,20 +46,15 @@ jobs:
 
       - name: Full-pipeline smoke build
         run: |
-          cdp build --sample
+          cdp build --sample --force
           cdp status
-        env:
-          CDP_DB: /tmp/cdp-smoke.duckdb
+          cdp eval
+
+      - name: Frontend typecheck
+        run: |
+          cd web
+          npm install
+          npx tsc --noEmit
 
       - name: Lint (informational)
         run: ruff check src/ tests/ || true
-
-      - name: Docker image smoke build
-        run: |
-          docker build -t cdp-ci .
-          # Both containers must share the warehouse file; --rm alone discards
-          # the build output, which is exactly what broke main at aa42ee7.
-          docker volume create cdp-ci-data
-          docker run --rm -e CDP_DB=/data/warehouse.duckdb -v cdp-ci-data:/data cdp-ci build --sample
-          docker run --rm -e CDP_DB=/data/warehouse.duckdb -v cdp-ci-data:/data cdp-ci status
-          docker volume rm cdp-ci-data
