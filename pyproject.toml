@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "commerce-data-platform"
-version = "0.4.0"
+version = "0.5.0"
 description = "Business context engine for resale operations: objects, relationships, history, metrics, and typed tools."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 api = ["fastapi>=0.110", "uvicorn>=0.29", "httpx>=0.27"]
+mcp = ["mcp>=2.0,<3"]
 dev = ["pytest>=8.0", "ruff>=0.4"]
 
 [project.scripts]

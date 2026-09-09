@@ -27,12 +27,12 @@ DuckDB (gitignored cache)
           intents → objects / links / events / metrics / rules
           missing_context + sufficient (rule-based)
                 │
-                ├─ CLI  cdp status | business | context | demo | action
-                └─ FastAPI  /ingest/trust  /business/*  /context  /business/actions
+                ├─ CLI  cdp status | business | context | demo | action | mcp
+                ├─ FastAPI  /ingest/trust  /business/*  /context  /business/actions
+                └─ MCP stdio  assemble_context + read tools (no approve/execute)
 
 NEXT (not implemented)
 ======================
-MCP (same services as FastAPI)
 grounded copilot (provider-abstracted LLM)
 RAG baseline over serialized business text (comparison, not replacement)
 React operator UI
@@ -51,7 +51,7 @@ Re-evaluated against the original thesis: a business is not a pile of documents,
 | dbt | **DO NOT ADOPT** | Not enough reusable SQL transform/metric complexity to justify a second modeling layer. `metrics.py` + tools remain the source of truth. |
 | Polars | **DO NOT ADOPT** | Ingest is still row-at-a-time pydantic, not a dataframe path. |
 | Graph DB | **DO NOT ADOPT** | Object + link semantics are modeled in the context engine. Scale does not justify Neo4j. |
-| MCP | **REQUIRED next** | Typed tools over the context engine, sharing services with FastAPI. Not a second domain layer. |
+| MCP | **current** | Typed tools over the context engine, sharing services with FastAPI. Not a second domain layer. |
 | React/TS | **REQUIRED later** | Operator visibility into the same objects/links the engine assembles. |
 | LLM copilot | **REQUIRED later** | After context bundles + missing-context behavior are stable. Fake provider for tests. |
 | RAG baseline | **REQUIRED later** | Honest comparison: serialize business state to chunks vs context engine, same questions, same model. Do not sabotage the baseline. |
@@ -160,10 +160,11 @@ Sandbox actions (`cdp action`, `/business/actions`) are a separate SQLite log. T
 
 ## Surfaces
 
-- CLI: `init / build / ingest / validate / query / report / status / business / context / action / demo / serve`
+- CLI: `init / build / ingest / validate / query / report / status / business / context / action / demo / serve / mcp`
 - API: view-backed inventory/listing/insight routes, plus `/ingest/trust`, `/context`, and `/business/*`
+- MCP: `cdp mcp` stdio server, same read tools, no approve/execute
 - Demo: `cdp demo` builds an isolated temp warehouse from `sample_data/` (never unlinks the configured DB)
 
 ## Tests
 
-Covers validation, smoke build, idempotency, malformed JSON, atomicity, views, observability, business tools, labeled attention-queue eval, context assembly, context eval catalog, adversarial fixtures, demo path. CI: pytest, `cdp build --sample`, Docker image smoke.
+Covers validation, smoke build, idempotency, malformed JSON, atomicity, views, observability, business tools, labeled attention-queue eval, context assembly, context eval catalog, MCP adapter, adversarial fixtures, demo path. CI: pytest, `cdp build --sample`, Docker image smoke.

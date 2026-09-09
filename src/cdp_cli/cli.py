@@ -15,6 +15,7 @@ Commands:
   action                propose | list | get | approve | reject  (sandbox)
   tables                Row counts per table
   serve [--port N]      FastAPI read layer (requires cdp_cli[api])
+  mcp                   MCP stdio server (requires cdp_cli[mcp])
 """
 from __future__ import annotations
 
@@ -428,6 +429,17 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_mcp(_: argparse.Namespace) -> int:
+    """Stdio MCP server — agent adapter over the same tools as FastAPI."""
+    try:
+        from .mcp.server import create_server
+    except ImportError:
+        print("MCP extra not installed. Run: pip install -e '.[mcp]'", file=sys.stderr)
+        return 1
+    create_server().run()
+    return 0
+
+
 # ── parser ────────────────────────────────────────────────────────────────
 
 def main(argv: list[str] | None = None) -> int:
@@ -548,6 +560,8 @@ def main(argv: list[str] | None = None) -> int:
     ps.add_argument("--host", default="127.0.0.1")
     ps.add_argument("--port", type=int, default=8000)
 
+    sub.add_parser("mcp", help="MCP stdio server (read tools only)")
+
     args = p.parse_args(argv)
     return {
         "init": cmd_init,
@@ -563,6 +577,7 @@ def main(argv: list[str] | None = None) -> int:
         "context": cmd_context,
         "report": cmd_report,
         "serve": cmd_serve,
+        "mcp": cmd_mcp,
     }[args.cmd](args)
 
 

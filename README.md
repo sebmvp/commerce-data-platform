@@ -12,7 +12,7 @@ This project builds a **business context engine** for a small multi-channel resa
 sources → ingest + validation → DuckDB warehouse (rebuildable cache)
        → metric definitions + typed business tools
        → context engine (objects, links, events, rules, missing_context)
-       → CLI / FastAPI
+       → CLI / FastAPI / MCP (read tools)
        → sandbox actions (propose → human approve/reject)
 ```
 
@@ -25,10 +25,11 @@ sources → ingest + validation → DuckDB warehouse (rebuildable cache)
 - Context engine: bounded intents → structured `ContextBundle` with provenance and missing-context disclosure
 - Context-assembly eval catalog (`evals/context_questions.py`)
 - Sandbox action log: propose → human approve/reject (does not mutate the warehouse)
+- MCP stdio server: the same read tools as FastAPI; no approve/execute
 
 ## What is next (not implemented)
 
-MCP tool interface, grounded LLM copilot, RAG baseline comparison, React operator UI, PostgreSQL operational store. See [ARCHITECTURE.md](ARCHITECTURE.md).
+Grounded LLM copilot, RAG baseline comparison, React operator UI, PostgreSQL operational store. See [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Architecture
 
@@ -79,7 +80,7 @@ Without Docker:
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev,api]"
+pip install -e ".[dev,api,mcp]"
 cdp build --sample
 cdp status
 cdp business snapshot
@@ -95,7 +96,7 @@ cdp business channel grailed --as-of 2025-06-01
 - Public data is synthetic / sanitized.
 - This is not production infrastructure and not a scale claim.
 - There is no live marketplace integration.
-- There is no LLM in this repository yet. The context engine is the substrate a copilot will use.
+- There is no LLM in this repository yet. MCP exposes the context engine; a copilot is still later.
 
 ## Tests & CI
 
@@ -103,11 +104,13 @@ cdp business channel grailed --as-of 2025-06-01
 pytest -q
 ```
 
-Covers validation, idempotency, atomicity, quarantine, reconciliation, business tools, attention-queue eval, context assembly, adversarial fixtures, and the demo path. GitHub Actions runs the suite, a from-scratch `cdp build --sample`, and a Docker image smoke on every push to `main`.
+Covers validation, idempotency, atomicity, quarantine, reconciliation, business tools, attention-queue eval, context assembly, MCP adapter, adversarial fixtures, and the demo path. GitHub Actions runs the suite, a from-scratch `cdp build --sample`, and a Docker image smoke on every push to `main`.
 
 ## API
 
 `cdp serve` — `/health`, `/inventory/*`, `/listings/performance`, `/insights/voice-profiles`, `/ingest/runs`, `/ingest/trust`, `/context`, `/business/snapshot`, `/business/attention`, `/business/metrics`, `/business/items/{sku}`, `/business/items/{sku}/history`, `/business/actions`. Docs at `/docs`.
+
+`cdp mcp` — stdio MCP server over the same read tools. See [docs/mcp.md](docs/mcp.md).
 
 ## Reference
 
@@ -118,6 +121,7 @@ Covers validation, idempotency, atomicity, quarantine, reconciliation, business 
 | Ingest | `src/cdp_cli/ingest/` |
 | Metrics / tools | `src/cdp_cli/metrics.py`, `business.py` |
 | Context engine | `src/cdp_cli/context/` |
+| MCP adapter | `src/cdp_cli/mcp/` |
 | Eval catalog | `evals/context_questions.py` |
 | Sample data | `sample_data/*.jsonl` |
-| Detail | [ARCHITECTURE.md](ARCHITECTURE.md) · [docs/data-dictionary.md](docs/data-dictionary.md) · [docs/api.md](docs/api.md) |
+| Detail | [ARCHITECTURE.md](ARCHITECTURE.md) · [docs/data-dictionary.md](docs/data-dictionary.md) · [docs/api.md](docs/api.md) · [docs/mcp.md](docs/mcp.md) |
