@@ -143,6 +143,7 @@ def create_app() -> FastAPI:
         question: str = Query(""),
         intent: str | None = Query(None),
         sku: str | None = Query(None),
+        as_of: str | None = Query(None),
     ):
         from ..context import assemble_context
 
@@ -152,7 +153,7 @@ def create_app() -> FastAPI:
         con = db.connect(read_only=True)
         try:
             return assemble_context(
-                con, question=question, intent=intent, sku=sku
+                con, question=question, intent=intent, sku=sku, as_of=as_of
             ).to_dict()
         except KeyError as e:
             raise HTTPException(404, str(e)) from e

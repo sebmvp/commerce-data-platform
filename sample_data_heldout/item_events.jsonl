@@ -1,0 +1,133 @@
+{"item_sku": "field-jacket-l", "event_type": "ordered", "event_at": "2026-04-14T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "selvedge-jean-32", "event_type": "ordered", "event_at": "2026-04-15T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "field-jacket-l", "event_type": "received", "event_at": "2026-04-19T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "merino-crew-m", "event_type": "ordered", "event_at": "2026-04-20T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "selvedge-jean-32", "event_type": "received", "event_at": "2026-04-20T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "field-jacket-l", "event_type": "listed", "event_at": "2026-04-24T12:00:00", "payload": {"price_usd": 140.0}}
+{"item_sku": "sold-watch-cap-os", "event_type": "ordered", "event_at": "2026-04-25T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "merino-crew-m", "event_type": "received", "event_at": "2026-04-26T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "selvedge-jean-32", "event_type": "listed", "event_at": "2026-04-26T12:00:00", "payload": {"price_usd": 110.0}}
+{"item_sku": "camp-cap-os", "event_type": "ordered", "event_at": "2026-04-29T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "sold-watch-cap-os", "event_type": "received", "event_at": "2026-04-29T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "sold-watch-cap-os", "event_type": "listed", "event_at": "2026-05-02T12:00:00", "payload": {"price_usd": 32.0}}
+{"item_sku": "camp-cap-os", "event_type": "received", "event_at": "2026-05-04T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "selvedge-jean-32", "event_type": "sold", "event_at": "2026-05-05T12:00:00", "payload": {}}
+{"item_sku": "merino-crew-m", "event_type": "listed", "event_at": "2026-05-06T12:00:00", "payload": {"price_usd": 145.0}}
+{"item_sku": "camp-cap-os", "event_type": "listed", "event_at": "2026-05-08T12:00:00", "payload": {"price_usd": 42.0}}
+{"item_sku": "canvas-tote-os", "event_type": "ordered", "event_at": "2026-05-09T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "cord-blazer-s", "event_type": "ordered", "event_at": "2026-05-13T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "canvas-tote-os", "event_type": "received", "event_at": "2026-05-14T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "rugby-shirt-l", "event_type": "ordered", "event_at": "2026-05-14T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "sold-watch-cap-os", "event_type": "sold", "event_at": "2026-05-14T12:00:00", "payload": {}}
+{"item_sku": "linen-shirt-m", "event_type": "ordered", "event_at": "2026-05-16T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-owned-07", "event_type": "ordered", "event_at": "2026-05-17T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-owned-06", "event_type": "ordered", "event_at": "2026-05-18T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "wax-trench-m", "event_type": "ordered", "event_at": "2026-05-19T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "canvas-tote-os", "event_type": "listed", "event_at": "2026-05-19T12:00:00", "payload": {"price_usd": 48.0}}
+{"item_sku": "camp-cap-os", "event_type": "price_change", "event_at": "2026-05-19T12:00:00", "payload": {"price_usd": 34.0}}
+{"item_sku": "rugby-shirt-l", "event_type": "received", "event_at": "2026-05-19T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-transit-02", "event_type": "ordered", "event_at": "2026-05-19T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "cord-blazer-s", "event_type": "received", "event_at": "2026-05-20T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "linen-shirt-m", "event_type": "received", "event_at": "2026-05-20T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-transit-01", "event_type": "ordered", "event_at": "2026-05-20T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "dual-duffel-os", "event_type": "ordered", "event_at": "2026-05-21T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-sold-03", "event_type": "ordered", "event_at": "2026-05-21T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "nylon-shorts-l", "event_type": "ordered", "event_at": "2026-05-22T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "chrome-belt-os", "event_type": "ordered", "event_at": "2026-05-22T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-sold-02", "event_type": "ordered", "event_at": "2026-05-22T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-owned-07", "event_type": "received", "event_at": "2026-05-22T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "rugby-shirt-l", "event_type": "listed", "event_at": "2026-05-23T12:00:00", "payload": {"price_usd": 85.0}}
+{"item_sku": "hb-sold-01", "event_type": "ordered", "event_at": "2026-05-23T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-owned-06", "event_type": "received", "event_at": "2026-05-23T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "wax-trench-m", "event_type": "received", "event_at": "2026-05-24T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "linen-shirt-m", "event_type": "listed", "event_at": "2026-05-24T12:00:00", "payload": {"price_usd": 68.0}}
+{"item_sku": "camp-cap-os", "event_type": "sold", "event_at": "2026-05-24T12:00:00", "payload": {}}
+{"item_sku": "hb-listed-06", "event_type": "ordered", "event_at": "2026-05-24T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hopsack-trouser-34", "event_type": "ordered", "event_at": "2026-05-25T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-listed-05", "event_type": "ordered", "event_at": "2026-05-25T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "suede-loafer-9", "event_type": "ordered", "event_at": "2026-05-26T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "linen-shirt-m", "event_type": "sold", "event_at": "2026-05-26T12:00:00", "payload": {}}
+{"item_sku": "dual-duffel-os", "event_type": "received", "event_at": "2026-05-26T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-listed-04", "event_type": "ordered", "event_at": "2026-05-26T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-sold-03", "event_type": "received", "event_at": "2026-05-26T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "recv-chore-m", "event_type": "ordered", "event_at": "2026-05-27T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-listed-03", "event_type": "ordered", "event_at": "2026-05-27T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-sold-02", "event_type": "received", "event_at": "2026-05-27T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-sold-05", "event_type": "ordered", "event_at": "2026-05-27T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "merino-crew-m", "event_type": "price_change", "event_at": "2026-05-28T12:00:00", "payload": {"price_usd": 129.0}}
+{"item_sku": "nylon-shorts-l", "event_type": "received", "event_at": "2026-05-28T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "chrome-belt-os", "event_type": "received", "event_at": "2026-05-28T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-listed-02", "event_type": "ordered", "event_at": "2026-05-28T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-sold-01", "event_type": "received", "event_at": "2026-05-28T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-owned-10", "event_type": "ordered", "event_at": "2026-05-28T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hopsack-trouser-34", "event_type": "received", "event_at": "2026-05-29T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-listed-01", "event_type": "ordered", "event_at": "2026-05-29T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-listed-06", "event_type": "received", "event_at": "2026-05-29T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-listed-09", "event_type": "ordered", "event_at": "2026-05-29T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "boiled-wool-s", "event_type": "ordered", "event_at": "2026-05-30T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "field-jacket-l", "event_type": "sold", "event_at": "2026-05-30T12:00:00", "payload": {}}
+{"item_sku": "hb-owned-05", "event_type": "ordered", "event_at": "2026-05-30T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-listed-05", "event_type": "received", "event_at": "2026-05-30T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-sold-02", "event_type": "listed", "event_at": "2026-05-30T12:00:00", "payload": {"price_usd": 50.0}}
+{"item_sku": "hb-sold-03", "event_type": "listed", "event_at": "2026-05-30T12:00:00", "payload": {"price_usd": 92.0}}
+{"item_sku": "hb-owned-09", "event_type": "ordered", "event_at": "2026-05-30T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "wax-trench-m", "event_type": "listed", "event_at": "2026-05-31T12:00:00", "payload": {"price_usd": 220.0}}
+{"item_sku": "suede-loafer-9", "event_type": "received", "event_at": "2026-05-31T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "miss-eng-scarf-os", "event_type": "ordered", "event_at": "2026-05-31T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-owned-04", "event_type": "ordered", "event_at": "2026-05-31T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-listed-04", "event_type": "received", "event_at": "2026-05-31T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-sold-04", "event_type": "ordered", "event_at": "2026-05-31T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "dual-duffel-os", "event_type": "listed", "event_at": "2026-06-01T12:00:00", "payload": {"price_usd": 150.0}}
+{"item_sku": "miss-cost-pouch-os", "event_type": "ordered", "event_at": "2026-06-01T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-owned-03", "event_type": "ordered", "event_at": "2026-06-01T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-listed-03", "event_type": "received", "event_at": "2026-06-01T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-owned-08", "event_type": "ordered", "event_at": "2026-06-01T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-sold-05", "event_type": "received", "event_at": "2026-06-01T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "recv-chore-m", "event_type": "received", "event_at": "2026-06-02T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-owned-02", "event_type": "ordered", "event_at": "2026-06-02T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-listed-02", "event_type": "received", "event_at": "2026-06-02T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-listed-08", "event_type": "ordered", "event_at": "2026-06-02T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-owned-10", "event_type": "received", "event_at": "2026-06-02T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hopsack-trouser-34", "event_type": "listed", "event_at": "2026-06-03T12:00:00", "payload": {"price_usd": 90.0}}
+{"item_sku": "boiled-wool-s", "event_type": "received", "event_at": "2026-06-03T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-owned-01", "event_type": "ordered", "event_at": "2026-06-03T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-listed-01", "event_type": "received", "event_at": "2026-06-03T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-listed-04", "event_type": "listed", "event_at": "2026-06-03T12:00:00", "payload": {"price_usd": 70.0}}
+{"item_sku": "hb-listed-05", "event_type": "listed", "event_at": "2026-06-03T12:00:00", "payload": {"price_usd": 75.0}}
+{"item_sku": "hb-listed-06", "event_type": "listed", "event_at": "2026-06-03T12:00:00", "payload": {"price_usd": 88.0}}
+{"item_sku": "hb-sold-01", "event_type": "listed", "event_at": "2026-06-03T12:00:00", "payload": {"price_usd": 48.0}}
+{"item_sku": "hb-listed-07", "event_type": "ordered", "event_at": "2026-06-03T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "hb-listed-09", "event_type": "received", "event_at": "2026-06-03T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "fresh-slides-10", "event_type": "ordered", "event_at": "2026-06-04T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "suede-loafer-9", "event_type": "listed", "event_at": "2026-06-04T12:00:00", "payload": {"price_usd": 175.0}}
+{"item_sku": "hb-owned-05", "event_type": "received", "event_at": "2026-06-04T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-owned-09", "event_type": "received", "event_at": "2026-06-04T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "miss-eng-scarf-os", "event_type": "received", "event_at": "2026-06-05T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-owned-04", "event_type": "received", "event_at": "2026-06-05T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-sold-02", "event_type": "sold", "event_at": "2026-06-05T12:00:00", "payload": {}}
+{"item_sku": "hb-sold-04", "event_type": "received", "event_at": "2026-06-05T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-sold-05", "event_type": "listed", "event_at": "2026-06-05T12:00:00", "payload": {"price_usd": 16.0}}
+{"item_sku": "miss-cost-pouch-os", "event_type": "received", "event_at": "2026-06-06T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-owned-03", "event_type": "received", "event_at": "2026-06-06T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-sold-03", "event_type": "sold", "event_at": "2026-06-06T12:00:00", "payload": {}}
+{"item_sku": "hb-owned-08", "event_type": "received", "event_at": "2026-06-06T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "boiled-wool-s", "event_type": "listed", "event_at": "2026-06-07T12:00:00", "payload": {"price_usd": 120.0}}
+{"item_sku": "hb-owned-02", "event_type": "received", "event_at": "2026-06-07T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-listed-01", "event_type": "listed", "event_at": "2026-06-07T12:00:00", "payload": {"price_usd": 120.0}}
+{"item_sku": "hb-listed-02", "event_type": "listed", "event_at": "2026-06-07T12:00:00", "payload": {"price_usd": 140.0}}
+{"item_sku": "hb-listed-03", "event_type": "listed", "event_at": "2026-06-07T12:00:00", "payload": {"price_usd": 60.0}}
+{"item_sku": "hb-listed-08", "event_type": "received", "event_at": "2026-06-07T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-owned-01", "event_type": "received", "event_at": "2026-06-08T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "hb-sold-01", "event_type": "sold", "event_at": "2026-06-08T12:00:00", "payload": {}}
+{"item_sku": "hb-listed-07", "event_type": "received", "event_at": "2026-06-08T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "src-derby-9", "event_type": "ordered", "event_at": "2026-06-09T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "fresh-slides-10", "event_type": "received", "event_at": "2026-06-09T12:00:00", "actor": "batchimport", "payload": {}}
+{"item_sku": "miss-eng-scarf-os", "event_type": "listed", "event_at": "2026-06-09T12:00:00", "payload": {"price_usd": 55.0}}
+{"item_sku": "hb-sold-04", "event_type": "listed", "event_at": "2026-06-09T12:00:00", "payload": {"price_usd": 22.0}}
+{"item_sku": "hb-listed-09", "event_type": "listed", "event_at": "2026-06-09T12:00:00", "payload": {"price_usd": 165.0}}
+{"item_sku": "src-overshirt-m", "event_type": "ordered", "event_at": "2026-06-11T12:00:00", "actor": "batchimport", "payload": {"supplier": "cnx440"}}
+{"item_sku": "fresh-slides-10", "event_type": "listed", "event_at": "2026-06-13T12:00:00", "payload": {"price_usd": 70.0}}
+{"item_sku": "hb-listed-07", "event_type": "listed", "event_at": "2026-06-13T12:00:00", "payload": {"price_usd": 55.0}}
+{"item_sku": "hb-listed-08", "event_type": "listed", "event_at": "2026-06-13T12:00:00", "payload": {"price_usd": 38.0}}
+{"item_sku": "hb-sold-04", "event_type": "sold", "event_at": "2026-06-14T12:00:00", "payload": {}}
+{"item_sku": "hb-sold-05", "event_type": "sold", "event_at": "2026-06-14T12:00:00", "payload": {}}

@@ -9,7 +9,10 @@ Changing ranking here is a product decision, not a silent refactor.
 """
 from __future__ import annotations
 
+from datetime import timedelta
+
 from cdp_cli import metrics
+from cdp_cli.clock import reference_now
 from cdp_cli.business import (
     ACTION_FOR_REASON,
     action_for_reason,
@@ -43,6 +46,7 @@ def _seed(con) -> None:
 
     def item(sku: str, status: str, cost: float, age_days: int) -> str:
         item_id = sku
+        received_at = reference_now() - timedelta(days=age_days)
         con.execute(
             """
             INSERT INTO catalog.items
@@ -55,23 +59,22 @@ def _seed(con) -> None:
             """
             INSERT INTO catalog.item_events
               (event_id, item_id, event_type, event_at)
-            VALUES (?, ?, 'received',
-                    current_timestamp - (CAST(? AS INTEGER) * INTERVAL '1' DAY))
+            VALUES (?, ?, 'received', ?)
             """,
-            [f"ev-{sku}", item_id, age_days],
+            [f"ev-{sku}", item_id, received_at],
         )
         return item_id
 
     def listing(sku: str, age_days: int, views: int, watchers: int, offers: int) -> None:
         listing_id = f"lst-{sku}"
+        listed_at = reference_now() - timedelta(days=age_days)
         con.execute(
             """
             INSERT INTO sales.listings
               (listing_id, item_id, channel_key, price_usd, status, listed_at)
-            VALUES (?, ?, 'grailed/eval@0', 100, 'active',
-                    current_timestamp - (CAST(? AS INTEGER) * INTERVAL '1' DAY))
+            VALUES (?, ?, 'grailed/eval@0', 100, 'active', ?)
             """,
-            [listing_id, sku, age_days],
+            [listing_id, sku, listed_at],
         )
         con.execute(
             """

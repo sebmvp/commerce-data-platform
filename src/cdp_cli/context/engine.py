@@ -5,10 +5,10 @@ and does not embed warehouse rows.
 """
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Any
 
 from .. import metrics as M
+from ..clock import iso, reference_now
 from ..db import Connection
 from ..business import (
     action_for_reason,
@@ -40,9 +40,7 @@ from .model import (
 
 
 def _utcnow() -> str:
-    return datetime.now(UTC).replace(tzinfo=None).isoformat(
-        timespec="seconds"
-    ) + "Z"
+    return iso(reference_now())
 
 
 def _missing(concept: str, reason: str, intent: str) -> MissingContext:
@@ -717,12 +715,13 @@ def assemble_context(
     question: str,
     intent: str | None = None,
     sku: str | None = None,
+    as_of: str | None = None,
 ) -> ContextBundle:
     """Build a typed context bundle for a bounded operational question."""
     resolved = resolve_intent(question, intent)
     target = extract_sku(question, sku)
-    as_of_dt = extract_as_of(question)
-    as_of = _utcnow() if as_of_dt is None else as_of_dt.isoformat(timespec="seconds") + "Z"
+    as_of_dt = extract_as_of(question, as_of)
+    as_of = iso(as_of_dt or reference_now())
 
     if resolved in ITEM_SCOPED:
         if not target:
@@ -808,10 +807,18 @@ def assemble_context(
     notes = [
         "FACT/DERIVED values come from typed business tools, not prompt memory.",
         "sufficient is rule-based: every required concept is present or listed in missing_context.",
-        "retrieved_evidence is empty until unstructured retrieval exists.",
+        "Ages and relative dates use the world clock when world.json is present.",
     ]
     if not sufficient:
         notes.append("Required context is incomplete — a copilot should abstain or qualify.")
+
+    required = REQUIRED_CONCEPTS[resolved]
+    needed = ", ".join(required)
+    if sufficient:
+        why = f"{resolved} requires {needed}. All of that evidence is present."
+    else:
+        miss = ", ".join(m.concept for m in missing)
+        why = f"{resolved} requires {needed}. Missing: {miss}."
 
     return ContextBundle(
         question=question,
@@ -834,4 +841,5 @@ def assemble_context(
         },
         missing_context=missing,
         sufficient=sufficient,
+        why=why,
     )

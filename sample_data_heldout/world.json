@@ -1,0 +1,8 @@
+{
+  "name": "heldout",
+  "as_of": "2026-06-15T12:00:00",
+  "seed": 20260615,
+  "purpose": "held-out scenario validation",
+  "item_count": 48,
+  "calibration": "Same domain rules as the demo world. Different seed, identifiers, and dates. Not a copy of the gold fixture."
+}

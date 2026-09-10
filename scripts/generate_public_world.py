@@ -4,7 +4,7 @@
 Calibrated from private lifecycle *patterns* (dual channel, unlisted capital,
 sparse engagement, supply stages, notes-on-everything). No private identifiers.
 
-Usage: python scripts/generate_public_world.py
+Usage: python scripts/generate_public_world.py [--world demo|heldout|all]
 """
 from __future__ import annotations
 
@@ -522,8 +522,34 @@ def generate() -> None:
     _w("notes.jsonl", notes)
     _w("content_pieces.jsonl", content)
     _w("content_snapshots.jsonl", snapshots)
+    meta = {
+        "name": "demo",
+        "as_of": _iso(NOW),
+        "seed": SEED,
+        "purpose": "demo / development gold evaluation",
+        "item_count": len(items),
+        "calibration": (
+            "Scenario mix (dual channel, unlisted capital, in-transit supply, "
+            "missing cost/engagement, notes-on-items) is calibrated from real "
+            "resale workflow patterns. Rows are fictional."
+        ),
+    }
+    (OUT / "world.json").write_text(json.dumps(meta, indent=2) + "\n")
     print(f"items={len(items)} listings={len(listings)} orders={len(orders)}")
 
 
 if __name__ == "__main__":
-    generate()
+    import argparse
+    import subprocess
+    import sys
+
+    parser = argparse.ArgumentParser(description="Generate public synthetic worlds")
+    parser.add_argument("--world", choices=["demo", "heldout", "all"], default="all")
+    args = parser.parse_args()
+    if args.world in {"demo", "all"}:
+        generate()
+    if args.world in {"heldout", "all"}:
+        subprocess.run(
+            [sys.executable, str(Path(__file__).with_name("generate_heldout_world.py"))],
+            check=True,
+        )

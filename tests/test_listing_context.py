@@ -1,7 +1,7 @@
 """Listing as-of, channel comparison, and listing-performance context."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 
 from cdp_cli import db
 from cdp_cli.business import (
@@ -9,6 +9,7 @@ from cdp_cli.business import (
     get_listing_as_of,
     get_listing_performance,
 )
+from cdp_cli.clock import reference_now
 from cdp_cli.context import assemble_context
 from cdp_cli.ingest import ALL_JOBS
 
@@ -20,7 +21,7 @@ def _build(con):
 
 def test_listing_as_of_two_weeks_ago_is_covered(warehouse):
     _build(warehouse)
-    at = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=14)
+    at = reference_now() - timedelta(days=14)
     payload = get_listing_as_of(warehouse, "j4-military-s", as_of=at)
     assert payload.data["covered"] is True
     assert payload.data["listings"]

@@ -11,7 +11,7 @@ Commands:
   status                Health snapshot + ingest reconciliation
   business <topic>      snapshot | attention | health | metric | item | history | channel
   context               assemble a typed context bundle (objects/links/missing)
-  eval [--compare]      gold context-assembly eval; optional lexical RAG baseline
+  eval [--compare] [--heldout]  gold or held-out eval; optional lexical baseline
   demo                  3-minute warehouse → decision → failure story
   action                propose | list | get | approve | reject  (sandbox)
   tables                Row counts per table
@@ -120,7 +120,7 @@ def cmd_build(args: argparse.Namespace) -> int:
     db.ensure_database()
     con = db.connect()
     try:
-        db.init_schema(con)
+        db.reset_schema(con)
         print(f"Schema initialized: {db.db_path()}")
         rc = _run_ingest(con, list(JOBS_BY_SOURCE), force=args.force)
         if rc == 0:
@@ -387,6 +387,7 @@ def cmd_context(args: argparse.Namespace) -> int:
             question=question,
             intent=args.intent,
             sku=args.sku,
+            as_of=getattr(args, "as_of", None),
         )
     except (KeyError, ValueError) as e:
         print(str(e), file=sys.stderr)
@@ -438,25 +439,28 @@ def cmd_eval(args: argparse.Namespace) -> int:
     sys.path.insert(0, str(db.project_root()))
     from evals.run import run_compare, run_eval
 
+    suite = "heldout" if getattr(args, "heldout", False) else "gold"
     if not db.is_initialized():
         print(f"schema not initialized — run: cdp build (expected {db.database_url()})")
         return 1
     con = db.connect(read_only=True)
     try:
         if getattr(args, "compare", False):
-            compare = run_compare(con)
+            compare = run_compare(con, suite=suite)
             report = compare["engine"]
         else:
             compare = None
-            report = run_eval(con)
+            report = run_eval(con, suite=suite)
     finally:
         con.close()
     if args.json:
         print(json.dumps(compare or report, indent=2, default=str))
         ok = report["ok"] if compare is None else compare["engine"]["ok"]
         return 0 if ok else 1
+    label = (compare or report).get("suite") or suite
     if compare is None:
         print(
+            f"SUITE       {label}\n"
             f"TOTAL       {report['total']}\n"
             f"PASS        {report['passed']}\n"
             f"FAIL        {report['failed']}\n"
@@ -469,29 +473,32 @@ def cmd_eval(args: argparse.Namespace) -> int:
                 if err != "not implemented":
                     print(f"         {err}")
         return 0 if report["ok"] else 1
+    lexical = compare.get("lexical") or compare["rag"]
     print(
+        f"SUITE       {label}\n"
         f"ENGINE      {compare['engine']['passed']}/{compare['engine']['total']}\n"
-        f"RAG         {compare['rag']['passed']}/{compare['rag']['total']}"
-        f"  (k={compare['rag']['k']}, corpus={compare['rag']['corpus_size']})\n"
+        f"LEXICAL     {lexical['passed']}/{lexical['total']}"
+        f"  (k={lexical['k']}, corpus={lexical['corpus_size']})\n"
         f"ENGINE WINS {', '.join(compare['engine_wins']) or '—'}\n"
-        f"RAG WINS    {', '.join(compare['rag_wins']) or '—'}\n"
+        f"LEXICAL WINS {', '.join(compare.get('lexical_wins') or compare.get('rag_wins') or []) or '—'}\n"
         f"TIE         {', '.join(compare['ties']) or '—'}"
     )
     print("BY CATEGORY")
     for name, stats in sorted(compare["by_category"].items()):
+        lex_pass = stats.get("lexical_pass", stats.get("rag_pass", 0))
         print(
             f"  {name:16} engine {stats['engine_pass']}/{stats['n']}"
-            f"  rag {stats['rag_pass']}/{stats['n']}"
+            f"  lexical {lex_pass}/{stats['n']}"
         )
     for case in compare["cases"]:
         mark = case["winner"].upper()
         print(f"  [{mark:10}] {case['id']:4} {case['question']}")
-        if case["winner"] == "rag":
+        if case["winner"] in {"lexical", "rag"}:
             for err in case["engine_errors"]:
                 print(f"         engine: {err}")
         if case["winner"] in {"engine", "both_fail"}:
-            for err in case["rag_errors"]:
-                print(f"         rag: {err}")
+            for err in case.get("lexical_errors") or case.get("rag_errors") or []:
+                print(f"         lexical: {err}")
     return 0 if compare["engine"]["ok"] else 1
 
 
@@ -646,17 +653,23 @@ def main(argv: list[str] | None = None) -> int:
     pc.add_argument("question", nargs="?", default="", help="Question to ground")
     pc.add_argument("--intent", choices=sorted(INTENTS))
     pc.add_argument("--sku", default=None)
+    pc.add_argument("--as-of", dest="as_of", default=None, help="ISO-8601 or omit for world clock")
     pc.add_argument("--json", action="store_true")
 
     pr = sub.add_parser("report", help="Write a markdown report to reports/")
     pr.add_argument("kind", choices=["inventory", "pricing", "funnel"])
 
-    pe = sub.add_parser("eval", help="Gold context-assembly evaluation")
+    pe = sub.add_parser("eval", help="Gold or held-out context-assembly evaluation")
     pe.add_argument("--json", action="store_true")
     pe.add_argument(
         "--compare",
         action="store_true",
-        help="Also score the lexical RAG baseline on the same ids",
+        help="Also score the lexical retrieval baseline on the same ids",
+    )
+    pe.add_argument(
+        "--heldout",
+        action="store_true",
+        help="Run the held-out catalog (expects the held-out world to be seeded)",
     )
     pe.add_argument(
         "--strict",

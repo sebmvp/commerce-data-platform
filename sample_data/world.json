@@ -1,0 +1,8 @@
+{
+  "name": "demo",
+  "as_of": "2026-09-09T12:00:00",
+  "seed": 20260909,
+  "purpose": "demo / development gold evaluation",
+  "item_count": 49,
+  "calibration": "Scenario mix (dual channel, unlisted capital, in-transit supply, missing cost/engagement, notes-on-items) is calibrated from real resale workflow patterns. Rows are fictional."
+}

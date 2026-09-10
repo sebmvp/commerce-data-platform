@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+
+from ..clock import reference_now
 
 INTENTS = frozenset({
     "reprice_item",
@@ -108,6 +110,9 @@ def extract_as_of(question: str, as_of: str | None = None) -> datetime | None:
             text = text[:-1]
         return datetime.fromisoformat(text)
     q = (question or "").lower()
+    now = reference_now()
     if "two weeks ago" in q or "14 days ago" in q:
-        return datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=14)
+        return now - timedelta(days=14)
+    if "last week" in q or "a week ago" in q or "7 days ago" in q:
+        return now - timedelta(days=7)
     return None

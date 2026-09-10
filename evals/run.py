@@ -3,7 +3,22 @@ from __future__ import annotations
 
 from typing import Any
 
-from evals.context_questions import QUESTIONS
+SUITE_GOLD = "GOLD / DEVELOPMENT"
+SUITE_HELDOUT = "HELD OUT"
+
+
+def _catalog(suite: str) -> list[dict[str, Any]]:
+    if suite == "heldout":
+        from evals.heldout_questions import HELD_OUT
+
+        return HELD_OUT
+    from evals.context_questions import QUESTIONS
+
+    return QUESTIONS
+
+
+def suite_label(suite: str) -> str:
+    return SUITE_HELDOUT if suite == "heldout" else SUITE_GOLD
 
 
 def score_case(bundle, case: dict[str, Any]) -> dict[str, Any]:
@@ -67,11 +82,18 @@ def score_case(bundle, case: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def run_eval(con, *, strict: bool = True) -> dict[str, Any]:
+def run_eval(
+    con,
+    *,
+    strict: bool = True,
+    suite: str = "gold",
+    questions: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     from cdp_cli.context import assemble_context
 
+    catalog = questions if questions is not None else _catalog(suite)
     results = []
-    for case in QUESTIONS:
+    for case in catalog:
         bundle = assemble_context(
             con,
             question=case["question"],
@@ -84,7 +106,9 @@ def run_eval(con, *, strict: bool = True) -> dict[str, Any]:
     skipped = [r for r in results if r["skipped"]]
     ok = not failed and (not strict or not skipped)
     return {
-        "total": len(QUESTIONS),
+        "suite": suite_label(suite),
+        "suite_id": suite,
+        "total": len(catalog),
         "passed": passed,
         "failed": len(failed),
         "skipped": len(skipped),
@@ -94,24 +118,31 @@ def run_eval(con, *, strict: bool = True) -> dict[str, Any]:
     }
 
 
-def run_compare(con, *, strict: bool = True) -> dict[str, Any]:
-    """Engine vs lexical RAG on the same gold ids. RAG is not the product path."""
-    from evals.rag_baseline import run_rag_eval
+def run_compare(
+    con,
+    *,
+    strict: bool = True,
+    suite: str = "gold",
+    questions: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Engine vs lexical retrieval on the same ids. Lexical is not the product path."""
+    from evals.lexical_baseline import run_lexical_eval
 
-    engine = run_eval(con, strict=strict)
-    rag = run_rag_eval(con)
+    catalog = questions if questions is not None else _catalog(suite)
+    engine = run_eval(con, strict=strict, suite=suite, questions=catalog)
+    lexical = run_lexical_eval(con, questions=catalog)
     cases = []
-    for e_case, r_case in zip(engine["cases"], rag["cases"], strict=True):
-        if e_case["id"] != r_case["id"]:
+    for e_case, l_case in zip(engine["cases"], lexical["cases"], strict=True):
+        if e_case["id"] != l_case["id"]:
             raise RuntimeError(
-                f"eval id mismatch {e_case['id']} vs {r_case['id']}"
+                f"eval id mismatch {e_case['id']} vs {l_case['id']}"
             )
-        if e_case["passed"] and r_case["passed"]:
+        if e_case["passed"] and l_case["passed"]:
             winner = "tie"
         elif e_case["passed"]:
             winner = "engine"
-        elif r_case["passed"]:
-            winner = "rag"
+        elif l_case["passed"]:
+            winner = "lexical"
         else:
             winner = "both_fail"
         cases.append(
@@ -120,39 +151,55 @@ def run_compare(con, *, strict: bool = True) -> dict[str, Any]:
                 "category": e_case.get("category"),
                 "question": e_case["question"],
                 "engine": e_case["passed"],
-                "rag": r_case["passed"],
+                "lexical": l_case["passed"],
+                "rag": l_case["passed"],
                 "winner": winner,
                 "engine_errors": e_case.get("errors") or [],
-                "rag_errors": r_case.get("errors") or [],
+                "lexical_errors": l_case.get("errors") or [],
+                "rag_errors": l_case.get("errors") or [],
             }
         )
     by_category: dict[str, dict[str, int]] = {}
     for case in cases:
         cat = by_category.setdefault(
             case["category"] or "unknown",
-            {"n": 0, "engine_pass": 0, "rag_pass": 0},
+            {"n": 0, "engine_pass": 0, "lexical_pass": 0, "rag_pass": 0},
         )
         cat["n"] += 1
         cat["engine_pass"] += int(case["engine"])
-        cat["rag_pass"] += int(case["rag"])
+        cat["lexical_pass"] += int(case["lexical"])
+        cat["rag_pass"] += int(case["lexical"])
     return {
+        "suite": suite_label(suite),
+        "suite_id": suite,
         "engine": {
             "total": engine["total"],
             "passed": engine["passed"],
             "failed": engine["failed"],
+            "skipped": engine["skipped"],
             "ok": engine["ok"],
         },
+        "lexical": {
+            "total": lexical["total"],
+            "passed": lexical["passed"],
+            "failed": lexical["failed"],
+            "skipped": lexical.get("skipped", 0),
+            "ok": lexical["ok"],
+            "corpus_size": lexical.get("corpus_size"),
+            "k": lexical.get("k"),
+        },
         "rag": {
-            "total": rag["total"],
-            "passed": rag["passed"],
-            "failed": rag["failed"],
-            "ok": rag["ok"],
-            "corpus_size": rag.get("corpus_size"),
-            "k": rag.get("k"),
+            "total": lexical["total"],
+            "passed": lexical["passed"],
+            "failed": lexical["failed"],
+            "ok": lexical["ok"],
+            "corpus_size": lexical.get("corpus_size"),
+            "k": lexical.get("k"),
         },
         "cases": cases,
         "by_category": by_category,
-        "rag_wins": [c["id"] for c in cases if c["winner"] == "rag"],
+        "lexical_wins": [c["id"] for c in cases if c["winner"] == "lexical"],
+        "rag_wins": [c["id"] for c in cases if c["winner"] == "lexical"],
         "engine_wins": [c["id"] for c in cases if c["winner"] == "engine"],
         "ties": [c["id"] for c in cases if c["winner"] == "tie"],
     }

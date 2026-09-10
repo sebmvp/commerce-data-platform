@@ -59,6 +59,7 @@ class ContextBundle:
     provenance: dict[str, Any] = field(default_factory=dict)
     missing_context: list[MissingContext] = field(default_factory=list)
     sufficient: bool = False
+    why: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -75,4 +76,5 @@ class ContextBundle:
             "provenance": self.provenance,
             "missing_context": [asdict(m) for m in self.missing_context],
             "sufficient": self.sufficient,
+            "why": self.why,
         }

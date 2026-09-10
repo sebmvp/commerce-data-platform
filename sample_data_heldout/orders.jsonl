@@ -1,0 +1,10 @@
+{"order_id": "ord-selvedge-jean-32", "item_sku": "selvedge-jean-32", "platform": "grailed", "qty": 1, "price_usd": 102.0, "fees_usd": 12.24, "shipping_usd": 10.0, "status": "delivered", "order_at": "2026-05-05T12:00:00"}
+{"order_id": "ord-linen-shirt", "item_sku": "linen-shirt-m", "platform": "grailed", "qty": 1, "price_usd": 64.0, "fees_usd": 7.68, "shipping_usd": 9.0, "status": "shipped", "order_at": "2026-05-26T12:00:00"}
+{"order_id": "ord-field-jacket", "item_sku": "field-jacket-l", "platform": "depop", "qty": 1, "price_usd": 118.0, "fees_usd": 11.8, "shipping_usd": 8.0, "status": "delivered", "order_at": "2026-05-30T12:00:00"}
+{"order_id": "ord-camp-cap", "item_sku": "camp-cap-os", "platform": "grailed", "qty": 1, "price_usd": 34.0, "fees_usd": 4.08, "shipping_usd": 6.0, "status": "shipped", "order_at": "2026-05-24T12:00:00"}
+{"order_id": "ord-watch-cap", "item_sku": "sold-watch-cap-os", "platform": "grailed", "qty": 1, "price_usd": 28.0, "fees_usd": 3.36, "shipping_usd": 5.0, "status": "delivered", "order_at": "2026-05-14T12:00:00"}
+{"order_id": "ord-hb-sold-01", "item_sku": "hb-sold-01", "platform": "grailed", "qty": 1, "price_usd": 43.2, "fees_usd": 4.8, "shipping_usd": 8.0, "status": "shipped", "order_at": "2026-06-08T12:00:00"}
+{"order_id": "ord-hb-sold-02", "item_sku": "hb-sold-02", "platform": "depop", "qty": 1, "price_usd": 45.0, "fees_usd": 5.0, "shipping_usd": 8.0, "status": "shipped", "order_at": "2026-06-05T12:00:00"}
+{"order_id": "ord-hb-sold-03", "item_sku": "hb-sold-03", "platform": "grailed", "qty": 1, "price_usd": 82.8, "fees_usd": 9.2, "shipping_usd": 8.0, "status": "shipped", "order_at": "2026-06-06T12:00:00"}
+{"order_id": "ord-hb-sold-04", "item_sku": "hb-sold-04", "platform": "depop", "qty": 1, "price_usd": 19.8, "fees_usd": 2.2, "shipping_usd": 8.0, "status": "shipped", "order_at": "2026-06-14T12:00:00"}
+{"order_id": "ord-hb-sold-05", "item_sku": "hb-sold-05", "platform": "grailed", "qty": 1, "price_usd": 14.4, "fees_usd": 1.6, "shipping_usd": 8.0, "status": "shipped", "order_at": "2026-06-14T12:00:00"}

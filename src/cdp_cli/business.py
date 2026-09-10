@@ -33,7 +33,9 @@ def action_for_reason(reason: str) -> str:
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    from .clock import reference_now
+
+    return reference_now()
 
 
 def _parse_as_of(as_of: datetime | date | str | None) -> datetime:
@@ -147,7 +149,7 @@ def _require_item(con: Connection, sku: str) -> dict[str, Any]:
               min(e.event_at) FILTER (WHERE e.event_type = 'ordered'),
               i.created_at
             ),
-            current_timestamp
+            CAST(? AS timestamp)
           ) AS inventory_age_days
         FROM catalog.items i
         LEFT JOIN catalog.item_events e ON e.item_id = i.item_id
@@ -157,7 +159,7 @@ def _require_item(con: Connection, sku: str) -> dict[str, Any]:
                  i.qty, i.status, i.target_price_usd, i.notes, i.source_file,
                  i.created_at, i.updated_at
         """,
-        [sku],
+        [_utcnow(), sku],
     )
     if not rows:
         raise KeyError(f"unknown item sku={sku!r}")
@@ -173,7 +175,7 @@ def _item_listings(con: Connection, item_id: str) -> list[dict[str, Any]]:
           l.sold_price_usd, l.platform_url,
           ch.platform, ch.handle,
           CASE WHEN l.listed_at IS NULL THEN NULL
-               ELSE date_diff('day', l.listed_at, current_timestamp)
+               ELSE date_diff('day', l.listed_at, CAST(? AS timestamp))
           END AS listing_age_days,
           coalesce(sum(em.views), 0) AS views,
           coalesce(sum(em.watchers), 0) AS watchers,
@@ -190,7 +192,7 @@ def _item_listings(con: Connection, item_id: str) -> list[dict[str, Any]]:
                  l.sold_price_usd, l.platform_url, ch.platform, ch.handle
         ORDER BY l.listed_at NULLS LAST
         """,
-        [item_id],
+        [_utcnow(), item_id],
     )
 
 
@@ -231,11 +233,11 @@ def get_business_snapshot(con: Connection) -> BusinessPayload:
           count(*) FILTER (
             WHERE status = 'active'
               AND listed_at IS NOT NULL
-              AND date_diff('day', listed_at, current_timestamp) >= ?
+              AND date_diff('day', listed_at, CAST(? AS timestamp)) >= ?
           ) AS stale_active_listings
         FROM sales.listings
         """,
-        [M.STALE_LISTING_DAYS],
+        [_utcnow(), M.STALE_LISTING_DAYS],
     ).fetchone()
     orders = con.execute(
         """
@@ -340,7 +342,7 @@ def get_inventory_attention_queue(
             l.listed_at,
             l.price_usd,
             ch.platform,
-            date_diff('day', l.listed_at, current_timestamp) AS listing_age_days,
+            date_diff('day', l.listed_at, CAST(? AS timestamp)) AS listing_age_days,
             coalesce(sum(em.views), 0) AS views,
             coalesce(sum(em.watchers), 0) AS watchers,
             coalesce(sum(em.offers), 0) AS offers,
@@ -362,7 +364,7 @@ def get_inventory_attention_queue(
             a.condition,
             a.acquisition_cost_cny,
             a.target_price_usd,
-            date_diff('day', a.acquired_at, current_timestamp) AS inventory_age_days,
+            date_diff('day', a.acquired_at, CAST(? AS timestamp)) AS inventory_age_days,
             lr.listing_id,
             lr.platform,
             lr.price_usd AS listing_price_usd,
@@ -403,7 +405,7 @@ def get_inventory_attention_queue(
                  coalesce(listing_age_days, 0) DESC
         LIMIT ?
         """,
-        [limit],
+        [_utcnow(), _utcnow(), limit],
     ).fetchall()
     cols = [
         "sku", "product", "item_status", "condition",
@@ -919,7 +921,7 @@ def get_listing_performance(con: Connection, *, limit: int = 50) -> BusinessPayl
           sku, product, platform, listing_id, price_usd, listing_status,
           listed_at, views, watchers, offers, watch_rate,
           CASE WHEN listed_at IS NULL THEN NULL
-               ELSE EXTRACT(EPOCH FROM (current_timestamp - listed_at)) / 86400.0
+               ELSE EXTRACT(EPOCH FROM (CAST(? AS timestamp) - listed_at)) / 86400.0
           END AS listing_age_days,
           CASE
             WHEN coalesce(watch_rate, 0) >= ? AND coalesce(offers, 0) = 0
@@ -940,7 +942,7 @@ def get_listing_performance(con: Connection, *, limit: int = 50) -> BusinessPayl
           coalesce(watch_rate, 0) DESC
         LIMIT ?
         """,
-        [M.HIGH_WATCH_RATE, M.HIGH_WATCH_RATE, limit],
+        [_utcnow(), M.HIGH_WATCH_RATE, M.HIGH_WATCH_RATE, limit],
     )
     weak = [r for r in rows if r.get("performance_flag") == "high_attention_no_offers"]
     return BusinessPayload(

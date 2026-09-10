@@ -237,6 +237,7 @@ def format_context(bundle: dict[str, Any]) -> str:
         "",
         _row("Intent", bundle.get("intent") or ""),
         _row("Sufficient", sufficient),
+        _row("Why", bundle.get("why") or ""),
         _row("Question", bundle.get("question") or ""),
     ]
     missing = bundle.get("missing_context") or []
