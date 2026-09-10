@@ -2,29 +2,42 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "make doctor",
+      "label": "Doctor",
       "type": "shell",
       "command": "make doctor",
       "problemMatcher": [],
       "group": "none"
     },
     {
-      "label": "make test",
+      "label": "Start system",
+      "type": "shell",
+      "command": "make up",
+      "problemMatcher": [],
+      "group": "none"
+    },
+    {
+      "label": "Run tests",
       "type": "shell",
       "command": "make test",
       "group": "test",
       "problemMatcher": []
     },
     {
-      "label": "make eval",
+      "label": "Run eval",
       "type": "shell",
       "command": "make eval",
       "problemMatcher": []
     },
     {
-      "label": "cdp serve",
+      "label": "Run held-out eval",
       "type": "shell",
-      "command": "cdp serve",
+      "command": "make eval-heldout",
+      "problemMatcher": []
+    },
+    {
+      "label": "Run demo",
+      "type": "shell",
+      "command": "make demo",
       "isBackground": true,
       "problemMatcher": []
     }

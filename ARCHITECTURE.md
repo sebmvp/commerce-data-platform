@@ -7,7 +7,7 @@ How operational context is built and read. The README is the overview.
 ```
 CURRENT
 =======
-canonical JSONL seed (sample_data/)
+canonical JSONL seed (sample_data/ demo world; sample_data_heldout/ World B)
         │
         ▼
 IngestJob per source
@@ -27,17 +27,21 @@ PostgreSQL (canonical operational store)
           intents → objects / links / events / metrics / rules
           selective unstructured notes (ops.notes)
           missing_context + sufficient (rule-based)
+          world clock for ages and "two weeks ago"
                 │
-                ├─ CLI   cdp status | context | eval | demo | action | mcp
-                ├─ FastAPI  /context  /eval  /business/*  /ingest/trust
+                ├─ CLI   cdp status | context | answer | eval | demo | action | mcp
+                ├─ FastAPI  /context  /answer  /eval  /eval/compare  /business/*
                 ├─ MCP stdio  assemble_context + read tools (no approve/execute)
                 └─ React Context Inspector  (web/)
+                     sufficiency, why, objects, history, provenance,
+                     grounded answer, gold eval, lexical comparison
 
-NEXT (partial)
-==============
-grounded copilot: FakeProvider default; env provider when CDP_LLM_API_KEY is set
-lexical RAG baseline vs Context Engine on the same gold ids (`cdp eval --compare`)
-full-context dump comparison and LLM-judged answers — not started
+NEXT
+====
+LLM-judged answers on the same ids
+full-context dump comparison
+persisted previous snapshot (Q08 / H08 still abstain)
+sandbox propose/approve in the Inspector
 Redis only if evaluation/model runs become async jobs
 ```
 
@@ -46,15 +50,15 @@ Redis only if evaluation/model runs become async jobs
 | Tech | Decision | Responsibility |
 |------|----------|----------------|
 | PostgreSQL | **CURRENT** canonical store | Objects, history, ingest audit, sandbox actions, notes |
-| JSONL sample_data/ | seed / replay input | Public synthetic world. Not a second truth. |
+| JSONL sample_data/ | seed / replay input | Public synthetic worlds. Not a second truth. |
 | DuckDB | **REMOVED** | No remaining distinct responsibility |
 | SQLite actions | **REMOVED** | Actions live in `ops.actions` |
 | Redis | **NOT YET** | No async job/cache/runtime need |
 | dbt / Polars / Neo4j / Kafka / Spark / Airflow / K8s | **NOT ADOPTED** | No capability they uniquely unlock here |
 | MCP | **CURRENT** | Typed read tools over shared services |
 | React/TS | **CURRENT** | Context Inspector + evaluation view |
-| LLM copilot | **CURRENT (thin)** | FakeProvider default; env provider when keyed |
-| RAG baseline | **CURRENT (eval)** | Lexical TF-IDF vs gold ids. Not the architecture |
+| LLM copilot | **CURRENT (thin)** | FakeProvider default; env provider when keyed; abstains if insufficient |
+| Lexical retrieval baseline | **CURRENT (eval)** | TF-IDF vs gold ids. Not the architecture. Not RAG. |
 
 ## ContextBundle
 
@@ -62,7 +66,7 @@ Redis only if evaluation/model runs become async jobs
 
 Fields: question, intent, as_of, objects, relationships, facts, metrics,
 events, applicable_rules, retrieved_evidence, provenance, missing_context,
-sufficient.
+sufficient, why.
 
 `sufficient` is true only when every required concept for the intent is
 present. It is not a numeric confidence.
@@ -73,10 +77,12 @@ See [AGENTS.md](AGENTS.md). Idempotent ingest, quarantine, atomic runs,
 event-sourced items, SCD-2 channels, no invented margin, human-gated
 sandbox actions.
 
-## Gold evaluation
+## Evaluation
 
-`evals/context_questions.py` scores the engine, not an LLM.
-`cdp eval` / `GET /eval` run the catalog against the seeded world.
+`evals/context_questions.py` is GOLD / DEVELOPMENT (demo world).
+`evals/heldout_questions.py` is HELD OUT (World B, different seed and SKUs).
+Both score the engine, not an LLM. Reports always use total / pass / fail / skip
+against the catalog denominator.
+
 `cdp eval --compare` / `GET /eval/compare` scores a lexical TF-IDF
-baseline on the same ids. CI fails on engine FAIL or SKIP. Listing as-of,
-channel comparison, and listing-performance are implemented intents.
+baseline on the same ids. CI fails on engine FAIL or SKIP.

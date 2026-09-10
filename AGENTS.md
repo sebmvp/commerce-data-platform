@@ -107,10 +107,12 @@ The engine is not arbitrary LLM-SQL and not `vector_search(question)`.
 
 ## Developer surface
 
-Makefile = developer lifecycle (`doctor`, `up`, `down`, `seed`, `test`,
-`eval`, `frontend`, `demo` visual inspector, `demo-cli`, `clean`).
+Makefile = developer lifecycle (`doctor`, `up`, `down`, `seed`,
+`seed-heldout`, `test`, `eval`, `eval-heldout`, `eval-compare`,
+`frontend`, `demo` visual inspector, `demo-cli`, `clean`).
 
-`cdp` = product behavior (`status`, `context`, `eval`, `demo`, `item`, …).
+`cdp` = product behavior (`status`, `context`, `answer`, `eval`, `demo`,
+`item`, `action`, `mcp`, …).
 
 `make clean` must not destroy private/calibration data.
 

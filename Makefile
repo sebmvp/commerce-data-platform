@@ -1,32 +1,32 @@
-.PHONY: help doctor up down seed test eval eval-compare frontend demo demo-cli test-e2e clean migrate
+.PHONY: help doctor up down seed seed-heldout test eval eval-heldout eval-compare frontend demo demo-cli test-e2e clean migrate
 
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
 CDP ?= .venv/bin/cdp
 COMPOSE ?= docker compose
 WEB ?= web
+HELDOUT_URL ?= postgresql://cdp:***@127.0.0.1:5432/cdp_heldout
+HELDOUT_DATA ?= sample_data_heldout
 
 help:
 	@echo "Commerce Data Platform — developer commands"
 	@echo ""
-	@echo "  make doctor     Check Python, Node, ports, env, database"
-	@echo "  make up         Start PostgreSQL if Docker is available"
-	@echo "  make down       Stop compose services"
-	@echo "  make seed       Load the public synthetic evaluation world"
-	@echo "  make test       Run backend tests"
-	@echo "  make eval         Run gold Context Engine evaluation (strict)"
-	@echo "  make eval-compare Engine vs lexical RAG baseline on the same ids"
-	@echo "  make frontend   Start the Context Inspector (Vite)"
-	@echo "  make demo       Visual product demo (API + inspector)"
-	@echo "  make demo-cli   Isolated CLI/system behavior demo"
-	@echo "  make test-e2e   Playwright smoke against a running inspector"
-	@echo "  make clean      Remove safe generated artifacts (not private data)"
-	@echo "  make migrate    Apply Alembic migrations"
+	@echo "  make doctor       Check Python, Node, Postgres, env (REQUIRED vs OPTIONAL)"
+	@echo "  make up           Start PostgreSQL if Docker is available"
+	@echo "  make down         Stop compose services"
+	@echo "  make seed         Load the demo world"
+	@echo "  make seed-heldout Load the held-out world into cdp_heldout"
+	@echo "  make test         Run backend tests"
+	@echo "  make eval         Gold Context Engine evaluation"
+	@echo "  make eval-heldout Held-out scenario validation"
+	@echo "  make eval-compare Engine vs lexical retrieval baseline"
+	@echo "  make demo         Visual product demo (API + inspector)"
+	@echo "  make demo-cli     Isolated CLI/system behavior demo"
+	@echo "  make test-e2e     Playwright smoke against a running inspector"
+	@echo "  make clean        Remove safe generated artifacts (not private data)"
+	@echo "  make migrate      Apply Alembic migrations"
 
 doctor:
-	@$(PYTHON) -c "import sys; assert sys.version_info >= (3,11), sys.version"
-	@node -v
-	@npm -v
 	@$(PYTHON) -c "from cdp_cli.doctor import main; raise SystemExit(main())"
 
 up:
@@ -42,11 +42,18 @@ migrate: up
 seed: up
 	$(CDP) build --sample --force
 
+seed-heldout: up
+	@$(PYTHON) -c "from cdp_cli.db import ensure_database; ensure_database('$(HELDOUT_URL)')"
+	CDP_DATABASE_URL=$(HELDOUT_URL) CDP_DATA=$(HELDOUT_DATA) $(CDP) build --sample --force
+
 test: up
 	$(PYTHON) -m pytest -q
 
 eval: up
 	$(CDP) eval
+
+eval-heldout: seed-heldout
+	CDP_DATABASE_URL=$(HELDOUT_URL) CDP_DATA=$(HELDOUT_DATA) $(CDP) eval --heldout
 
 eval-compare: up
 	$(CDP) eval --compare
@@ -66,4 +73,4 @@ test-e2e:
 clean:
 	rm -rf .pytest_cache .ruff_cache src/*.egg-info web/dist web/node_modules/.vite
 	find . -type d -name __pycache__ -not -path './.venv/*' -prune -exec rm -rf {} +
-	@echo "left sample_data/, .env, and any private calibration paths untouched"
+	@echo "left sample_data/, sample_data_heldout/, .env, and any private calibration paths untouched"
