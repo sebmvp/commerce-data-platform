@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 async function openContext(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: "Context" }).click();
+  await page.getByRole("button", { name: "Context", exact: true }).click();
+  await expect(page.getByTestId("question-input")).toBeVisible();
 }
 
 test("overview loads and attention item can be opened", async ({ page }) => {

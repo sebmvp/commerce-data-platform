@@ -76,7 +76,7 @@ export default function App() {
     }
   }
 
-  async function loadItem(id: string) {
+  async function loadItem(id: string, opts?: { switchTab?: boolean }) {
     setBusy(true);
     setError(null);
     try {
@@ -84,7 +84,7 @@ export default function App() {
       setItem(it);
       setHistory(hist);
       setSku(id);
-      setTab("inventory");
+      if (opts?.switchTab !== false) setTab("inventory");
     } catch (err) {
       setError(String(err));
     } finally {
@@ -176,7 +176,7 @@ export default function App() {
           item={item}
           history={history}
           onLoad={(id) => void loadItem(id)}
-          onReloadItem={() => void loadItem(sku)}
+          onReloadItem={() => void loadItem(sku, { switchTab: false })}
           onAskItem={(id) => {
             const q = `Should I reprice ${id}?`;
             setSku(id);
