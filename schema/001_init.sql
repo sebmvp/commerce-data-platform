@@ -357,12 +357,16 @@ CREATE TABLE IF NOT EXISTS ops.actions (
   status TEXT NOT NULL,
   created_at TIMESTAMP NOT NULL,
   decided_at TIMESTAMP,
+  applied_at TIMESTAMP,
   actor TEXT NOT NULL,
   decided_by TEXT,
   recommendation_action TEXT,
   reason TEXT,
   decision_reason TEXT,
-  supporting_context JSONB
+  supporting_context JSONB,
+  context_question TEXT,
+  previous_value JSONB,
+  resulting_value JSONB
 );
 
 CREATE INDEX IF NOT EXISTS actions_status_created

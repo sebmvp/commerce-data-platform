@@ -129,14 +129,15 @@ public JSONL worlds (demo / held-out)
         → IngestJob (hash skip, quarantine, one transaction)
         → PostgreSQL
         → domain services + context engine
-        → CLI / FastAPI / MCP / React
+        → CLI / FastAPI / MCP / React operator workspace
         → grounded answer (abstains when insufficient)
+        → human-approved sandbox action → listing_events / item_events
 
 NEXT
 ====
 LLM-judged answers on the same ids
 persisted previous snapshot (recent_changes still abstains)
-sandbox propose/approve in the UI
+marketplace listing/order/engagement adapters when those files exist
 Redis only if evaluation/model runs become async jobs
 ```
 
@@ -161,7 +162,7 @@ Redis only if evaluation/model runs become async jobs
 
 Fields: question, intent, as_of, objects, relationships, facts, metrics,
 events, applicable_rules, retrieved_evidence, provenance, missing_context,
-sufficient, why.
+sufficient, why, requirements.
 
 `sufficient` is true only when every required concept for the intent is
 present. It is not a numeric confidence.

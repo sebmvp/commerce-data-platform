@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from cdp_cli import db
-from cdp_cli.context import assemble_context
 from cdp_cli.ingest import ALL_JOBS
 from cdp_cli.llm import ground_answer
 

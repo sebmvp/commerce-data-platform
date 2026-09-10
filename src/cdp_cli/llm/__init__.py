@@ -35,7 +35,7 @@ class FakeProvider:
                 sku = token.strip(".,")
                 break
         return (
-            f"Grounded on the assembled ContextBundle"
+            "Grounded on the assembled ContextBundle"
             + (f" for {sku}" if sku else "")
             + ". Use the cited objects, metrics, and history; "
             "do not add facts that are not in the bundle."
@@ -134,7 +134,7 @@ def ground_answer(
     if not bundle.sufficient:
         missing = ", ".join(m.concept for m in bundle.missing_context)
         answer = (
-            f"ABSTAIN: context is insufficient"
+            "ABSTAIN: context is insufficient"
             + (f" (missing {missing})" if missing else "")
             + ". The model is not allowed to invent the missing facts."
         )

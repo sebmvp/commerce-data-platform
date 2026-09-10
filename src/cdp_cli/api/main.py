@@ -22,6 +22,8 @@ class ActionPropose(BaseModel):
     actor: str = "operator"
     payload: dict | None = None
     recommendation_action: str | None = None
+    supporting_context: dict | None = None
+    context_question: str | None = None
 
 
 class ActionDecide(BaseModel):
@@ -62,7 +64,28 @@ def create_app() -> FastAPI:
         con = db.connect(read_only=True)
         try:
             con.execute("SELECT 1")
-            return {"status": "ok", "db": db.database_url()}
+            from ..runtime import runtime_info
+
+            info = runtime_info()
+            return {"status": "ok", **info}
+        finally:
+            con.close()
+
+    @app.get("/runtime")
+    def runtime():
+        from ..runtime import runtime_info
+
+        _require_db()
+        return runtime_info()
+
+    @app.get("/completeness")
+    def completeness():
+        from ..completeness import source_completeness
+
+        _require_db()
+        con = db.connect(read_only=True)
+        try:
+            return source_completeness(con)
         finally:
             con.close()
 
@@ -89,19 +112,36 @@ def create_app() -> FastAPI:
     @app.get("/inventory/items")
     def inventory_items(
         status: str | None = None,
+        listed: str | None = Query(None),
+        missing_cost: bool | None = None,
         limit: int = Query(200, le=500),
     ):
         _require_db()
         sql = """
-            SELECT sku, product, variant, size, status, category_key,
-                   acquisition_cost_cny, target_price_usd, qty
-            FROM catalog.items
+            SELECT i.sku, i.product, i.variant, i.size, i.status, i.category_key,
+                   i.acquisition_cost_cny, i.target_price_usd, i.qty,
+                   exists(
+                     SELECT 1 FROM sales.listings l
+                     WHERE l.item_id = i.item_id AND l.status = 'active'
+                   ) AS has_active_listing
+            FROM catalog.items i
+            WHERE 1=1
         """
         params: list = []
         if status:
-            sql += " WHERE status = ?"
+            sql += " AND i.status = ?"
             params.append(status)
-        sql += " ORDER BY sku LIMIT ?"
+        if listed == "yes":
+            sql += """ AND exists(
+                SELECT 1 FROM sales.listings l
+                WHERE l.item_id = i.item_id AND l.status = 'active')"""
+        elif listed == "no":
+            sql += """ AND not exists(
+                SELECT 1 FROM sales.listings l
+                WHERE l.item_id = i.item_id AND l.status = 'active')"""
+        if missing_cost:
+            sql += " AND i.acquisition_cost_cny IS NULL"
+        sql += " ORDER BY i.sku LIMIT ?"
         params.append(limit)
         con = db.connect(read_only=True)
         try:
@@ -319,6 +359,19 @@ def create_app() -> FastAPI:
         finally:
             con.close()
 
+    @app.get("/business/items/{sku}/suggest-action")
+    def suggest_item_action(sku: str):
+        from .. import actions as act
+
+        _require_db()
+        con = db.connect(read_only=True)
+        try:
+            return {"kind": "recommendation", "data": act.suggest_reprice(con, sku)}
+        except KeyError as e:
+            raise HTTPException(404, str(e)) from e
+        finally:
+            con.close()
+
     @app.post("/business/actions")
     def propose_action(body: ActionPropose):
         from .. import actions as act
@@ -332,16 +385,22 @@ def create_app() -> FastAPI:
                 actor=body.actor,
                 payload=body.payload,
                 recommendation_action=body.recommendation_action,
+                supporting_context=body.supporting_context,
+                context_question=body.context_question,
             )
         except ValueError as e:
             raise HTTPException(400, str(e)) from e
 
     @app.get("/business/actions")
-    def list_actions(status: str | None = Query(None), limit: int = Query(50, le=200)):
+    def list_actions(
+        status: str | None = Query(None),
+        target_id: str | None = Query(None),
+        limit: int = Query(50, le=200),
+    ):
         from .. import actions as act
 
         try:
-            return act.list_actions(status=status, limit=limit)
+            return act.list_actions(status=status, target_id=target_id, limit=limit)
         except ValueError as e:
             raise HTTPException(400, str(e)) from e
 

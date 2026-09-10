@@ -9,7 +9,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from cdp_cli import db  # noqa: E402
+from cdp_cli import db
 
 
 @pytest.fixture()

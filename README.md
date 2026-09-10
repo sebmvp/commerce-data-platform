@@ -17,6 +17,12 @@ businesses.
 
 ![Context Inspector](docs/screenshots/context-inspector.png)
 
+The operator workspace starts at Overview (attention queue) and Inventory
+(item object view). Context remains the flagship: required evidence,
+sufficiency, and a grounded answer that abstains when context is missing.
+
+![Overview](docs/screenshots/overview.png)
+
 ## How it works
 
 ```
@@ -45,10 +51,11 @@ make up          # docker compose postgres, or a local Postgres on :5432
 make seed
 make test
 make eval        # GOLD / DEVELOPMENT — total / pass / fail / skip
-make demo        # http://127.0.0.1:5173  visual Context Inspector
+make demo        # http://127.0.0.1:5173  operator workspace
+make reset-demo  # rebuild demo world (clears sandbox actions)
 ```
 
-`make demo` starts the API and inspector. `cdp demo` is the CLI/system
+`make demo` starts the API and operator workspace. `cdp demo` is the CLI/system
 behavior story (isolated database). `Makefile` is the developer lifecycle;
 `cdp` is product behavior (`status`, `context`, `answer`, `eval`, `demo`,
 `business item <sku>`, `action`, `mcp`).

@@ -1,4 +1,4 @@
-.PHONY: help doctor up down seed seed-heldout ingest-private test eval eval-heldout eval-compare frontend demo demo-cli test-e2e clean migrate
+.PHONY: help doctor up down seed seed-heldout reset-demo ingest-private test eval eval-heldout eval-compare frontend demo demo-cli test-e2e clean migrate
 
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
@@ -15,13 +15,14 @@ help:
 	@echo "  make up           Start PostgreSQL if Docker is available"
 	@echo "  make down         Stop compose services"
 	@echo "  make seed         Load the demo world"
+	@echo "  make reset-demo   Rebuild demo world (clears sandbox actions)"
 	@echo "  make seed-heldout Load the held-out world into cdp_heldout"
 	@echo "  make ingest-private  Load CDP_PRIVATE_SOURCE into isolated cdp_private"
 	@echo "  make test         Run backend tests"
 	@echo "  make eval         Gold Context Engine evaluation"
 	@echo "  make eval-heldout Held-out scenario validation"
 	@echo "  make eval-compare Engine vs lexical retrieval baseline"
-	@echo "  make demo         Visual product demo (API + inspector)"
+	@echo "  make demo         Operator workspace (API + Vite)"
 	@echo "  make demo-cli     Isolated CLI/system behavior demo"
 	@echo "  make test-e2e     Playwright smoke against a running inspector"
 	@echo "  make clean        Remove safe generated artifacts (not private data)"
@@ -42,6 +43,9 @@ migrate: up
 
 seed: up
 	$(CDP) build --sample --force
+
+reset-demo: seed
+	@echo "demo world rebuilt; sandbox actions cleared"
 
 seed-heldout: up
 	@$(PYTHON) -c "from cdp_cli.db import ensure_database; ensure_database('$(HELDOUT_URL)')"

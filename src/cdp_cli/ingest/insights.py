@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .base import IngestJob
 from ..validate import ContentEngagementRecord, ContentRecord
+from .base import IngestJob
 
 
 class ContentIngest(IngestJob[ContentRecord]):

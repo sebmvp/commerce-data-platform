@@ -76,6 +76,7 @@ def test_get_item_history_timeline_is_ordered(warehouse):
         assert row["source"] in {
             "catalog.item_events",
             "sales.listings",
+            "sales.listing_events",
             "sales.orders",
         }
 

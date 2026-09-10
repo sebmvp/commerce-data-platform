@@ -4,8 +4,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from .base import IngestJob
 from ..validate import NoteRecord
+from .base import IngestJob
 
 
 class NoteIngest(IngestJob[NoteRecord]):

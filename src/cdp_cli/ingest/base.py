@@ -19,13 +19,15 @@ import hashlib
 import json
 import time
 import uuid
-from datetime import datetime, timezone
+from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Generic, Iterable, TypeVar
+from typing import Any, Generic, TypeVar
 
+from psycopg import Error as DatabaseError
 from pydantic import BaseModel, ValidationError
 
-from ..db import Connection, DatabaseError
+from ..db import Connection
 
 R = TypeVar("R", bound=BaseModel)
 
@@ -39,7 +41,7 @@ def file_sha256(path: Path) -> str:
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def recover_orphaned_runs(con: Connection) -> int:

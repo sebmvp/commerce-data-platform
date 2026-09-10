@@ -32,11 +32,12 @@ def test_propose_approve_reject_and_unknown(action_db):
     assert got["data"]["action_id"] == rec["action_id"]
 
     approved = actions.approve_action(rec["action_id"], actor="operator")
-    assert approved["data"]["status"] == "approved"
+    assert approved["data"]["status"] == "applied"
     assert approved["data"]["decided_by"] == "operator"
     assert approved["data"]["decided_at"]
+    assert approved["data"]["applied_at"]
 
-    with pytest.raises(ValueError, match="approved"):
+    with pytest.raises(ValueError, match="applied"):
         actions.approve_action(rec["action_id"], actor="operator")
 
     other = actions.propose(
@@ -96,8 +97,8 @@ def test_api_action_roundtrip(action_db):
     assert client.get(f"/business/actions/{action_id}").status_code == 200
     approved = client.post(f"/business/actions/{action_id}/approve", json={"actor": "operator"})
     assert approved.status_code == 200
-    assert approved.json()["data"]["status"] == "approved"
-    listed = client.get("/business/actions", params={"status": "approved"})
+    assert approved.json()["data"]["status"] == "applied"
+    listed = client.get("/business/actions", params={"status": "applied"})
     assert listed.json()["data"]["count"] == 1
     missing = client.get("/business/actions/nope")
     assert missing.status_code == 404

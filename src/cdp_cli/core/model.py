@@ -85,6 +85,7 @@ class ContextBundle:
     missing_context: list[MissingContext] = field(default_factory=list)
     sufficient: bool = False
     why: str = ""
+    requirements: list[dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -102,4 +103,5 @@ class ContextBundle:
             "missing_context": [asdict(m) for m in self.missing_context],
             "sufficient": self.sufficient,
             "why": self.why,
+            "requirements": self.requirements,
         }

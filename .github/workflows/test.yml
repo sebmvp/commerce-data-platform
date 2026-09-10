@@ -44,8 +44,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,api,mcp]"
 
-      - name: Lint (informational)
-        run: ruff check src/ tests/ evals/ scripts/ || true
+      - name: Ruff
+        run: ruff check src/ tests/ evals/ scripts/
 
       - name: pytest
         run: pytest -q

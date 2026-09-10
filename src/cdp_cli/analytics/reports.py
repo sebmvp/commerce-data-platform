@@ -5,7 +5,7 @@ available ad-hoc via `cdp query`, these just package the common questions.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..db import Connection
 
@@ -78,7 +78,7 @@ def render(con: Connection, kind: str) -> str:
         raise ValueError(f"unknown report kind: {kind}")
     header = [
         f"# CDP report — {kind}",
-        f"_generated {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC} from warehouse views_",
+        f"_generated {datetime.now(UTC):%Y-%m-%d %H:%M UTC} from warehouse views_",
         "",
     ]
     return "\n".join(header + _RENDERERS[kind](con)) + "\n"

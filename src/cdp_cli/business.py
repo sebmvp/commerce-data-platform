@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
+from datetime import UTC, date, datetime
 from decimal import Decimal
-from datetime import date, datetime, timezone
 from typing import Any, Literal
 
 from . import metrics as M
@@ -44,22 +44,21 @@ def _parse_as_of(as_of: datetime | date | str | None) -> datetime:
         return _utcnow()
     if isinstance(as_of, datetime):
         if as_of.tzinfo:
-            return as_of.astimezone(timezone.utc).replace(tzinfo=None)
+            return as_of.astimezone(UTC).replace(tzinfo=None)
         return as_of
     if isinstance(as_of, date):
         return datetime(as_of.year, as_of.month, as_of.day)
     text = str(as_of).strip()
     if not text:
         raise ValueError("as_of is empty")
-    if text.endswith("Z"):
-        text = text[:-1]
+    text = text.removesuffix("Z")
     try:
         parsed = datetime.fromisoformat(text)
     except ValueError as e:
         raise ValueError(f"invalid as_of {as_of!r}; expected ISO-8601") from e
     if isinstance(parsed, datetime):
         if parsed.tzinfo:
-            return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+            return parsed.astimezone(UTC).replace(tzinfo=None)
         return parsed
     return datetime(parsed.year, parsed.month, parsed.day)
 
@@ -462,8 +461,10 @@ def get_inventory_attention_queue(
             "threshold_stale_listing_days": M.STALE_LISTING_DAYS,
             "threshold_high_watch_rate": M.HIGH_WATCH_RATE,
             "ranking_notes": [
-                "priority_class: unlisted_owned=100, stale_listing=80, "
-                "high_attention_no_offers=60, listed_active=20",
+                (
+                    "priority_class: unlisted_owned=100, stale_listing=80, "
+                    "high_attention_no_offers=60, listed_active=20"
+                ),
                 "Within a class: higher capital, then older inventory/listing first",
                 "RECOMMENDATION rows are heuristic; FACT rows are the queue metrics",
                 f"high_attention_no_offers: watch_rate >= {M.HIGH_WATCH_RATE} and 0 offers",
@@ -707,6 +708,37 @@ def get_item_history(con: Connection, sku: str) -> BusinessPayload:
                     },
                 }
             )
+    listing_events = _records(
+        con,
+        """
+        SELECT le.event_id, le.listing_id, le.event_type, le.event_at,
+               le.price_usd, le.status, le.payload_json, ch.platform
+        FROM sales.listing_events le
+        JOIN sales.listings l ON l.listing_id = le.listing_id
+        LEFT JOIN core.channels ch ON ch.channel_key = l.channel_key
+        WHERE l.item_id = ?
+        ORDER BY le.event_at, le.event_id
+        """,
+        [item_id],
+    )
+    for ev in listing_events:
+        if ev.get("event_type") in {"opened", "sold"}:
+            continue
+        timeline.append(
+            {
+                "at": ev.get("event_at"),
+                "type": f"listing_{ev.get('event_type')}",
+                "source": "sales.listing_events",
+                "actor": None,
+                "detail": {
+                    "listing_id": ev.get("listing_id"),
+                    "platform": ev.get("platform"),
+                    "price_usd": ev.get("price_usd"),
+                    "status": ev.get("status"),
+                    "payload": ev.get("payload_json"),
+                },
+            }
+        )
     for order in orders:
         timeline.append(
             {
@@ -742,6 +774,7 @@ def get_item_history(con: Connection, sku: str) -> BusinessPayload:
                 "catalog.items",
                 "catalog.item_events",
                 "sales.listings",
+                "sales.listing_events",
                 "sales.engagement_metric",
                 "sales.orders",
             ],
@@ -827,7 +860,6 @@ def get_listing_as_of(
             """,
             [sku, at, at],
         )
-    covered = any(s.get("status") in (None, "active", "draft") or True for s in states)
     return BusinessPayload(
         kind="fact",
         data={

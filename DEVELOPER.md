@@ -14,13 +14,14 @@ Makefile is the developer lifecycle. `cdp` is product behavior.
 | `make up` | Start Postgres (compose if Docker works, else whatever is on :5432) |
 | `make down` | Stop compose services |
 | `make seed` | Rebuild the demo world into `CDP_DATABASE_URL` |
+| `make reset-demo` | Alias of `make seed`; clears sandbox actions |
 | `make seed-heldout` | Rebuild World B into `cdp_heldout` |
 | `make ingest-private` | Load `CDP_PRIVATE_SOURCE` into isolated `cdp_private` |
 | `make test` | pytest |
 | `make eval` | Gold Context Engine evaluation (strict) |
 | `make eval-heldout` | Held-out scenario validation |
 | `make eval-compare` | Engine vs lexical retrieval baseline |
-| `make demo` | Visual Context Inspector (API + Vite). Prints `http://127.0.0.1:5173` |
+| `make demo` | Operator workspace (API + Vite). Prints `http://127.0.0.1:5173` |
 | `make demo-cli` | Isolated CLI reliability story |
 | `make test-e2e` | Playwright |
 | `make migrate` | Alembic upgrade head |

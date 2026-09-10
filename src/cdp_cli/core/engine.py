@@ -77,6 +77,12 @@ def assemble_context(
             "Required context is incomplete — a copilot should abstain or qualify."
         )
 
+    missing_names = {m.concept for m in sufficiency.missing}
+    requirements = [
+        {"concept": concept, "present": concept not in missing_names}
+        for concept in required
+    ]
+
     return ContextBundle(
         question=question,
         intent=resolved,
@@ -100,4 +106,5 @@ def assemble_context(
         missing_context=sufficiency.missing,
         sufficient=sufficiency.sufficient,
         why=sufficiency.why,
+        requirements=requirements,
     )

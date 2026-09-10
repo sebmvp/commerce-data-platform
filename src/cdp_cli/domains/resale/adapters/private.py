@@ -118,6 +118,16 @@ def materialize_item_notes(source: Path, dest: Path) -> dict[str, Any]:
     ):
         write_jsonl(dest / empty, [])
     (dest / "rejects.json").write_text(json.dumps(rejected, indent=2) + "\n")
+    (dest / "world.json").write_text(
+        json.dumps(
+            {
+                "name": "private",
+                "purpose": "private canonical state from local source evidence",
+            },
+            indent=2,
+        )
+        + "\n"
+    )
     return {
         "notes_read": len(paths),
         "items": len(items),

@@ -416,7 +416,10 @@ def generate() -> None:
         "status": "delivered", "order_at": _iso(g2_sold),
     })
 
-    # filler owned / listed / sold to land in 40-80
+    # filler owned / listed / sold to land in 60-100
+    # Same lifecycle rules as named cohorts above (in-transit, unlisted,
+    # listed, sold). Not independent random columns. Named SKUs are the
+    # scenario fixtures; these rows add volume with coherent timestamps.
     filler = [
         ("fill-owned-01", "Nike Tech Fleece Joggers", "catalog.bottoms", "owned", 1100, 160),
         ("fill-owned-02", "Carhartt WIP Script Sweat", "catalog.tops", "owned", 900, 130),

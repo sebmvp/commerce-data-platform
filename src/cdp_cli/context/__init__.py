@@ -12,7 +12,12 @@ from ..core.model import (
     ContextObject,
     MissingContext,
 )
-from ..domains.resale.intents import INTENTS, REQUIRED_CONCEPTS, extract_sku, resolve_intent
+from ..domains.resale.intents import (
+    INTENTS,
+    REQUIRED_CONCEPTS,
+    extract_sku,
+    resolve_intent,
+)
 
 __all__ = [
     "INTENTS",

@@ -23,7 +23,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from . import db
 from .ingest import ALL_JOBS, JOBS_BY_SOURCE
@@ -167,6 +167,28 @@ def cmd_tables(_: argparse.Namespace) -> int:
         return 0
     finally:
         con.close()
+
+
+def cmd_completeness(_: argparse.Namespace) -> int:
+    from .completeness import source_completeness
+    from .runtime import runtime_info
+
+    info = runtime_info()
+    print(f"environment  {info['environment']}  synthetic={info['synthetic']}")
+    con = db.connect(read_only=True)
+    try:
+        report = source_completeness(con)
+    finally:
+        con.close()
+    counts = report["counts"]
+    for key, value in counts.items():
+        print(f"  {key:<22} {value}")
+    missing = report.get("missing_source_systems") or []
+    if missing:
+        print("missing source systems:")
+        for name in missing:
+            print(f"  - {name}")
+    return 0
 
 
 def cmd_status(_: argparse.Namespace) -> int:
@@ -428,7 +450,7 @@ def cmd_report(args: argparse.Namespace) -> int:
         out_dir = db.project_root() / "reports"
         out_dir.mkdir(exist_ok=True)
         kind = args.kind
-        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
         path = out_dir / f"{kind}_{ts}.md"
         path.write_text(reports.render(con, kind))
         print(f"wrote {path}")
@@ -597,6 +619,7 @@ def main(argv: list[str] | None = None) -> int:
 
     sub.add_parser("tables", help="Row counts per table")
     sub.add_parser("status", help="Health snapshot + ingest reconciliation")
+    sub.add_parser("completeness", help="Source coverage of the connected database")
     sub.add_parser("demo", help="Isolated warehouse story (does not touch CDP_DB)")
 
     pa = sub.add_parser("action", help="Sandbox operational actions (SQLite log)")
@@ -728,6 +751,7 @@ def main(argv: list[str] | None = None) -> int:
         "query": cmd_query,
         "tables": cmd_tables,
         "status": cmd_status,
+        "completeness": cmd_completeness,
         "demo": cmd_demo,
         "action": cmd_action,
         "business": cmd_business,

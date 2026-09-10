@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,16 +23,15 @@ def parse_iso(value: str) -> datetime:
     text = (value or "").strip()
     if not text:
         raise ValueError("empty timestamp")
-    if text.endswith("Z"):
-        text = text[:-1]
+    text = text.removesuffix("Z")
     parsed = datetime.fromisoformat(text)
     if parsed.tzinfo:
-        return parsed.astimezone(timezone.utc).replace(tzinfo=None)
+        return parsed.astimezone(UTC).replace(tzinfo=None)
     return parsed
 
 
 def wall_now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def world_meta(data_dir: Path | None = None) -> dict[str, Any] | None:

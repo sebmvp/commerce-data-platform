@@ -7,12 +7,12 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Iterable, Sequence
+from typing import Any
 from urllib.parse import urlparse, urlunparse
 
 import psycopg
-from psycopg import Error as DatabaseError
 
 # Disposable local/CI password is "cdp". GitHub Actions log redaction prints
 # it as "***" — never copy the masked form into executable URLs.

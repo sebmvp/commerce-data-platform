@@ -5,8 +5,8 @@ import json
 from datetime import datetime
 from typing import Any
 
-from .base import IngestJob, _now
 from ..validate import ChannelRecord, ItemEventRecord, ItemRecord
+from .base import IngestJob, _now
 
 
 class ChannelIngest(IngestJob[ChannelRecord]):
