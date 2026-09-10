@@ -16,6 +16,12 @@
       "group": "none"
     },
     {
+      "label": "Seed demo world",
+      "type": "shell",
+      "command": "make seed",
+      "problemMatcher": []
+    },
+    {
       "label": "Run tests",
       "type": "shell",
       "command": "make test",
@@ -32,6 +38,12 @@
       "label": "Run held-out eval",
       "type": "shell",
       "command": "make eval-heldout",
+      "problemMatcher": []
+    },
+    {
+      "label": "Ingest private",
+      "type": "shell",
+      "command": "make ingest-private",
       "problemMatcher": []
     },
     {

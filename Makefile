@@ -1,4 +1,4 @@
-.PHONY: help doctor up down seed seed-heldout test eval eval-heldout eval-compare frontend demo demo-cli test-e2e clean migrate
+.PHONY: help doctor up down seed seed-heldout ingest-private test eval eval-heldout eval-compare frontend demo demo-cli test-e2e clean migrate
 
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
@@ -16,6 +16,7 @@ help:
 	@echo "  make down         Stop compose services"
 	@echo "  make seed         Load the demo world"
 	@echo "  make seed-heldout Load the held-out world into cdp_heldout"
+	@echo "  make ingest-private  Load CDP_PRIVATE_SOURCE into isolated cdp_private"
 	@echo "  make test         Run backend tests"
 	@echo "  make eval         Gold Context Engine evaluation"
 	@echo "  make eval-heldout Held-out scenario validation"
@@ -45,6 +46,9 @@ seed: up
 seed-heldout: up
 	@$(PYTHON) -c "from cdp_cli.db import ensure_database; ensure_database('$(HELDOUT_URL)')"
 	CDP_DATABASE_URL=$(HELDOUT_URL) CDP_DATA=$(HELDOUT_DATA) $(CDP) build --sample --force
+
+ingest-private: up
+	$(CDP) ingest-private
 
 test: up
 	$(PYTHON) -m pytest -q

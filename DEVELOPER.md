@@ -15,6 +15,7 @@ Makefile is the developer lifecycle. `cdp` is product behavior.
 | `make down` | Stop compose services |
 | `make seed` | Rebuild the demo world into `CDP_DATABASE_URL` |
 | `make seed-heldout` | Rebuild World B into `cdp_heldout` |
+| `make ingest-private` | Load `CDP_PRIVATE_SOURCE` into isolated `cdp_private` |
 | `make test` | pytest |
 | `make eval` | Gold Context Engine evaluation (strict) |
 | `make eval-heldout` | Held-out scenario validation |
@@ -29,6 +30,7 @@ Makefile is the developer lifecycle. `cdp` is product behavior.
 
 | Command | What it does |
 |---------|----------------|
+| `cdp ingest-private` | Private item notes → `cdp_private` (set `CDP_PRIVATE_SOURCE`) |
 | `cdp status` | Health snapshot + ingest reconciliation |
 | `cdp context "…"` | Assemble a ContextBundle (`--intent`, `--sku`, `--as-of`, `--json`) |
 | `cdp answer "…"` | Grounded answer over that bundle (abstains if insufficient) |

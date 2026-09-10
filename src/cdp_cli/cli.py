@@ -82,6 +82,23 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         con.close()
 
 
+def cmd_ingest_private(args: argparse.Namespace) -> int:
+    """Load real local sources into the isolated private database."""
+    from .domains.resale.adapters.private import ingest_private
+
+    try:
+        summary = ingest_private(source=args.source, force=args.force)
+    except (ValueError, FileNotFoundError) as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    print(
+        f"private ingest  items={summary['items']} listings={summary['listings']} "
+        f"rejected={summary['rejected']} db={summary['database']}"
+    )
+    print(f"staging {summary['staging']} (gitignored)")
+    return 0
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     """Validate every source file without writing — catches upstream breakage
     in CI before it ever reaches the warehouse."""
@@ -561,6 +578,17 @@ def main(argv: list[str] | None = None) -> int:
                     choices=["all", *JOBS_BY_SOURCE])
     pi.add_argument("--force", action="store_true")
 
+    pipr = sub.add_parser(
+        "ingest-private",
+        help="Load local private sources into isolated cdp_private (not the demo db)",
+    )
+    pipr.add_argument(
+        "--source",
+        default=None,
+        help="Directory of reseller item notes. Default: CDP_PRIVATE_SOURCE",
+    )
+    pipr.add_argument("--force", action="store_true", default=True)
+
     pv = sub.add_parser("validate", help="Dry-run source validation")
     pv.add_argument("-v", "--verbose", action="store_true")
 
@@ -695,6 +723,7 @@ def main(argv: list[str] | None = None) -> int:
         "init": cmd_init,
         "build": cmd_build,
         "ingest": cmd_ingest,
+        "ingest-private": cmd_ingest_private,
         "validate": cmd_validate,
         "query": cmd_query,
         "tables": cmd_tables,
