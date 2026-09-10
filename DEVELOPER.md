@@ -48,7 +48,7 @@ Run held-out eval, Run demo). FastAPI debug launch is in `.vscode/launch.json`.
 
 ## PostgreSQL is canonical
 
-`CDP_DATABASE_URL` (default `postgresql://cdp:***@127.0.0.1:5432/cdp`) is
+`CDP_DATABASE_URL` (default `postgresql://cdp:cdp@127.0.0.1:5432/cdp`) is
 the operational store. JSONL under `sample_data/` is the public demo seed;
 `sample_data_heldout/` is World B. `make seed` / `cdp build --sample` rebuilds
 the connected database. Do not hand-edit Postgres in a way that cannot be

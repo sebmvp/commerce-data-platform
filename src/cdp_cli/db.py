@@ -14,6 +14,8 @@ from urllib.parse import urlparse, urlunparse
 import psycopg
 from psycopg import Error as DatabaseError
 
+# Disposable local/CI password is "cdp". GitHub Actions log redaction prints
+# it as "***" — never copy the masked form into executable URLs.
 DEFAULT_URL = "postgresql://cdp:cdp@127.0.0.1:5432/cdp"
 TEST_URL = "postgresql://cdp:cdp@127.0.0.1:5432/cdp_test"
 DEMO_URL = "postgresql://cdp:cdp@127.0.0.1:5432/cdp_demo"

@@ -5,7 +5,7 @@ PIP ?= .venv/bin/pip
 CDP ?= .venv/bin/cdp
 COMPOSE ?= docker compose
 WEB ?= web
-HELDOUT_URL ?= postgresql://cdp:***@127.0.0.1:5432/cdp_heldout
+HELDOUT_URL ?= postgresql://cdp:cdp@127.0.0.1:5432/cdp_heldout
 HELDOUT_DATA ?= sample_data_heldout
 
 help:

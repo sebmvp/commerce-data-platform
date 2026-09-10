@@ -16,7 +16,7 @@
       ],
       "cwd": "${workspaceFolder}",
       "env": {
-        "CDP_DATABASE_URL": "postgresql://cdp:***@127.0.0.1:5432/cdp"
+        "CDP_DATABASE_URL": "postgresql://cdp:cdp@127.0.0.1:5432/cdp"
       }
     }
   ]

@@ -105,6 +105,19 @@ The engine is not arbitrary LLM-SQL and not `vector_search(question)`.
 - AI may propose; humans approve. No autonomous marketplace mutation.
 - Public data is synthetic/sanitized. Private calibration stays local.
 
+## Verification
+
+Local tests passing is not remote CI passing.
+
+After changing workflows, connection strings, or developer commands:
+push, locate the GitHub Actions run for that HEAD, and require GREEN.
+Do not report CI success from local execution alone.
+
+GitHub Actions log redaction prints the disposable Postgres password
+as `***`. Never copy that masked form into YAML, Makefile, VS Code,
+compose files, or executable Python defaults. The local/CI password
+is the literal `cdp`.
+
 ## Developer surface
 
 Makefile = developer lifecycle (`doctor`, `up`, `down`, `seed`,

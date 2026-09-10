@@ -23,8 +23,11 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      CDP_DATABASE_URL: postgresql://cdp:***@localhost:5432/cdp
-      CDP_TEST_DATABASE_URL: postgresql://cdp:***@localhost:5432/cdp_test
+      # Disposable local/CI password is the literal "cdp". GitHub Actions
+      # redacts that value as "***" in logs — never paste the masked form
+      # into executable configuration. Local tests passing != remote CI green.
+      CDP_DATABASE_URL: postgresql://cdp:cdp@localhost:5432/cdp
+      CDP_TEST_DATABASE_URL: postgresql://cdp:cdp@localhost:5432/cdp_test
     steps:
       - uses: actions/checkout@v4
 
@@ -56,7 +59,7 @@ jobs:
 
       - name: Held-out eval
         env:
-          CDP_DATABASE_URL: postgresql://cdp:***@localhost:5432/cdp_heldout
+          CDP_DATABASE_URL: postgresql://cdp:cdp@localhost:5432/cdp_heldout
           CDP_DATA: sample_data_heldout
         run: |
           python -c "from cdp_cli.db import ensure_database; ensure_database()"
