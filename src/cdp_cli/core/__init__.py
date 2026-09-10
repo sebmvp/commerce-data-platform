@@ -1,6 +1,8 @@
-"""Compatibility shim. Canonical types live in cdp_cli.core.model."""
+"""Reusable context infrastructure. Verticals live under cdp_cli.domains."""
 
-from ..core.model import (
+from .domain import Domain, get_active_domain, register_domain
+from .engine import assemble_context, evaluate_sufficiency
+from .model import (
     ContextBundle,
     ContextEvent,
     ContextLink,
@@ -17,7 +19,12 @@ __all__ = [
     "ContextLink",
     "ContextObject",
     "ContextRequirement",
+    "Domain",
     "EntityRef",
     "MissingContext",
     "SufficiencyResult",
+    "assemble_context",
+    "evaluate_sufficiency",
+    "get_active_domain",
+    "register_domain",
 ]
