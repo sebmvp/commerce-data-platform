@@ -140,3 +140,20 @@ def test_api_eval_is_strict_twenty(warehouse):
     assert body["failed"] == 0
     assert body["skipped"] == 0
     assert body["ok"] is True
+
+
+def test_api_eval_compare_keeps_engine_gold(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    from cdp_cli.api.main import create_app
+
+    client = TestClient(create_app())
+    res = client.get("/eval/compare")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["engine"]["passed"] == 20
+    assert body["engine"]["ok"] is True
+    assert body["rag"]["total"] == 20
+    assert "hybrid" in body["by_category"]
+    hybrid = body["by_category"]["hybrid"]
+    assert hybrid["rag_pass"] == hybrid["n"]

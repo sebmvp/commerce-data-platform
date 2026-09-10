@@ -1,4 +1,4 @@
-.PHONY: help doctor up down seed test eval frontend demo demo-cli test-e2e clean migrate
+.PHONY: help doctor up down seed test eval eval-compare frontend demo demo-cli test-e2e clean migrate
 
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
@@ -14,7 +14,8 @@ help:
 	@echo "  make down       Stop compose services"
 	@echo "  make seed       Load the public synthetic evaluation world"
 	@echo "  make test       Run backend tests"
-	@echo "  make eval       Run gold Context Engine evaluation (strict)"
+	@echo "  make eval         Run gold Context Engine evaluation (strict)"
+	@echo "  make eval-compare Engine vs lexical RAG baseline on the same ids"
 	@echo "  make frontend   Start the Context Inspector (Vite)"
 	@echo "  make demo       Visual product demo (API + inspector)"
 	@echo "  make demo-cli   Isolated CLI/system behavior demo"
@@ -46,6 +47,9 @@ test: up
 
 eval: up
 	$(CDP) eval
+
+eval-compare: up
+	$(CDP) eval --compare
 
 frontend:
 	cd $(WEB) && npm install && npm run dev -- --port 5173 --host 127.0.0.1

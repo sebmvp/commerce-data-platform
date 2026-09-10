@@ -48,6 +48,12 @@ Gold questions score `assemble_context`, not an LLM. Cases include
 current facts, as-of listing state, channel comparison, listing
 performance, missing context, and a hybrid structured + note question.
 
+`cdp eval --compare` (or `GET /eval/compare`) runs the same ids against
+a lexical TF-IDF baseline over serialized warehouse rows. That baseline
+is an honest comparison, not the architecture: it has no vector database
+and does not see attention-queue recommendations. Hybrid note questions
+are expected to tie; multi-hop and missing-context disclosure are not.
+
 `cdp answer` runs a thin grounded path over that bundle. The default
 provider is fake. A real model is used only when `CDP_LLM_API_KEY` is
 set. Insufficient bundles abstain.
@@ -69,5 +75,6 @@ set. Insufficient bundles abstain.
 | Public world | `scripts/generate_public_world.py` |
 | Context engine | `src/cdp_cli/context/` |
 | Eval catalog | `evals/context_questions.py` |
+| RAG baseline | `evals/rag_baseline.py` |
 | Inspector | `web/` |
 | Detail | [ARCHITECTURE.md](ARCHITECTURE.md) · [docs/DEMO.md](docs/DEMO.md) |

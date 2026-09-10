@@ -36,7 +36,8 @@ PostgreSQL (canonical operational store)
 NEXT (partial)
 ==============
 grounded copilot: FakeProvider default; env provider when CDP_LLM_API_KEY is set
-honest RAG baseline vs Context Engine vs full-context  — not started
+lexical RAG baseline vs Context Engine on the same gold ids (`cdp eval --compare`)
+full-context dump comparison and LLM-judged answers — not started
 Redis only if evaluation/model runs become async jobs
 ```
 
@@ -52,8 +53,8 @@ Redis only if evaluation/model runs become async jobs
 | dbt / Polars / Neo4j / Kafka / Spark / Airflow / K8s | **NOT ADOPTED** | No capability they uniquely unlock here |
 | MCP | **CURRENT** | Typed read tools over shared services |
 | React/TS | **CURRENT** | Context Inspector + evaluation view |
-| LLM copilot | **NEXT** | After this milestone. Fake provider for tests. |
-| RAG baseline | **NEXT** | Honest comparison, not the architecture |
+| LLM copilot | **CURRENT (thin)** | FakeProvider default; env provider when keyed |
+| RAG baseline | **CURRENT (eval)** | Lexical TF-IDF vs gold ids. Not the architecture |
 
 ## ContextBundle
 
@@ -76,5 +77,6 @@ sandbox actions.
 
 `evals/context_questions.py` scores the engine, not an LLM.
 `cdp eval` / `GET /eval` run the catalog against the seeded world.
-CI fails on FAIL or SKIP. Listing as-of, channel comparison, and
-listing-performance are implemented intents.
+`cdp eval --compare` / `GET /eval/compare` scores a lexical TF-IDF
+baseline on the same ids. CI fails on engine FAIL or SKIP. Listing as-of,
+channel comparison, and listing-performance are implemented intents.

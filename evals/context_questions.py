@@ -4,7 +4,9 @@ These questions score the *engine*, not an LLM: did we retrieve the
 required objects, metrics, and missing-context disclosures?
 
 `implemented` means assemble_context handles the intent today.
-Later LLM/RAG comparison rows will reuse the same ids.
+Later LLM/RAG comparison rows reuse the same ids. The lexical RAG
+baseline lives in `evals/rag_baseline.py` and is scored by
+`cdp eval --compare`; it is not a retrieval layer inside assemble_context.
 """
 from __future__ import annotations
 
