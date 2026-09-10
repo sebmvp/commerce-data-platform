@@ -1,6 +1,7 @@
 """Resale vertical registration."""
 from __future__ import annotations
 
+from ...core.domain import Domain
 from .assemble import assemble_resale
 from .intents import (
     INTENTS,
@@ -10,7 +11,6 @@ from .intents import (
     extract_sku,
     resolve_intent,
 )
-from ...core.domain import Domain
 
 
 def _extract_subject(question: str, subject: str | None = None) -> str | None:

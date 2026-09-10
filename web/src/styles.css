@@ -3,6 +3,7 @@
   --fg: #ece8f4;
   --muted: #9b93ab;
   --accent: #8b5cf6;
+  --accent-2: #22d3ee;
   --border: #2a2438;
   --card: #161221;
   --ok: #86efac;
@@ -54,6 +55,7 @@ h2 {
 
 .samples { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
 .chip { font-size: 12px; color: var(--muted); }
+.chip.active { border-color: var(--accent); color: var(--accent); }
 
 .banner {
   display: flex;

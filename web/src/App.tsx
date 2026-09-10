@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   getAnswer,
+  getAttention,
   getContext,
   getEval,
   getEvalCompare,
+  getIngestRuns,
+  getIngestTrust,
+  getInventoryItems,
   getItem,
   getItemHistory,
+  getSnapshot,
 } from "./api";
 
-type Tab = "inspect" | "eval" | "item";
+type Tab = "overview" | "inventory" | "context" | "eval" | "health";
 
 const SAMPLES = [
   "Should I reprice j4-military-s?",
@@ -107,7 +112,7 @@ function itemLabel(obj: any): string {
 }
 
 export default function App() {
-  const [tab, setTab] = useState<Tab>("inspect");
+  const [tab, setTab] = useState<Tab>("context");
   const [question, setQuestion] = useState(SAMPLES[0]);
   const [bundle, setBundle] = useState<any>(null);
   const [evalReport, setEvalReport] = useState<any>(null);
@@ -120,6 +125,12 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [showRawIds, setShowRawIds] = useState(false);
   const [showRawProvenance, setShowRawProvenance] = useState(false);
+  const [snapshot, setSnapshot] = useState<any>(null);
+  const [attention, setAttention] = useState<any>(null);
+  const [inventory, setInventory] = useState<any[]>([]);
+  const [invFilter, setInvFilter] = useState("");
+  const [trust, setTrust] = useState<any>(null);
+  const [ingestRuns, setIngestRuns] = useState<any[]>([]);
 
   async function runQuestion(q: string) {
     setBusy(true);
@@ -162,7 +173,47 @@ export default function App() {
       setItem(it);
       setHistory(hist);
       setSku(id);
-      setTab("item");
+      setTab("inventory");
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadOverview() {
+    setBusy(true);
+    setError(null);
+    try {
+      const [snap, att] = await Promise.all([getSnapshot(), getAttention()]);
+      setSnapshot(snap);
+      setAttention(att);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadHealth() {
+    setBusy(true);
+    setError(null);
+    try {
+      const [t, runs] = await Promise.all([getIngestTrust(), getIngestRuns()]);
+      setTrust(t);
+      setIngestRuns(Array.isArray(runs) ? runs : runs?.data || []);
+    } catch (err) {
+      setError(String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadInventory(status?: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      setInventory(await getInventoryItems(status || undefined));
     } catch (err) {
       setError(String(err));
     } finally {
@@ -194,18 +245,36 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        <h1>Context Inspector</h1>
+        <h1>Commerce Data Platform</h1>
         <p className="lede">
-          This is the context the system assembled for this question —
-          not a chatbot, and not a dump of the whole business.
+          Operational context for the resale business — objects, history,
+          rules, and missing evidence. Not a chatbot dump of the warehouse.
         </p>
       </header>
       <div className="tabs">
         <button
-          className={tab === "inspect" ? "active" : ""}
-          onClick={() => setTab("inspect")}
+          className={tab === "overview" ? "active" : ""}
+          onClick={() => {
+            setTab("overview");
+            if (!snapshot) void loadOverview();
+          }}
         >
-          Question
+          Overview
+        </button>
+        <button
+          className={tab === "inventory" ? "active" : ""}
+          onClick={() => {
+            setTab("inventory");
+            if (!inventory.length) void loadInventory();
+          }}
+        >
+          Inventory
+        </button>
+        <button
+          className={tab === "context" ? "active" : ""}
+          onClick={() => setTab("context")}
+        >
+          Context
         </button>
         <button
           className={tab === "eval" ? "active" : ""}
@@ -216,13 +285,54 @@ export default function App() {
         >
           Evaluation
         </button>
-        <button className={tab === "item" ? "active" : ""} onClick={() => setTab("item")}>
-          Object
+        <button
+          className={tab === "health" ? "active" : ""}
+          onClick={() => {
+            setTab("health");
+            if (!trust) void loadHealth();
+          }}
+        >
+          Data Health
         </button>
       </div>
       {error && <p className="err">{error}</p>}
 
-      {tab === "inspect" && (
+      {tab === "overview" && (
+        <>
+          {snapshot && (
+            <div className="grid">
+              <Section title="Inventory state">
+                <Field label="items" value={snapshot.data?.items_total} />
+                <Field label="owned unlisted" value={snapshot.data?.owned_unlisted} />
+                <Field label="listed" value={snapshot.data?.listed_items} />
+                <Field label="sold" value={snapshot.data?.sold_items} />
+                <Field label="active listings" value={snapshot.data?.active_listings} />
+              </Section>
+              <Section title="Capital and sales">
+                <Field label="capital tied up CNY" value={snapshot.data?.capital_tied_up_cny} />
+                <Field label="USD estimate (display FX)" value={snapshot.data?.capital_tied_up_usd_est} />
+                <Field label="realized revenue USD" value={snapshot.data?.realized_revenue_usd} />
+                <Field label="gross after fees USD" value={snapshot.data?.realized_gross_after_fees_usd} />
+                <p className="lede">Fee-adjusted revenue is not margin. Acquisition cost is separate.</p>
+              </Section>
+            </div>
+          )}
+          {attention && (
+            <Section title="Attention items">
+              {(attention.data?.recommendations || []).slice(0, 8).map((r: any) => (
+                <div key={r.sku} className="row" onClick={() => void loadItem(r.sku)}>
+                  <span>
+                    <strong>{r.sku}</strong> {r.action || r.attention_reason}
+                  </span>
+                  <span className="lede" style={{ margin: 0 }}>{r.why}</span>
+                </div>
+              ))}
+            </Section>
+          )}
+        </>
+      )}
+
+      {tab === "context" && (
         <>
           <form
             className="ask"
@@ -425,6 +535,7 @@ export default function App() {
                 </Section>
                 <Section title="Provenance" testId="provenance">
                   <Field label="source" value={provenance.tool} />
+                  <Field label="domain" value={provenance.domain || "resale"} />
                   <Field label="as_of" value={provenance.as_of || bundle.as_of} />
                   <Field
                     label="services"
@@ -496,7 +607,7 @@ export default function App() {
                   data-testid={`eval-case-${c.id}`}
                   onClick={() => {
                     setQuestion(c.question);
-                    setTab("inspect");
+                    setTab("context");
                     void runQuestion(c.question);
                   }}
                 >
@@ -516,7 +627,7 @@ export default function App() {
         </>
       )}
 
-      {tab === "item" && (
+      {tab === "inventory" && (
         <>
           <form
             className="ask"
@@ -535,6 +646,33 @@ export default function App() {
               Load
             </button>
           </form>
+          <div className="samples">
+            {["", "owned", "listed", "sold"].map((st) => (
+              <button
+                key={st || "all"}
+                className={`chip ${invFilter === st ? "active" : ""}`}
+                onClick={() => {
+                  setInvFilter(st);
+                  void loadInventory(st);
+                }}
+              >
+                {st || "all"}
+              </button>
+            ))}
+          </div>
+          {inventory.length > 0 && (
+            <Section title="Items">
+              {inventory.map((row: any) => (
+                <div key={row.sku} className="row" onClick={() => void loadItem(row.sku)}>
+                  <span>
+                    <strong>{row.product || row.sku}</strong>
+                    <span className="dim"> {row.sku}</span>
+                  </span>
+                  <span className="lede" style={{ margin: 0 }}>{row.status}</span>
+                </div>
+              ))}
+            </Section>
+          )}
           {itemSkus.length > 0 && (
             <p className="samples">
               {itemSkus.map((id: string) => (
@@ -597,6 +735,36 @@ export default function App() {
               </Section>
             </div>
           )}
+        </>
+      )}
+
+      {tab === "health" && (
+        <>
+          {trust && (
+            <div className={`banner ${trust.ok ? "ok" : "bad"}`}>
+              <div>
+                <div className="banner-kicker">ingest trust</div>
+                <div className="banner-title">{trust.ok ? "OK" : "NOT OK"}</div>
+              </div>
+              <p className="banner-q">{(trust.reasons || []).join(" ") || "Latest ingest reconciled."}</p>
+            </div>
+          )}
+          <Section title="Recent ingest runs">
+            {ingestRuns.length ? (
+              ingestRuns.slice(0, 12).map((run: any) => (
+                <div key={run.run_id || run.source} className="row">
+                  <span>
+                    <strong>{run.source}</strong> {run.status}
+                  </span>
+                  <span className="lede" style={{ margin: 0 }}>
+                    loaded {run.rows_loaded ?? "—"} · rejected {run.rows_rejected ?? "—"}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="lede">No ingest runs in this database.</p>
+            )}
+          </Section>
         </>
       )}
     </div>

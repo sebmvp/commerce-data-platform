@@ -445,12 +445,29 @@ def generate() -> None:
         ("fill-listed-09", "Jordan 2 Python", "catalog.sneakers", "listed", 4200, 360),
         ("fill-owned-10", "Kapital Century Denim", "catalog.bottoms", "owned", 3100, 290),
         ("fill-sold-06", "Depop-channel sale filler", "catalog.tops", "sold", 500, 80),
+        ("fill-owned-11", "Canvas Work Jacket", "catalog.outerwear", "owned", 180, 45),
+        ("fill-owned-12", "Pique Polo Forest", "catalog.tops", "owned", 42, 28),
+        ("fill-owned-13", "Pique Polo Sand", "catalog.tops", "owned", 42, 28),
+        ("fill-owned-14", "Utility Cargo Short", "catalog.bottoms", "owned", 55, 32),
+        ("fill-owned-16", "Ribbed Tank Black", "catalog.tops", "owned", None, 18),
+        ("fill-listed-10", "Camp Collar Shirt", "catalog.tops", "listed", 48, 35),
+        ("fill-listed-11", "Nylon Windbreaker", "catalog.outerwear", "listed", 95, 48),
+        ("fill-listed-12", "Wide Chino Stone", "catalog.bottoms", "listed", 70, 40),
+        ("fill-listed-13", "Terry Short Grey", "catalog.bottoms", "listed", 44, 30),
+        ("fill-listed-14", "Logo Hoodie Navy", "catalog.tops", "listed", 88, 52),
+        ("fill-listed-15", "Soccer Jersey Away", "catalog.tops", "listed", 60, 38),
+        ("fill-sold-07", "Graphic Tee Wave", "catalog.tops", "sold", 35, 22),
+        ("fill-sold-08", "Bucket Hat Olive", "catalog.accessories", "sold", 28, 20),
+        ("fill-transit-03", "Quilted Liner", "catalog.outerwear", "in_transit", 75, 42),
+        ("fill-planned-01", "Linen Overshirt", "catalog.outerwear", "planned", 65, 36),
+        ("fill-owned-18", "Camp Cap Black", "catalog.accessories", "owned", None, 16),
+        ("fill-listed-18", "Nylon Shoulder Bag", "catalog.accessories", "listed", 90, 48),
     ]
     for i, (sku, product, cat, status, cost, tgt) in enumerate(filler):
         size = ["S", "M", "L", "8", "9", "10"][i % 6]
         items.append(_item(sku=sku, product=product, size=size, category=cat,
                            acquisition_cost_cny=cost, status=status,
-                           target_price_usd=float(tgt),
+                           target_price_usd=float(tgt) if tgt else None,
                            condition=random.choice(["new", "like_new", "used"])))
         ordered = NOW - timedelta(days=15 + (i % 20))
         received = None if status == "in_transit" else ordered + timedelta(days=6)
@@ -529,9 +546,10 @@ def generate() -> None:
         "purpose": "demo / development gold evaluation",
         "item_count": len(items),
         "calibration": (
-            "Scenario mix (dual channel, unlisted capital, in-transit supply, "
-            "missing cost/engagement, notes-on-items) is calibrated from real "
-            "resale workflow patterns. Rows are fictional."
+            "Lifecycle mix is rounded from a real resale operation: mostly owned "
+            "stock, a listed majority on the primary channel, sparse sold history, "
+            "a few in-transit/planned rows, and occasional missing cost. Dual-channel "
+            "and notes-on-items are scenario fixtures. Rows are fictional."
         ),
     }
     (OUT / "world.json").write_text(json.dumps(meta, indent=2) + "\n")

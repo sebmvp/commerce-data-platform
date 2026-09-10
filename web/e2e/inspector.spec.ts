@@ -36,7 +36,7 @@ test("insufficient case makes missing context obvious", async ({ page }) => {
 test("item drill-down shows state, listings, timeline", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByTestId("sufficiency")).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("button", { name: "Object" }).click();
+  await page.getByRole("button", { name: "Inventory" }).click();
   await page.getByTestId("sku-input").fill("j4-military-s");
   await page.getByRole("button", { name: "Load" }).click();
   await expect(page.getByTestId("item-view")).toBeVisible();

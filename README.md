@@ -5,35 +5,35 @@
 Business questions depend on exact operational state and relationships,
 not merely semantically similar documents.
 
-This project models that business context explicitly — items, listings,
-channels, events, metrics, rules, notes — and assembles only the evidence
-required for a question. When required context is missing, it says so.
+This project models that business context explicitly and assembles only
+the evidence required for a question. When required context is missing,
+it says so.
+
+The **resale domain is the first implementation**. Context contracts and
+interface layers are kept separate from domain-specific resolvers,
+metrics, and rules so additional operational domains can reuse the same
+context machinery. The repository does not currently implement other
+businesses.
 
 ![Context Inspector](docs/screenshots/context-inspector.png)
 
 ## How it works
 
 ```
-synthetic JSONL seed
-        → validated ingest (quarantine, idempotent, one transaction per run)
-        → PostgreSQL canonical operational store
-        → Context Engine → ContextBundle
-        → CLI / FastAPI / MCP / React Context Inspector
-        → grounded answer over that bundle (abstains when insufficient)
+private sources (isolated)     public synthetic worlds
+        \                         /
+         → adapters → PostgreSQL canonical store
+                         → domain services
+                         → Context Engine → ContextBundle
+                         → CLI / FastAPI / MCP / React
+                         → grounded answer (abstains when insufficient)
 ```
 
-RAG is a possible context *source*, not the architecture. The comparison
-in evaluation is a **lexical retrieval baseline** (TF-IDF, no generation).
-Redis is not used: nothing here is an async job queue yet.
-
-## What you can demonstrate
-
-- A sufficient reprice question with linked objects, history, and provenance
-- An insufficient question that names the missing listing/engagement
-- Item drill-down (current state + timeline)
-- Deterministic gold evaluation (engine, not an LLM)
-- The same ids against lexical retrieval
-- A thin grounded answer that abstains when `sufficient` is false
+Resale objects (items, listings, channels, orders, engagement) plug into
+generic ContextBundle types. RAG / lexical retrieval is a possible
+context *source*, not the architecture. The evaluation comparison is a
+**lexical retrieval baseline** (TF-IDF, no generation). Redis is not
+used: nothing here is an async job queue yet.
 
 ## Run
 
@@ -94,7 +94,7 @@ in `sample_data/world.json`, so next month's run matches this one.
 | Schema | `schema/001_init.sql` + Alembic |
 | Demo world | `sample_data/` + `scripts/generate_public_world.py` |
 | Held-out world | `sample_data_heldout/` + `scripts/generate_heldout_world.py` |
-| Context engine | `src/cdp_cli/context/` |
+| Context engine | `src/cdp_cli/core/` + `src/cdp_cli/domains/resale/` |
 | Gold eval | `evals/context_questions.py` |
 | Held-out eval | `evals/heldout_questions.py` |
 | Lexical baseline | `evals/lexical_baseline.py` |

@@ -44,3 +44,14 @@
 {"item_sku": "fill-listed-09", "platform": "depop", "event_type": "opened", "event_at": "2026-09-04T12:00:00", "price_usd": 360.0, "status": "active"}
 {"item_sku": "fill-sold-06", "platform": "depop", "event_type": "opened", "event_at": "2026-08-30T12:00:00", "price_usd": 80.0, "status": "active"}
 {"item_sku": "fill-sold-06", "platform": "depop", "event_type": "sold", "event_at": "2026-09-06T12:00:00", "price_usd": 73.60000000000001, "status": "sold"}
+{"item_sku": "fill-listed-10", "platform": "depop", "event_type": "opened", "event_at": "2026-08-25T12:00:00", "price_usd": 35.0, "status": "active"}
+{"item_sku": "fill-listed-11", "platform": "grailed", "event_type": "opened", "event_at": "2026-08-25T12:00:00", "price_usd": 48.0, "status": "active"}
+{"item_sku": "fill-listed-12", "platform": "grailed", "event_type": "opened", "event_at": "2026-08-25T12:00:00", "price_usd": 40.0, "status": "active"}
+{"item_sku": "fill-listed-13", "platform": "grailed", "event_type": "opened", "event_at": "2026-08-20T12:00:00", "price_usd": 30.0, "status": "active"}
+{"item_sku": "fill-listed-14", "platform": "depop", "event_type": "opened", "event_at": "2026-08-20T12:00:00", "price_usd": 52.0, "status": "active"}
+{"item_sku": "fill-listed-15", "platform": "grailed", "event_type": "opened", "event_at": "2026-08-20T12:00:00", "price_usd": 38.0, "status": "active"}
+{"item_sku": "fill-sold-07", "platform": "grailed", "event_type": "opened", "event_at": "2026-08-20T12:00:00", "price_usd": 22.0, "status": "active"}
+{"item_sku": "fill-sold-07", "platform": "grailed", "event_type": "sold", "event_at": "2026-08-27T12:00:00", "price_usd": 20.240000000000002, "status": "sold"}
+{"item_sku": "fill-sold-08", "platform": "grailed", "event_type": "opened", "event_at": "2026-08-20T12:00:00", "price_usd": 20.0, "status": "active"}
+{"item_sku": "fill-sold-08", "platform": "grailed", "event_type": "sold", "event_at": "2026-08-28T12:00:00", "price_usd": 18.400000000000002, "status": "sold"}
+{"item_sku": "fill-listed-18", "platform": "grailed", "event_type": "opened", "event_at": "2026-09-04T12:00:00", "price_usd": 48.0, "status": "active"}

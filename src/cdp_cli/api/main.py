@@ -86,6 +86,29 @@ def create_app() -> FastAPI:
         finally:
             con.close()
 
+    @app.get("/inventory/items")
+    def inventory_items(
+        status: str | None = None,
+        limit: int = Query(200, le=500),
+    ):
+        _require_db()
+        sql = """
+            SELECT sku, product, variant, size, status, category_key,
+                   acquisition_cost_cny, target_price_usd, qty
+            FROM catalog.items
+        """
+        params: list = []
+        if status:
+            sql += " WHERE status = ?"
+            params.append(status)
+        sql += " ORDER BY sku LIMIT ?"
+        params.append(limit)
+        con = db.connect(read_only=True)
+        try:
+            return _rows(con, sql, params)
+        finally:
+            con.close()
+
     @app.get("/listings/performance")
     def listing_performance(platform: str | None = None):
         _require_db()

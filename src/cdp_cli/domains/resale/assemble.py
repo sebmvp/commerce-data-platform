@@ -8,8 +8,6 @@ from __future__ import annotations
 from typing import Any
 
 from ... import metrics as M
-from ...clock import iso, reference_now
-from ...db import Connection
 from ...business import (
     action_for_reason,
     get_business_snapshot,
@@ -23,13 +21,15 @@ from ...business import (
     get_listing_performance,
     search_notes,
 )
-from .intents import ITEM_SCOPED, REQUIRED_CONCEPTS
+from ...clock import iso, reference_now
 from ...core.model import (
     ContextEvent,
     ContextLink,
     ContextObject,
     MissingContext,
 )
+from ...db import Connection
+from .intents import ITEM_SCOPED, REQUIRED_CONCEPTS
 
 
 def _utcnow() -> str:

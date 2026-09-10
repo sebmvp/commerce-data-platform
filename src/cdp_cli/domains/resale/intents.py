@@ -106,8 +106,7 @@ def extract_sku(question: str, sku: str | None = None) -> str | None:
 def extract_as_of(question: str, as_of: str | None = None) -> datetime | None:
     if as_of and str(as_of).strip():
         text = str(as_of).strip()
-        if text.endswith("Z"):
-            text = text[:-1]
+        text = text.removesuffix("Z")
         return datetime.fromisoformat(text)
     q = (question or "").lower()
     now = reference_now()

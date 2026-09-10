@@ -9,3 +9,5 @@
 {"order_id": "ord-fill-sold-04", "item_sku": "fill-sold-04", "platform": "grailed", "qty": 1, "price_usd": 193.2, "fees_usd": 21.0, "shipping_usd": 11.0, "status": "shipped", "order_at": "2026-09-01T12:00:00"}
 {"order_id": "ord-fill-sold-05", "item_sku": "fill-sold-05", "platform": "grailed", "qty": 1, "price_usd": 165.6, "fees_usd": 18.0, "shipping_usd": 11.0, "status": "shipped", "order_at": "2026-09-19T12:00:00"}
 {"order_id": "ord-fill-sold-06", "item_sku": "fill-sold-06", "platform": "depop", "qty": 1, "price_usd": 73.6, "fees_usd": 8.0, "shipping_usd": 11.0, "status": "shipped", "order_at": "2026-09-06T12:00:00"}
+{"order_id": "ord-fill-sold-07", "item_sku": "fill-sold-07", "platform": "grailed", "qty": 1, "price_usd": 20.24, "fees_usd": 2.2, "shipping_usd": 11.0, "status": "shipped", "order_at": "2026-08-27T12:00:00"}
+{"order_id": "ord-fill-sold-08", "item_sku": "fill-sold-08", "platform": "grailed", "qty": 1, "price_usd": 18.4, "fees_usd": 2.0, "shipping_usd": 11.0, "status": "shipped", "order_at": "2026-08-28T12:00:00"}

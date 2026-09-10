@@ -41,3 +41,30 @@ export async function getItemHistory(sku: string) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+async function getJson(path: string) {
+  const res = await fetch(`${API}${path}`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export function getSnapshot() {
+  return getJson("/business/snapshot");
+}
+
+export function getAttention() {
+  return getJson("/business/attention");
+}
+
+export function getInventoryItems(status?: string) {
+  const q = status ? `?status=${encodeURIComponent(status)}` : "";
+  return getJson(`/inventory/items${q}`);
+}
+
+export function getIngestTrust() {
+  return getJson("/ingest/trust");
+}
+
+export function getIngestRuns() {
+  return getJson("/ingest/runs");
+}
