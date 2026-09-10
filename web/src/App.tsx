@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { getAnswer, getContext, getEval, getItem, getItemHistory } from "./api";
+import {
+  getAnswer,
+  getContext,
+  getEval,
+  getEvalCompare,
+  getItem,
+  getItemHistory,
+} from "./api";
 
 type Tab = "inspect" | "eval" | "item";
 
@@ -27,13 +34,15 @@ function Section({
   title,
   children,
   testId,
+  className = "",
 }: {
   title: string;
   children: ReactNode;
   testId?: string;
+  className?: string;
 }) {
   return (
-    <section className="card" data-testid={testId}>
+    <section className={`card ${className}`} data-testid={testId}>
       <h2>{title}</h2>
       {children}
     </section>
@@ -49,17 +58,68 @@ function Field({ label, value }: { label: string; value: unknown }) {
   );
 }
 
+function objectLabel(objects: any[], ref: string): string {
+  const idx = ref.indexOf(":");
+  const type = idx === -1 ? ref : ref.slice(0, idx);
+  const id = idx === -1 ? "" : ref.slice(idx + 1);
+  const obj = objects.find((o) => o.type === type && String(o.id) === id);
+  const props = obj?.properties || {};
+  if (type === "Item") return props.product || id || ref;
+  if (type === "Listing") {
+    const platform = props.platform ? String(props.platform) : "listing";
+    const title = platform.charAt(0).toUpperCase() + platform.slice(1);
+    return `${title} listing`;
+  }
+  if (type === "Channel") {
+    const platform = props.platform || id;
+    return String(platform).charAt(0).toUpperCase() + String(platform).slice(1);
+  }
+  if (type === "Order") return `order ${id}`;
+  if (type === "Recommendation") return `recommendation for ${props.sku || id}`;
+  if (type === "EngagementObservation") return "engagement";
+  if (type === "IngestRun") return "ingest trust";
+  return obj ? `${type} ${id}` : ref;
+}
+
+function relVerb(type: string): string {
+  const map: Record<string, string> = {
+    HAS_LISTING: "listed as",
+    ON_CHANNEL: "on",
+    HAS_ENGAGEMENT: "has",
+    RESULTED_IN: "sold as",
+    TARGETS: "targets",
+  };
+  return map[type] || type.toLowerCase().replace(/_/g, " ");
+}
+
+function itemLabel(obj: any): string {
+  if (obj.type === "Item") return obj.properties?.product || obj.id;
+  if (obj.type === "Listing") {
+    const platform = obj.properties?.platform || "listing";
+    return `${platform} listing`;
+  }
+  if (obj.type === "Channel") return obj.properties?.platform || obj.id;
+  if (obj.type === "Order") return `order ${obj.id}`;
+  if (obj.type === "Recommendation") return `rec · ${obj.properties?.sku || obj.id}`;
+  if (obj.type === "EngagementObservation") return "engagement";
+  if (obj.type === "IngestRun") return "ingest trust";
+  return `${obj.type} ${obj.id}`;
+}
+
 export default function App() {
   const [tab, setTab] = useState<Tab>("inspect");
   const [question, setQuestion] = useState(SAMPLES[0]);
   const [bundle, setBundle] = useState<any>(null);
   const [evalReport, setEvalReport] = useState<any>(null);
+  const [compare, setCompare] = useState<any>(null);
   const [sku, setSku] = useState("j4-military-s");
   const [item, setItem] = useState<any>(null);
   const [history, setHistory] = useState<any>(null);
   const [answer, setAnswer] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showRawIds, setShowRawIds] = useState(false);
+  const [showRawProvenance, setShowRawProvenance] = useState(false);
 
   async function runQuestion(q: string) {
     setBusy(true);
@@ -67,8 +127,12 @@ export default function App() {
     try {
       const data = await getContext(q);
       setBundle(data);
-      setAnswer(null);
-      setTab("inspect");
+      try {
+        setAnswer(await getAnswer(q));
+      } catch (err) {
+        setAnswer(null);
+        setError(String(err));
+      }
     } catch (err) {
       setError(String(err));
     } finally {
@@ -80,19 +144,9 @@ export default function App() {
     setBusy(true);
     setError(null);
     try {
-      setEvalReport(await getEval());
-    } catch (err) {
-      setError(String(err));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function runAnswer(q: string) {
-    setBusy(true);
-    setError(null);
-    try {
-      setAnswer(await getAnswer(q));
+      const [engine, cmp] = await Promise.all([getEval(), getEvalCompare()]);
+      setEvalReport(engine);
+      setCompare(cmp);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -134,6 +188,8 @@ export default function App() {
   const listings = item?.data?.listings ?? [];
   const orders = item?.data?.orders ?? [];
   const timeline = history?.data?.timeline ?? [];
+  const provenance = bundle?.provenance || {};
+  const lexical = compare?.lexical || compare?.rag;
 
   return (
     <div className="app">
@@ -215,30 +271,22 @@ export default function App() {
                   {bundle.question}
                 </p>
               </div>
-              <div className="samples">
-                <button
-                  className="chip"
-                  data-testid="grounded-answer"
-                  disabled={busy}
-                  onClick={() => void runAnswer(question)}
-                >
-                  Grounded answer
-                </button>
-              </div>
+
+              <section className="why-panel" data-testid="why">
+                <h2>Why</h2>
+                <p>{bundle.why || "Required concepts were checked against assembled evidence."}</p>
+              </section>
+
               {answer && (
                 <section
                   className={`missing-panel ${answer.abstained ? "" : "ok-panel"}`}
                   data-testid="grounded-output"
-                  style={
-                    answer.abstained
-                      ? undefined
-                      : { borderColor: "#14532d", background: "#101610", color: "var(--fg)" }
-                  }
                 >
-                  <h2>{answer.abstained ? "Abstained" : "Grounded answer"}</h2>
+                  <h2 data-testid="grounded-answer">{answer.abstained ? "Abstained" : "Grounded answer"}</h2>
                   <p>{answer.answer}</p>
                   <p className="lede" style={{ marginTop: 8 }}>
                     provider {answer.provider}
+                    {answer.abstained ? " — insufficient context, no invented facts" : ""}
                   </p>
                 </section>
               )}
@@ -258,12 +306,14 @@ export default function App() {
               )}
 
               <div className="grid">
-                <Section title="Objects" testId="objects">
+                <Section title="Business objects" testId="objects">
                   {objects.length ? (
                     objects.map((o: any) => (
                       <div key={o.type + o.id} className="row">
                         <span>
-                          {o.type} <span className="mono">{o.id}</span>
+                          <span className="obj-type">{o.type}</span>{" "}
+                          {itemLabel(o)}
+                          {showRawIds && <span className="mono dim"> {o.id}</span>}
                         </span>
                         {o.type === "Item" && (
                           <button className="obj-link" onClick={() => void loadItem(o.id)}>
@@ -277,18 +327,56 @@ export default function App() {
                   )}
                 </Section>
                 <Section title="Relationships" testId="relationships">
-                  <pre className="mono">
-                    {(bundle.relationships || [])
-                      .map((r: any) => `${r.from_ref} —${r.type}→ ${r.to_ref}`)
-                      .join("\n") || "—"}
-                  </pre>
-                </Section>
-                <Section title="Facts" testId="facts">
-                  {Object.keys(facts).length ? (
-                    Object.entries(facts).map(([k, v]) => <Field key={k} label={k} value={v} />)
+                  {(bundle.relationships || []).length ? (
+                    <>
+                      {(bundle.relationships as any[]).map((r, i) => (
+                        <p key={i} className="rel">
+                          <strong>{objectLabel(objects, r.from_ref)}</strong>
+                          <span className="rel-verb"> {relVerb(r.type)} </span>
+                          <strong>{objectLabel(objects, r.to_ref)}</strong>
+                        </p>
+                      ))}
+                      <button className="chip" onClick={() => setShowRawIds((v) => !v)}>
+                        {showRawIds ? "Hide raw ids" : "Show raw ids"}
+                      </button>
+                      {showRawIds && (
+                        <pre className="mono dim">
+                          {(bundle.relationships || [])
+                            .map((r: any) => `${r.from_ref} —${r.type}→ ${r.to_ref}`)
+                            .join("\n")}
+                        </pre>
+                      )}
+                    </>
                   ) : (
                     <p className="lede">None.</p>
                   )}
+                </Section>
+                <Section title="Facts / metrics" testId="facts">
+                  {Object.keys(facts).length ? (
+                    Object.entries(facts).map(([k, v]) => {
+                      if (v != null && typeof v === "object") {
+                        if (k === "listing_as_of") {
+                          const covered = (v as any).covered;
+                          return (
+                            <Field
+                              key={k}
+                              label="listing_as_of"
+                              value={covered ? "covered" : "not covered"}
+                            />
+                          );
+                        }
+                        return null;
+                      }
+                      return <Field key={k} label={k} value={v} />;
+                    })
+                  ) : (
+                    <p className="lede">None.</p>
+                  )}
+                  {bundle.metrics && Object.keys(bundle.metrics).length
+                    ? Object.entries(bundle.metrics).map(([k, v]) => (
+                        <Field key={`m-${k}`} label={k} value={v} />
+                      ))
+                    : null}
                 </Section>
                 <Section title="Metrics" testId="metrics">
                   {bundle.metrics && Object.keys(bundle.metrics).length ? (
@@ -299,12 +387,16 @@ export default function App() {
                     <p className="lede">None.</p>
                   )}
                 </Section>
-                <Section title="History" testId="history">
-                  <pre className="mono">
-                    {(bundle.events || [])
-                      .map((e: any) => `${e.at ?? "?"}  ${e.type}`)
-                      .join("\n") || "—"}
-                  </pre>
+                <Section title="Relevant history" testId="history">
+                  {(bundle.events || []).length ? (
+                    (bundle.events as any[]).map((e, i) => (
+                      <p key={i} className="hist">
+                        <span className="mono dim">{e.at ?? "?"}</span> {e.type}
+                      </p>
+                    ))
+                  ) : (
+                    <p className="lede">None.</p>
+                  )}
                 </Section>
                 <Section title="Rules" testId="rules">
                   {(bundle.applicable_rules || []).length ? (
@@ -332,7 +424,20 @@ export default function App() {
                   )}
                 </Section>
                 <Section title="Provenance" testId="provenance">
-                  <pre className="mono">{kv(bundle.provenance)}</pre>
+                  <Field label="source" value={provenance.tool} />
+                  <Field label="as_of" value={provenance.as_of || bundle.as_of} />
+                  <Field
+                    label="services"
+                    value={(provenance.source_tools || []).join(", ") || "—"}
+                  />
+                  <Field
+                    label="relations"
+                    value={(provenance.source_relations || []).join(", ") || "—"}
+                  />
+                  <button className="chip" onClick={() => setShowRawProvenance((v) => !v)}>
+                    {showRawProvenance ? "Hide raw" : "Raw JSON"}
+                  </button>
+                  {showRawProvenance && <pre className="mono">{kv(provenance)}</pre>}
                 </Section>
               </div>
             </>
@@ -347,6 +452,10 @@ export default function App() {
           </button>
           {evalReport && (
             <>
+              <p className="lede" style={{ marginTop: 12 }}>
+                {evalReport.suite || "GOLD / DEVELOPMENT"} — scores the Context Engine,
+                not an LLM. Held-out scenario validation is `make eval-heldout`.
+              </p>
               <div className="eval-bar" data-testid="eval-summary">
                 <span>
                   TOTAL <strong data-testid="eval-total">{evalReport.total}</strong>
@@ -361,6 +470,25 @@ export default function App() {
                   SKIP <strong data-testid="eval-skip">{evalReport.skipped}</strong>
                 </span>
               </div>
+              {lexical && (
+                <div className="compare-bar" data-testid="eval-compare">
+                  <div>
+                    <div className="banner-kicker">Context Engine</div>
+                    <div className="compare-n">
+                      {compare.engine.passed}/{compare.engine.total}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="banner-kicker">Lexical retrieval</div>
+                    <div className="compare-n" data-testid="lexical-pass">
+                      {lexical.passed}/{lexical.total}
+                    </div>
+                    <p className="lede" style={{ margin: "4px 0 0" }}>
+                      TF-IDF over serialized rows. No generation.
+                    </p>
+                  </div>
+                </div>
+              )}
               {evalReport.cases.map((c: any) => (
                 <div
                   key={c.id}
@@ -368,6 +496,7 @@ export default function App() {
                   data-testid={`eval-case-${c.id}`}
                   onClick={() => {
                     setQuestion(c.question);
+                    setTab("inspect");
                     void runQuestion(c.question);
                   }}
                 >
@@ -420,13 +549,13 @@ export default function App() {
               <Section title="Identity / current state" testId="item-state">
                 <Field label="sku" value={itemData.sku} />
                 <Field label="status" value={itemData.status} />
-                <Field label="title" value={itemData.title} />
-                <Field label="category" value={itemData.category} />
+                <Field label="title" value={itemData.product || itemData.title} />
+                <Field label="category" value={itemData.category || itemData.category_key} />
                 <Field label="inventory age (days)" value={itemData.inventory_age_days} />
               </Section>
               <Section title="Acquisition">
                 <Field label="acquisition cost CNY" value={itemData.acquisition_cost_cny} />
-                <Field label="ordered at" value={itemData.ordered_at} />
+                <Field label="acquired at" value={itemData.acquired_at || itemData.ordered_at} />
                 <Field label="received at" value={itemData.received_at} />
               </Section>
               <Section title="Listings / channel / engagement">
@@ -451,7 +580,7 @@ export default function App() {
                   orders.map((o: any, i: number) => (
                     <div key={i}>
                       <Field label="order" value={o.order_id || o.id} />
-                      <Field label="sold at" value={o.sold_at} />
+                      <Field label="sold at" value={o.sold_at || o.order_at} />
                       <Field label="sale usd" value={o.sale_price_usd || o.price_usd} />
                     </div>
                   ))

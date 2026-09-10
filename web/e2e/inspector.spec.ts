@@ -16,6 +16,8 @@ test("app loads a sufficient context bundle", async ({ page }) => {
   await expect(page.getByTestId("metrics")).toBeVisible();
   await expect(page.getByTestId("history")).toBeVisible();
   await expect(page.getByTestId("provenance")).toBeVisible();
+  await expect(page.getByTestId("why")).toBeVisible();
+  await expect(page.getByTestId("grounded-output")).toBeVisible({ timeout: 20_000 });
   await page.screenshot({
     path: path.join(root, "docs/screenshots/context-inspector.png"),
     fullPage: true,
@@ -50,6 +52,25 @@ test("evaluation reports all 20 cases", async ({ page }) => {
   await expect(page.getByTestId("eval-pass")).toHaveText("20");
   await expect(page.getByTestId("eval-fail")).toHaveText("0");
   await expect(page.getByTestId("eval-skip")).toHaveText("0");
+});
+
+test("grounded answer abstains when context is insufficient", async ({ page }) => {
+  await page.goto("/");
+  await page.getByTestId("question-input").fill("Should I reprice stone-cargo-l?");
+  await page.getByRole("button", { name: "Assemble" }).click();
+  await expect(page.getByTestId("sufficiency")).toContainText("INSUFFICIENT");
+  await expect(page.getByTestId("grounded-output")).toContainText("ABSTAIN", {
+    timeout: 20_000,
+  });
+});
+
+test("evaluation shows lexical retrieval comparison", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Evaluation" }).click();
+  await expect(page.getByTestId("eval-summary")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("eval-compare")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("eval-compare")).toContainText("Lexical retrieval");
+  await expect(page.getByTestId("eval-compare")).toContainText("Context Engine");
 });
 
 test("temporal as-of question is sufficient", async ({ page }) => {

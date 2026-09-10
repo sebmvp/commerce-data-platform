@@ -22,6 +22,12 @@ export async function getEval() {
   return res.json();
 }
 
+export async function getEvalCompare() {
+  const res = await fetch(`${API}/eval/compare`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export async function getItem(sku: string) {
   const res = await fetch(`${API}/business/items/${encodeURIComponent(sku)}`);
   if (!res.ok) throw new Error(await res.text());

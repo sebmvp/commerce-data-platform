@@ -84,6 +84,40 @@ h2 {
 .banner.bad .banner-title { color: var(--bad); }
 .banner-q { margin: 0; color: var(--muted); max-width: 42ch; text-align: right; }
 
+.why-panel {
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+.why-panel p { margin: 0; }
+.ok-panel {
+  border-color: #14532d;
+  background: #101610;
+  color: var(--fg);
+}
+.rel { margin: 0 0 8px; line-height: 1.4; }
+.rel-verb { color: var(--muted); font-size: 12px; }
+.obj-type {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.dim { color: var(--muted); }
+.hist { margin: 0 0 6px; }
+.compare-bar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin: 8px 0 16px;
+  background: var(--card);
+}
+.compare-n { font-size: 22px; font-weight: 650; letter-spacing: -0.03em; }
 .missing-panel {
   border: 1px solid #7f1d1d;
   background: #1a1014;
