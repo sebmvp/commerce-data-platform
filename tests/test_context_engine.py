@@ -8,7 +8,7 @@ from __future__ import annotations
 import pytest
 
 from cdp_cli import db
-from cdp_cli.context import assemble_context
+from cdp_cli.core import assemble_context
 from cdp_cli.ingest import ALL_JOBS
 
 

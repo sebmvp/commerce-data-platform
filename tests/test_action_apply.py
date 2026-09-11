@@ -7,7 +7,7 @@ import pytest
 
 from cdp_cli import actions
 from cdp_cli.business import get_item, get_item_history, get_listing_as_of
-from cdp_cli.context import assemble_context
+from cdp_cli.core import assemble_context
 
 
 def _seed_listed_item(con, sku: str = "reprice-loop-s", price: float = 145.0) -> None:

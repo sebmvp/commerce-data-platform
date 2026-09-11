@@ -20,7 +20,7 @@ from ..business import (
     get_item,
     get_item_history,
 )
-from ..context import assemble_context
+from ..core import assemble_context
 
 # Names an agent host might try. They are not registered and call_read_tool
 # rejects them so a later copilot cannot approve through this adapter.

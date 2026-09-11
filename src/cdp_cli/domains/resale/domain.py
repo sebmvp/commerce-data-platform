@@ -27,4 +27,14 @@ RESALE = Domain(
     assemble=assemble_resale,
     subject_scoped=ITEM_SCOPED,
     subject_name="sku",
+    entity_types=("Item", "Listing", "Channel", "Order", "EngagementObservation"),
+    relationship_types=(
+        ("Item", "HAS_LISTING", "Listing"),
+        ("Listing", "ON_CHANNEL", "Channel"),
+        ("Listing", "HAS_ENGAGEMENT", "EngagementObservation"),
+        ("Listing", "RESULTED_IN", "Order"),
+    ),
+    action_types=frozenset(
+        {"propose_list", "propose_reprice", "propose_channel_change", "mark_reviewed"}
+    ),
 )

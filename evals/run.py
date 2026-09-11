@@ -89,7 +89,7 @@ def run_eval(
     suite: str = "gold",
     questions: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
-    from cdp_cli.context import assemble_context
+    from cdp_cli.core import assemble_context
 
     catalog = questions if questions is not None else _catalog(suite)
     results = []
@@ -152,23 +152,20 @@ def run_compare(
                 "question": e_case["question"],
                 "engine": e_case["passed"],
                 "lexical": l_case["passed"],
-                "rag": l_case["passed"],
                 "winner": winner,
                 "engine_errors": e_case.get("errors") or [],
                 "lexical_errors": l_case.get("errors") or [],
-                "rag_errors": l_case.get("errors") or [],
             }
         )
     by_category: dict[str, dict[str, int]] = {}
     for case in cases:
         cat = by_category.setdefault(
             case["category"] or "unknown",
-            {"n": 0, "engine_pass": 0, "lexical_pass": 0, "rag_pass": 0},
+            {"n": 0, "engine_pass": 0, "lexical_pass": 0},
         )
         cat["n"] += 1
         cat["engine_pass"] += int(case["engine"])
         cat["lexical_pass"] += int(case["lexical"])
-        cat["rag_pass"] += int(case["lexical"])
     return {
         "suite": suite_label(suite),
         "suite_id": suite,
@@ -188,18 +185,9 @@ def run_compare(
             "corpus_size": lexical.get("corpus_size"),
             "k": lexical.get("k"),
         },
-        "rag": {
-            "total": lexical["total"],
-            "passed": lexical["passed"],
-            "failed": lexical["failed"],
-            "ok": lexical["ok"],
-            "corpus_size": lexical.get("corpus_size"),
-            "k": lexical.get("k"),
-        },
         "cases": cases,
         "by_category": by_category,
         "lexical_wins": [c["id"] for c in cases if c["winner"] == "lexical"],
-        "rag_wins": [c["id"] for c in cases if c["winner"] == "lexical"],
         "engine_wins": [c["id"] for c in cases if c["winner"] == "engine"],
         "ties": [c["id"] for c in cases if c["winner"] == "tie"],
     }

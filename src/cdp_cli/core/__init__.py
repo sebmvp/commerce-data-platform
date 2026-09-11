@@ -12,6 +12,7 @@ from .model import (
     MissingContext,
     SufficiencyResult,
 )
+from .plan import QuestionPlan
 
 __all__ = [
     "ContextBundle",
@@ -22,6 +23,7 @@ __all__ = [
     "Domain",
     "EntityRef",
     "MissingContext",
+    "QuestionPlan",
     "SufficiencyResult",
     "assemble_context",
     "evaluate_sufficiency",

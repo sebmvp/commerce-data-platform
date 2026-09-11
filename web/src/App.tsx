@@ -150,8 +150,7 @@ export default function App() {
           <p className="lede">Operational workspace for resale context and sandbox decisions.</p>
         </div>
         <div className={`env-badge env-${env}`} data-testid="environment">
-          {env.toUpperCase()}
-          {runtime?.synthetic === false ? "" : runtime ? " · SYNTHETIC" : ""}
+          {env === "private" ? "PRIVATE · LOCAL" : env === "heldout" ? "HELD OUT · EVALUATION" : "DEMO · SYNTHETIC"}
         </div>
       </header>
       <div className="tabs">

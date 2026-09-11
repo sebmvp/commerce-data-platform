@@ -9,7 +9,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from cdp_cli import db
-from cdp_cli.context import assemble_context
+from cdp_cli.core import assemble_context
 from cdp_cli.ingest import ALL_JOBS
 from evals.context_questions import QUESTIONS
 

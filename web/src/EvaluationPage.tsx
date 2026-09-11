@@ -11,7 +11,7 @@ export function EvaluationPage({
   onRerun: () => void;
   onOpenQuestion: (q: string) => void;
 }) {
-  const lexical = compare?.lexical || compare?.rag;
+  const lexical = compare?.lexical;
   return (
     <>
       <button className="obj-link" onClick={onRerun} disabled={busy}>Re-run evaluation</button>

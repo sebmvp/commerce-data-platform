@@ -99,8 +99,8 @@ in `sample_data/world.json`, so next month's run matches this one.
 |-------|------|
 | Charter | [AGENTS.md](AGENTS.md) |
 | Schema | `schema/001_init.sql` + Alembic |
-| Demo world | `sample_data/` + `scripts/generate_public_world.py` |
-| Held-out world | `sample_data_heldout/` + `scripts/generate_heldout_world.py` |
+| Demo world | `sample_data/` + `synthetic/resale/` |
+| Held-out world | `sample_data_heldout/` + `synthetic/resale/` |
 | Context engine | `src/cdp_cli/core/` + `src/cdp_cli/domains/resale/` |
 | Gold eval | `evals/context_questions.py` |
 | Held-out eval | `evals/heldout_questions.py` |

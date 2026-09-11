@@ -10,7 +10,7 @@ from cdp_cli.business import (
     get_listing_performance,
 )
 from cdp_cli.clock import reference_now
-from cdp_cli.context import assemble_context
+from cdp_cli.core import assemble_context
 from cdp_cli.ingest import ALL_JOBS
 
 

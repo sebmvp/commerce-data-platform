@@ -1,8 +1,8 @@
-"""Thin grounded LLM path over ContextBundle.
+"""Grounded LLM path over ContextBundle.
 
 Fake provider is the default (tests, no keys). A real provider is only
-used when CDP_LLM_API_KEY is set. The model never sees the whole business
-and never writes.
+used when CDP_LLM_API_KEY is set. The model never sees the whole business,
+never writes, and never emits SQL.
 """
 from __future__ import annotations
 
@@ -10,8 +10,9 @@ import json
 import os
 from typing import Any, Protocol
 
-from ..context import assemble_context
-from ..context.model import ContextBundle
+from ..core.engine import assemble_context
+from ..core.model import ContextBundle
+from .planner import deterministic_plan, plan_question
 
 
 class LLMProvider(Protocol):
@@ -24,21 +25,39 @@ class FakeProvider:
     name = "fake"
 
     def complete(self, prompt: str) -> str:
+        if "\"task\": \"plan\"" in prompt or "capabilities:" in prompt:
+            return json.dumps({"capability": "item_state", "subject": None})
         if "SUFFICIENT: false" in prompt or "SUFFICIENT: False" in prompt:
-            return (
-                "ABSTAIN: required context is missing. "
-                "Do not invent a listing, price, or market."
+            return json.dumps(
+                {
+                    "answer": (
+                        "ABSTAIN: required context is missing. "
+                        "Do not invent a listing, price, or market."
+                    ),
+                    "abstained": True,
+                    "evidence_refs": [],
+                    "caveats": ["required evidence is missing"],
+                    "suggested_action": None,
+                }
             )
         sku = ""
         for token in prompt.split():
             if "-" in token and any(ch.isdigit() for ch in token):
                 sku = token.strip(".,")
                 break
-        return (
-            "Grounded on the assembled ContextBundle"
-            + (f" for {sku}" if sku else "")
-            + ". Use the cited objects, metrics, and history; "
-            "do not add facts that are not in the bundle."
+        return json.dumps(
+            {
+                "answer": (
+                    "Grounded on the assembled ContextBundle"
+                    + (f" for {sku}" if sku else "")
+                    + ". Use the cited objects, metrics, and history; "
+                    "do not add facts that are not in the bundle."
+                ),
+                "abstained": False,
+                "evidence_refs": [],
+                "caveats": [],
+                "suggested_action": None,
+            }
         )
 
 
@@ -66,7 +85,10 @@ class EnvProvider:
                         "role": "system",
                         "content": (
                             "Answer only from the ContextBundle. "
-                            "If SUFFICIENT is false, abstain."
+                            "If SUFFICIENT is false, abstain. "
+                            "Return JSON with answer, abstained, "
+                            "evidence_refs, caveats, suggested_action. "
+                            "Cite only object refs that appear in the bundle."
                         ),
                     },
                     {"role": "user", "content": prompt},
@@ -103,7 +125,7 @@ def _prompt(bundle: ContextBundle) -> str:
         "sufficient": payload.get("sufficient"),
         "missing_context": payload.get("missing_context"),
         "objects": [
-            {"type": o.get("type"), "id": o.get("id")}
+            {"type": o.get("type"), "id": o.get("id"), "ref": f"{o.get('type')}:{o.get('id')}"}
             for o in payload.get("objects") or []
         ],
         "relationships": payload.get("relationships"),
@@ -116,9 +138,59 @@ def _prompt(bundle: ContextBundle) -> str:
     flag = "true" if bundle.sufficient else "false"
     return (
         f"SUFFICIENT: {flag}\n"
-        f"Answer the question using only this ContextBundle.\n"
+        "Answer the question using only this ContextBundle.\n"
+        "Return JSON: {answer, abstained, evidence_refs, caveats, suggested_action}.\n"
         f"{json.dumps(compact, default=str)}"
     )
+
+
+def _bundle_refs(bundle: ContextBundle) -> set[str]:
+    refs = {o.ref() for o in bundle.objects}
+    for link in bundle.relationships:
+        refs.add(link.from_ref)
+        refs.add(link.to_ref)
+    return refs
+
+
+def _parse_grounded(raw: str, bundle: ContextBundle) -> dict[str, Any]:
+    allowed = _bundle_refs(bundle)
+    parsed: dict[str, Any]
+    try:
+        payload = json.loads(raw)
+        if not isinstance(payload, dict):
+            raise TypeError("not an object")
+        parsed = payload
+    except (json.JSONDecodeError, ValueError, TypeError):
+        parsed = {
+            "answer": raw,
+            "abstained": False,
+            "evidence_refs": [],
+            "caveats": [],
+            "suggested_action": None,
+        }
+    refs = parsed.get("evidence_refs") or []
+    if not isinstance(refs, list):
+        refs = []
+    refs = [str(r) for r in refs]
+    invalid = [r for r in refs if r not in allowed]
+    valid = [r for r in refs if r in allowed]
+    if not valid:
+        valid = sorted(allowed)
+    answer = str(parsed.get("answer") or raw)
+    abstained = bool(parsed.get("abstained"))
+    caveats = parsed.get("caveats") or []
+    if not isinstance(caveats, list):
+        caveats = [str(caveats)]
+    if invalid:
+        caveats = list(caveats) + [f"dropped invalid citations: {', '.join(invalid)}"]
+    return {
+        "answer": answer,
+        "abstained": abstained,
+        "evidence_refs": valid,
+        "invalid_citations": invalid,
+        "caveats": [str(c) for c in caveats],
+        "suggested_action": parsed.get("suggested_action"),
+    }
 
 
 def ground_answer(
@@ -129,8 +201,13 @@ def ground_answer(
     sku: str | None = None,
     provider: LLMProvider | None = None,
 ) -> dict[str, Any]:
-    bundle = assemble_context(con, question=question, intent=intent, sku=sku)
     used = provider or get_provider()
+    plan = plan_question(
+        question, intent=intent, subject=sku, provider=used
+    )
+    bundle = assemble_context(
+        con, question=question, intent=intent, sku=sku, plan=plan
+    )
     if not bundle.sufficient:
         missing = ", ".join(m.concept for m in bundle.missing_context)
         answer = (
@@ -141,6 +218,11 @@ def ground_answer(
         return {
             "answer": answer,
             "abstained": True,
+            "evidence_refs": [],
+            "invalid_citations": [],
+            "caveats": [f"missing {missing}" if missing else "insufficient context"],
+            "suggested_action": None,
+            "plan": plan.to_dict(),
             "provider": used.name,
             "model": getattr(used, "model", used.name),
             "bundle": bundle.to_dict(),
@@ -149,10 +231,15 @@ def ground_answer(
                 "provenance": bundle.to_dict().get("provenance"),
             },
         }
-    answer = used.complete(_prompt(bundle))
+    grounded = _parse_grounded(used.complete(_prompt(bundle)), bundle)
     return {
-        "answer": answer,
-        "abstained": False,
+        "answer": grounded["answer"],
+        "abstained": grounded["abstained"],
+        "evidence_refs": grounded["evidence_refs"],
+        "invalid_citations": grounded["invalid_citations"],
+        "caveats": grounded["caveats"],
+        "suggested_action": grounded["suggested_action"],
+        "plan": plan.to_dict(),
         "provider": used.name,
         "model": getattr(used, "model", used.name),
         "bundle": bundle.to_dict(),
@@ -161,5 +248,17 @@ def ground_answer(
             "metrics": bundle.metrics,
             "retrieved_evidence": bundle.to_dict().get("retrieved_evidence"),
             "provenance": bundle.to_dict().get("provenance"),
+            "evidence_refs": grounded["evidence_refs"],
         },
     }
+
+
+__all__ = [
+    "EnvProvider",
+    "FakeProvider",
+    "LLMProvider",
+    "deterministic_plan",
+    "get_provider",
+    "ground_answer",
+    "plan_question",
+]

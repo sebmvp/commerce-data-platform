@@ -62,21 +62,24 @@ export function ContextPage({
         <>
           <div className={`banner ${bundle.sufficient ? "ok" : "bad"}`} data-testid="sufficiency">
             <div>
-              <div className="banner-kicker">{bundle.intent}</div>
+              <div className="banner-kicker">{bundle.intent}{bundle.as_of ? ` · as of ${bundle.as_of}` : ""}</div>
               <div className="banner-title">{bundle.sufficient ? "SUFFICIENT" : "INSUFFICIENT"}</div>
             </div>
             <p className="banner-q" data-testid="assembled-question">{bundle.question}</p>
           </div>
-          <section className="why-panel" data-testid="why">
-            <h2>Why</h2>
-            <p>{bundle.why}</p>
-          </section>
           {answer && (
             <section className={`missing-panel ${answer.abstained ? "" : "ok-panel"}`} data-testid="grounded-output">
               <h2 data-testid="grounded-answer">{answer.abstained ? "Abstained" : "Grounded answer"}</h2>
               <p>{answer.answer}</p>
+              {!!answer.caveats?.length && (
+                <p className="lede">{(answer.caveats as string[]).join(" · ")}</p>
+              )}
             </section>
           )}
+          <section className="why-panel" data-testid="why">
+            <h2>Why</h2>
+            <p>{bundle.why}</p>
+          </section>
           {requirements.length > 0 && (
             <Section title="Required evidence" testId="requirements">
               <ul className="req-list">

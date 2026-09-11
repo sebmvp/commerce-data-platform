@@ -45,7 +45,7 @@ jobs:
           pip install -e ".[dev,api,mcp]"
 
       - name: Ruff
-        run: ruff check src/ tests/ evals/ scripts/
+        run: ruff check src/ tests/ evals/ scripts/ synthetic/
 
       - name: pytest
         run: pytest -q

@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from cdp_cli import db
-from cdp_cli.context import assemble_context
+from cdp_cli.core import assemble_context
 from cdp_cli.ingest import ALL_JOBS
 from evals.heldout_questions import HELD_OUT
 from evals.run import run_eval

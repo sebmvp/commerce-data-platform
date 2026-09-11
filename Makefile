@@ -1,4 +1,4 @@
-.PHONY: help doctor up down seed seed-heldout reset-demo ingest-private test eval eval-heldout eval-compare frontend demo demo-cli test-e2e clean migrate
+.PHONY: help doctor up down seed seed-heldout reset-demo ingest-private test eval eval-heldout eval-compare frontend demo demo-cli test-e2e clean migrate ai-smoke
 
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
@@ -23,6 +23,7 @@ help:
 	@echo "  make eval-heldout Held-out scenario validation"
 	@echo "  make eval-compare Engine vs lexical retrieval baseline"
 	@echo "  make demo         Operator workspace (API + Vite)"
+	@echo "  make ai-smoke     Optional real-provider smoke (needs CDP_LLM_API_KEY)"
 	@echo "  make demo-cli     Isolated CLI/system behavior demo"
 	@echo "  make test-e2e     Playwright smoke against a running inspector"
 	@echo "  make clean        Remove safe generated artifacts (not private data)"
@@ -77,6 +78,10 @@ demo-cli: up seed
 
 test-e2e:
 	cd $(WEB) && npm install && npx playwright test
+
+ai-smoke:
+	@if [ -z "$$CDP_LLM_API_KEY" ]; then echo "CDP_LLM_API_KEY is not set — skipping paid provider"; exit 1; fi
+	CDP_LLM_PROVIDER=env $(CDP) answer "Should I reprice j4-military-s?"
 
 clean:
 	rm -rf .pytest_cache .ruff_cache src/*.egg-info web/dist web/node_modules/.vite

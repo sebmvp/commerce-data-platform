@@ -399,3 +399,21 @@ CREATE TABLE IF NOT EXISTS ops.business_snapshots (
 
 CREATE INDEX IF NOT EXISTS business_snapshots_captured
   ON ops.business_snapshots (captured_at DESC, as_of DESC);
+
+-- Source lineage for canonical facts. effective_at is NULL when the
+-- source did not provide a business timestamp — unknown, not invented.
+CREATE TABLE IF NOT EXISTS core.record_lineage (
+  lineage_id TEXT PRIMARY KEY,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT NOT NULL,
+  source_system TEXT NOT NULL,
+  source_record_reference TEXT,
+  content_hash TEXT,
+  observed_at TIMESTAMP,
+  effective_at TIMESTAMP,
+  ingest_run_id TEXT REFERENCES core.ingest_runs (run_id),
+  created_at TIMESTAMP DEFAULT (timezone('UTC', now())::timestamp)
+);
+
+CREATE INDEX IF NOT EXISTS record_lineage_entity
+  ON core.record_lineage (entity_type, entity_id);

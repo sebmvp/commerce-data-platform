@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { ActionPanel } from "./ActionPanel";
 import type { InventoryRow } from "./types";
 import { Field, Section } from "./ui";
@@ -29,6 +30,14 @@ export function InventoryPage({
   const listings = item?.data?.listings ?? [];
   const orders = item?.data?.orders ?? [];
   const timeline = history?.data?.timeline ?? [];
+  const [search, setSearch] = useState("");
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return inventory;
+    return inventory.filter((row) =>
+      `${row.product || ""} ${row.sku} ${row.status}`.toLowerCase().includes(q)
+    );
+  }, [inventory, search]);
 
   return (
     <>
@@ -41,6 +50,14 @@ export function InventoryPage({
       >
         <input data-testid="sku-input" value={sku} onChange={(e) => setSku(e.target.value)} placeholder="sku" />
         <button type="submit">Load</button>
+      </form>
+      <form className="ask" onSubmit={(e) => e.preventDefault()}>
+        <input
+          data-testid="inventory-search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="search product or sku"
+        />
       </form>
       <div className="samples">
         {[
@@ -58,9 +75,9 @@ export function InventoryPage({
           </button>
         ))}
       </div>
-      {inventory.length > 0 && (
+      {visible.length > 0 && (
         <Section title="Items">
-          {inventory.map((row) => (
+          {visible.map((row) => (
             <div key={row.sku} className="row" onClick={() => onLoad(row.sku)}>
               <span>
                 <strong>{row.product || row.sku}</strong>

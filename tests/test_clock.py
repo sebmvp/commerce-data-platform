@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 
 from cdp_cli.clock import reference_now, wall_now
-from cdp_cli.context.intents import extract_as_of
+from cdp_cli.domains.resale.intents import extract_as_of
 
 
 def test_world_clock_is_demo_as_of(monkeypatch, tmp_path):

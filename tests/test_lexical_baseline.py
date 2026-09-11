@@ -1,8 +1,8 @@
-"""Honest RAG baseline vs the gold context-assembly catalog.
+"""Lexical retrieval baseline vs the gold context-assembly catalog.
 
-RAG is a comparison, not the architecture. These tests lock two properties:
-the retriever is not sabotaged on unstructured notes, and it does not get
-credit for inventing a listing on an unlisted item.
+Lexical TF-IDF is a comparison, not the architecture. These tests lock
+two properties: the retriever is not sabotaged on unstructured notes,
+and it does not get credit for inventing a listing on an unlisted item.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from cdp_cli import db
 from cdp_cli.ingest import ALL_JOBS
 from evals.context_questions import QUESTIONS
-from evals.rag_baseline import build_corpus, retrieve, run_rag_eval
+from evals.lexical_baseline import build_corpus, retrieve, run_lexical_eval
 from evals.run import run_compare, run_eval
 
 
@@ -37,7 +37,7 @@ def test_corpus_serializes_notes_and_listings_not_recommendations(warehouse):
     )
 
 
-def test_rag_retrieves_seller_note_for_hybrid_question(warehouse):
+def test_lexical_retrieves_seller_note_for_hybrid_question(warehouse):
     _build(warehouse)
     chunks = build_corpus(warehouse)
     hits = retrieve("What do seller notes say about stone-cargo-l?", chunks, k=8)
@@ -46,9 +46,9 @@ def test_rag_retrieves_seller_note_for_hybrid_question(warehouse):
     assert "oil mark" in joined or "studio" in joined
 
 
-def test_rag_does_not_invent_listing_for_unlisted_sku(warehouse):
+def test_lexical_does_not_invent_listing_for_unlisted_sku(warehouse):
     _build(warehouse)
-    report = run_rag_eval(warehouse)
+    report = run_lexical_eval(warehouse)
     q03 = next(c for c in report["cases"] if c["id"] == "Q03")
     assert q03["passed"] is True
     assert "listing" in q03["actual"]["missing"]
@@ -71,7 +71,7 @@ def test_compare_covers_every_gold_id_and_engine_still_passes(warehouse):
 
 def test_hybrid_notes_are_not_sabotaged(warehouse):
     _build(warehouse)
-    report = run_rag_eval(warehouse)
+    report = run_lexical_eval(warehouse)
     hybrid = [c for c in report["cases"] if c["category"] == "hybrid"]
     assert hybrid
     assert all(c["passed"] for c in hybrid)

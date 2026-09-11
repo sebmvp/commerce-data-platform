@@ -1,29 +1,27 @@
-"""Compatibility re-export.
+"""Resale domain query services."""
 
-Resale query tools live in `cdp_cli.domains.resale.services`.
-CLI, API, and tests may keep importing this module.
-"""
-
-from cdp_cli.domains.resale.services import (
-    ACTION_FOR_REASON,
-    BusinessPayload,
-    Provenance,
-    action_for_reason,
+from .attention import get_inventory_attention_queue
+from .items import get_item, get_item_history, search_notes
+from .market import (
+    get_channel_as_of,
+    get_channel_comparison,
+    get_listing_as_of,
+    get_listing_performance,
+)
+from .overview import (
     capture_business_snapshot,
     diff_snapshots,
     ensure_baseline_snapshots,
     explain_metric,
     get_business_snapshot,
-    get_channel_as_of,
-    get_channel_comparison,
     get_ingest_health,
-    get_inventory_attention_queue,
-    get_item,
-    get_item_history,
-    get_listing_as_of,
-    get_listing_performance,
     list_business_snapshots,
-    search_notes,
+)
+from .payload import (
+    ACTION_FOR_REASON,
+    BusinessPayload,
+    Provenance,
+    action_for_reason,
 )
 
 __all__ = [

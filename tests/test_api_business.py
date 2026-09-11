@@ -153,7 +153,7 @@ def test_api_eval_compare_keeps_engine_gold(warehouse):
     body = res.json()
     assert body["engine"]["passed"] == 20
     assert body["engine"]["ok"] is True
-    assert body["rag"]["total"] == 20
+    assert body["lexical"]["total"] == 20
     assert "hybrid" in body["by_category"]
     hybrid = body["by_category"]["hybrid"]
-    assert hybrid["rag_pass"] == hybrid["n"]
+    assert hybrid["lexical_pass"] == hybrid["n"]

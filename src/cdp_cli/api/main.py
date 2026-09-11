@@ -208,7 +208,7 @@ def create_app() -> FastAPI:
         sku: str | None = Query(None),
         as_of: str | None = Query(None),
     ):
-        from ..context import assemble_context
+        from ..core import assemble_context
 
         if not (question or "").strip() and not intent:
             raise HTTPException(400, "question or intent is required")

@@ -413,7 +413,7 @@ def _print_business(payload: dict, *, as_json: bool) -> None:
 
 
 def cmd_context(args: argparse.Namespace) -> int:
-    from .context import assemble_context
+    from .core import assemble_context
     from .present import format_context
 
     question = args.question or ""
@@ -516,19 +516,19 @@ def cmd_eval(args: argparse.Namespace) -> int:
                 if err != "not implemented":
                     print(f"         {err}")
         return 0 if report["ok"] else 1
-    lexical = compare.get("lexical") or compare["rag"]
+    lexical = compare.get("lexical") or {}
     print(
         f"SUITE       {label}\n"
         f"ENGINE      {compare['engine']['passed']}/{compare['engine']['total']}\n"
         f"LEXICAL     {lexical['passed']}/{lexical['total']}"
         f"  (k={lexical['k']}, corpus={lexical['corpus_size']})\n"
         f"ENGINE WINS {', '.join(compare['engine_wins']) or '—'}\n"
-        f"LEXICAL WINS {', '.join(compare.get('lexical_wins') or compare.get('rag_wins') or []) or '—'}\n"
+        f"LEXICAL WINS {', '.join(compare.get('lexical_wins') or []) or '—'}\n"
         f"TIE         {', '.join(compare['ties']) or '—'}"
     )
     print("BY CATEGORY")
     for name, stats in sorted(compare["by_category"].items()):
-        lex_pass = stats.get("lexical_pass", stats.get("rag_pass", 0))
+        lex_pass = stats.get("lexical_pass", 0)
         print(
             f"  {name:16} engine {stats['engine_pass']}/{stats['n']}"
             f"  lexical {lex_pass}/{stats['n']}"
@@ -536,11 +536,11 @@ def cmd_eval(args: argparse.Namespace) -> int:
     for case in compare["cases"]:
         mark = case["winner"].upper()
         print(f"  [{mark:10}] {case['id']:4} {case['question']}")
-        if case["winner"] in {"lexical", "rag"}:
+        if case["winner"] == "lexical":
             for err in case["engine_errors"]:
                 print(f"         engine: {err}")
         if case["winner"] in {"engine", "both_fail"}:
-            for err in case.get("lexical_errors") or case.get("rag_errors") or []:
+            for err in case.get("lexical_errors") or []:
                 print(f"         lexical: {err}")
     return 0 if compare["engine"]["ok"] else 1
 
@@ -699,7 +699,7 @@ def main(argv: list[str] | None = None) -> int:
         help="Emit structured payload (kind + data + provenance)",
     )
 
-    from .context import INTENTS
+    from .domains.resale.intents import INTENTS
 
     pc = sub.add_parser(
         "context",

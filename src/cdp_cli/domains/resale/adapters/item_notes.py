@@ -16,6 +16,8 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
+from cdp_cli.ingest.contract import AdaptedBatch
+
 from ....validate import ItemEventRecord, ItemRecord, ListingEventRecord, ListingRecord
 
 STATUS_MAP = {
@@ -131,10 +133,8 @@ def note_to_records(
     status_raw = str(meta.get("status") or "planned").strip().lower()
     grailed_status = str(meta.get("grailed_status") or "not_listed").strip().lower()
     status = STATUS_MAP.get(status_raw, "owned")
-    if grailed_status in {"listed", "active"} and status in {"owned", "planned"}:
-        status = "listed"
-    if grailed_status == "sold":
-        status = "sold"
+    # Marketplace status markers do not create a listing. Item status
+    # follows the source `status` field, then listing evidence below.
 
     source_ref = parsed["name"]
     lineage = {
@@ -149,18 +149,25 @@ def note_to_records(
         "grailed_status": grailed_status or None,
     }
 
+    condition_raw = _str(meta.get("condition"))
+    condition = None
+    if condition_raw:
+        mapped = condition_raw.strip().lower().replace(" ", "_")
+        if mapped in {"new", "like_new", "used", "worn"}:
+            condition = mapped
+
     item = {
         "sku": sku,
         "product": product,
         "variant": _str(meta.get("variation")),
         "size": _str(meta.get("size")),
         "category": meta.get("category") or None,
-        "condition": "used",
-        "acquisition_channel": meta.get("store") or "pinduoduo",
+        "condition": condition,
+        "acquisition_channel": _str(meta.get("store")),
         "acquisition_cost_cny": _num(meta.get("bought_cny")),
         "qty": int(_num(meta.get("qty")) or 1),
         "status": status,
-        "target_price_usd": _num(meta.get("grailed_price_usd") or meta.get("target_price_usd")),
+        "target_price_usd": _num(meta.get("target_price_usd") or meta.get("grailed_price_usd")),
         "notes": meta.get("notes") or None,
         "_lineage": lineage,
     }
@@ -172,7 +179,7 @@ def note_to_records(
             {
                 "item_sku": sku,
                 "event_type": "ordered",
-                "event_at": (ordered_at or _now()).isoformat(timespec="seconds"),
+                "event_at": None if ordered_at is None else ordered_at.isoformat(timespec="seconds"),
                 "actor": "item_notes",
                 "payload": {
                     "supplier": meta.get("store"),
@@ -181,13 +188,13 @@ def note_to_records(
                 },
             }
         )
-    if status in {"owned", "listed", "sold"}:
-        received_at = _when(meta.get("received_at")) or ordered_at or _now()
+    received_at = _when(meta.get("received_at"))
+    if received_at is not None or status in {"owned", "listed", "sold"}:
         events.append(
             {
                 "item_sku": sku,
                 "event_type": "received",
-                "event_at": received_at.isoformat(timespec="seconds"),
+                "event_at": None if received_at is None else received_at.isoformat(timespec="seconds"),
                 "actor": "item_notes",
                 "payload": {"source_record_reference": source_ref},
             }
@@ -215,58 +222,60 @@ def note_to_records(
         }.get(grailed_status, "active")
         sold_at = _when(meta.get("sold_at"))
         sold_price = _num(meta.get("sold_price_usd") or meta.get("grailed_sold_usd"))
-        if listing_status == "sold" and sold_price is None:
-            sold_price = price
-        listings.append(
-            {
-                "item_sku": sku,
-                "platform": "grailed",
-                "platform_url": meta.get("grailed_url") or None,
-                "price_usd": price,
-                "status": listing_status,
-                "listed_at": listed_at.isoformat(timespec="seconds"),
-                "sold_at": None if sold_at is None else sold_at.isoformat(timespec="seconds"),
-                "sold_price_usd": sold_price,
-                "_lineage": lineage,
-            }
-        )
-        listing_events.append(
-            {
-                "item_sku": sku,
-                "platform": "grailed",
-                "event_type": "opened",
-                "event_at": listed_at.isoformat(timespec="seconds"),
-                "price_usd": price,
-                "status": "active" if listing_status != "draft" else "draft",
-            }
-        )
-        events.append(
-            {
-                "item_sku": sku,
-                "event_type": "listed",
-                "event_at": listed_at.isoformat(timespec="seconds"),
-                "payload": {"price_usd": price, "platform": "grailed"},
-            }
-        )
-        if listing_status == "sold" and sold_at:
+        if listing_status == "sold" and (sold_price is None or sold_at is None):
+            listing_reject = "sold listing missing sold_at/sold_price_usd"
+        else:
+            listings.append(
+                {
+                    "item_sku": sku,
+                    "platform": "grailed",
+                    "platform_url": meta.get("grailed_url") or None,
+                    "price_usd": price,
+                    "status": listing_status,
+                    "listed_at": listed_at.isoformat(timespec="seconds"),
+                    "sold_at": None if sold_at is None else sold_at.isoformat(timespec="seconds"),
+                    "sold_price_usd": sold_price,
+                    "_lineage": lineage,
+                }
+            )
             listing_events.append(
                 {
                     "item_sku": sku,
                     "platform": "grailed",
-                    "event_type": "sold",
-                    "event_at": sold_at.isoformat(timespec="seconds"),
-                    "price_usd": sold_price,
-                    "status": "sold",
+                    "event_type": "opened",
+                    "event_at": listed_at.isoformat(timespec="seconds"),
+                    "price_usd": price,
+                    "status": "active" if listing_status != "draft" else "draft",
                 }
             )
             events.append(
                 {
                     "item_sku": sku,
-                    "event_type": "sold",
-                    "event_at": sold_at.isoformat(timespec="seconds"),
-                    "payload": {"price_usd": sold_price},
+                    "event_type": "listed",
+                    "event_at": listed_at.isoformat(timespec="seconds"),
+                    "payload": {"price_usd": price, "platform": "grailed"},
                 }
             )
+            item["status"] = "sold" if listing_status == "sold" else "listed"
+            if listing_status == "sold" and sold_at:
+                listing_events.append(
+                    {
+                        "item_sku": sku,
+                        "platform": "grailed",
+                        "event_type": "sold",
+                        "event_at": sold_at.isoformat(timespec="seconds"),
+                        "price_usd": sold_price,
+                        "status": "sold",
+                    }
+                )
+                events.append(
+                    {
+                        "item_sku": sku,
+                        "event_type": "sold",
+                        "event_at": sold_at.isoformat(timespec="seconds"),
+                        "payload": {"price_usd": sold_price},
+                    }
+                )
 
     try:
         ItemRecord.model_validate({k: v for k, v in item.items() if not k.startswith("_")})
@@ -311,3 +320,105 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     with path.open("w", encoding="utf-8") as fh:
         for row in rows:
             fh.write(json.dumps(row, default=str) + "\n")
+
+
+class ItemNotesAdapter:
+    """Markdown item notes → AdaptedBatch. Does not write PostgreSQL."""
+
+    source_system = "obsidian_item_notes"
+
+    def __init__(self, source_dir: Path) -> None:
+        self.source_dir = source_dir
+
+    def adapt(self) -> AdaptedBatch:
+        from cdp_cli.ingest.contract import AdaptedRecord, SourceLineage
+
+        batch = AdaptedBatch(source_system=self.source_system)
+        paths = sorted(
+            p for p in self.source_dir.glob("*.md") if not p.name.startswith("_")
+        )
+        for path in paths:
+            parsed = parse_item_note(path)
+            result = note_to_records(parsed)
+            lineage_raw = (result.get("records") or {}).get("item", {}).get("_lineage") or {}
+            lineage = SourceLineage(
+                source_system=self.source_system,
+                source_record_reference=path.name,
+                content_hash=parsed["content_hash"],
+                observed_at=_now(),
+                effective_at=_when((parsed.get("meta") or {}).get("listed_at"))
+                or _when((parsed.get("meta") or {}).get("received_at"))
+                or _when((parsed.get("meta") or {}).get("ordered_at")),
+            )
+            if result.get("reject") or not result.get("records"):
+                batch.rejects.append(
+                    AdaptedRecord(
+                        entity_type="item",
+                        natural_key=path.name,
+                        payload={"path": path.name},
+                        lineage=lineage,
+                        reject_reason=str(result.get("reject") or "no records"),
+                    )
+                )
+                continue
+            recs = result["records"]
+            item = recs["item"]
+            batch.records.append(
+                AdaptedRecord(
+                    entity_type="item",
+                    natural_key=item["sku"],
+                    payload=item,
+                    lineage=lineage,
+                )
+            )
+            for event in recs["events"]:
+                batch.records.append(
+                    AdaptedRecord(
+                        entity_type="item_event",
+                        natural_key=f"{event['item_sku']}:{event['event_type']}:{event.get('event_at')}",
+                        payload=event,
+                        lineage=lineage,
+                    )
+                )
+            for listing in recs["listings"]:
+                batch.records.append(
+                    AdaptedRecord(
+                        entity_type="listing",
+                        natural_key=f"{listing['item_sku']}:{listing['platform']}",
+                        payload=listing,
+                        lineage=lineage,
+                    )
+                )
+            for event in recs["listing_events"]:
+                batch.records.append(
+                    AdaptedRecord(
+                        entity_type="listing_event",
+                        natural_key=(
+                            f"{event['item_sku']}:{event['platform']}:"
+                            f"{event['event_type']}:{event['event_at']}"
+                        ),
+                        payload=event,
+                        lineage=lineage,
+                    )
+                )
+            if recs.get("note"):
+                note = recs["note"]
+                batch.records.append(
+                    AdaptedRecord(
+                        entity_type="note",
+                        natural_key=note["note_id"],
+                        payload=note,
+                        lineage=lineage,
+                    )
+                )
+            if result.get("listing_reject"):
+                batch.rejects.append(
+                    AdaptedRecord(
+                        entity_type="listing",
+                        natural_key=path.name,
+                        payload={"kept": "item", **lineage_raw},
+                        lineage=lineage,
+                        reject_reason=str(result["listing_reject"]),
+                    )
+                )
+        return batch

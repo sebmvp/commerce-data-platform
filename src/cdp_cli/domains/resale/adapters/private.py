@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any
 
 from .... import db
-from ....ingest import ALL_JOBS
-from .item_notes import note_to_records, parse_item_note, write_jsonl
+from .item_notes import ItemNotesAdapter, note_to_records, parse_item_note, write_jsonl
+from .write import persist_resale_batch
 
 PRIVATE_URL_ENV = "CDP_PRIVATE_DATABASE_URL"
 SOURCE_ENV = "CDP_PRIVATE_SOURCE"
@@ -92,17 +92,7 @@ def materialize_item_notes(source: Path, dest: Path) -> dict[str, Any]:
             )
 
     channels = []
-    if listings:
-        channels.append(
-            {
-                "platform": "grailed",
-                "handle": "private",
-                "standing": "active",
-                "region": "US",
-                "fee_pct": 0.09,
-                "valid_from": "2025-01-01T00:00:00",
-            }
-        )
+    # Do not invent a marketplace channel (fees, handle) for private evidence.
 
     write_jsonl(dest / "catalog_items.jsonl", items)
     write_jsonl(dest / "item_events.jsonl", events)
@@ -160,9 +150,8 @@ def ingest_private(
                 db.reset_schema(con)
             else:
                 db.init_schema(con)
-            for job_cls in ALL_JOBS:
-                job = job_cls(con, staging)
-                job.run(force=force)
+            batch = ItemNotesAdapter(src).adapt()
+            persist_resale_batch(con, batch, force=force)
         finally:
             con.close()
     finally:

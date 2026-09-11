@@ -54,6 +54,9 @@ class Domain:
     assemble: IntentAssembler
     subject_scoped: frozenset[str] = field(default_factory=frozenset)
     subject_name: str = "subject"
+    entity_types: tuple[str, ...] = ()
+    relationship_types: tuple[tuple[str, str, str], ...] = ()
+    action_types: frozenset[str] = field(default_factory=frozenset)
 
     def requirements_for(self, intent: str) -> tuple[ContextRequirement, ...]:
         return tuple(

@@ -10,7 +10,7 @@ from cdp_cli.business import (
     list_business_snapshots,
 )
 from cdp_cli.clock import reference_now
-from cdp_cli.context import assemble_context
+from cdp_cli.core import assemble_context
 from cdp_cli.ingest import ALL_JOBS
 from cdp_cli.metrics import STALE_LISTING_DAYS
 

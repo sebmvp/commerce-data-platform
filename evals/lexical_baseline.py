@@ -333,7 +333,3 @@ def run_lexical_eval(con, *, k: int = DEFAULT_K, questions: list[dict[str, Any]]
         "cases": results,
     }
 
-
-# Back-compat aliases while callers migrate off the RAG name.
-run_rag_eval = run_lexical_eval
-score_rag_case = score_lexical_case
