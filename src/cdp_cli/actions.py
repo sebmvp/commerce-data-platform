@@ -381,6 +381,9 @@ def _decide(
                     action_id,
                 ],
             )
+            from .business import capture_business_snapshot
+
+            capture_business_snapshot(con, trigger="action_apply")
         data = _fetch(con, action_id)
         con.execute("COMMIT")
     except Exception:

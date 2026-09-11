@@ -279,13 +279,13 @@ def create_app() -> FastAPI:
             con.close()
 
     @app.get("/business/snapshot")
-    def business_snapshot():
+    def business_snapshot(as_of: str | None = Query(None)):
         from ..business import get_business_snapshot
 
         _require_db()
         con = db.connect(read_only=True)
         try:
-            return get_business_snapshot(con).to_dict()
+            return get_business_snapshot(con, as_of=as_of).to_dict()
         finally:
             con.close()
 

@@ -5,11 +5,13 @@ and does not embed warehouse rows.
 """
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from ... import metrics as M
 from ...business import (
     action_for_reason,
+    diff_snapshots,
     get_business_snapshot,
     get_channel_as_of,
     get_channel_comparison,
@@ -496,23 +498,76 @@ def _item_history_intent(
     }
 
 
-def _recent_changes() -> dict[str, Any]:
+def _recent_changes(con: Connection, as_of_dt) -> dict[str, Any]:
+    """Diff live projection against a reconstructed prior checkpoint.
+
+    Default lookback is STALE_LISTING_DAYS (same window as "two weeks ago").
+    Assemble stays read-only; capture_business_snapshot is a separate write.
+    """
+    current_at = reference_now()
+    previous_at = as_of_dt or (current_at - timedelta(days=M.STALE_LISTING_DAYS))
+    previous = get_business_snapshot(con, as_of=previous_at)
+    current = get_business_snapshot(con)
+    prev = previous.data
+    curr = current.data
+    if not prev.get("covered"):
+        return {
+            "objects": [],
+            "links": [],
+            "events": [],
+            "missing": [
+                _missing(
+                    "previous_snapshot",
+                    "no listing or item history at the prior as_of to reconstruct a snapshot",
+                    "recent_changes",
+                )
+            ],
+            "metrics": {},
+            "rules": [],
+            "facts": {},
+            "source_tools": ["get_business_snapshot"],
+            "source_relations": list(previous.provenance.source_relations),
+        }
+    deltas = diff_snapshots(prev, curr)
+    prev_obj = _object("BusinessSnapshot", "previous", prev)
+    curr_obj = _object("BusinessSnapshot", "current", curr)
+    window_events = con.execute(
+        """
+        SELECT
+          (SELECT count(*) FROM sales.listing_events
+            WHERE event_at > ? AND event_at <= ?) AS listing_events,
+          (SELECT count(*) FROM catalog.item_events
+            WHERE event_at > ? AND event_at <= ?) AS item_events
+        """,
+        [previous_at, current_at, previous_at, current_at],
+    ).fetchone()
+    listing_n = int((window_events[0] if window_events else 0) or 0)
+    item_n = int((window_events[1] if window_events else 0) or 0)
     return {
-        "objects": [],
-        "links": [],
+        "objects": [prev_obj, curr_obj],
+        "links": [_link("PRECEDES", prev_obj, curr_obj)],
         "events": [],
-        "missing": [
-            _missing(
-                "previous_snapshot",
-                "no persisted prior business snapshot to diff against",
-                "recent_changes",
-            )
-        ],
-        "metrics": {},
+        "missing": [],
+        "metrics": {
+            "changed_metric_count": len(deltas),
+            "listing_events_in_window": listing_n,
+            "item_events_in_window": item_n,
+            "lookback_days": M.STALE_LISTING_DAYS,
+        },
         "rules": [],
-        "facts": {},
-        "source_tools": [],
-        "source_relations": [],
+        "facts": {
+            "previous_snapshot": prev,
+            "current_snapshot": curr,
+            "deltas": deltas,
+            "lookback_days": M.STALE_LISTING_DAYS,
+        },
+        "source_tools": ["get_business_snapshot"],
+        "source_relations": [
+            "catalog.item_events",
+            "sales.listings",
+            "sales.orders",
+            "catalog.items",
+        ],
     }
 
 
@@ -733,7 +788,7 @@ def assemble_resale(
     elif intent == "data_health":
         assembled = _health(con)
     elif intent == "recent_changes":
-        assembled = _recent_changes()
+        assembled = _recent_changes(con, as_of_dt)
     elif intent == "compare_channels":
         assembled = _compare_channels_intent(con)
     elif intent == "listing_performance":
@@ -787,6 +842,19 @@ def assemble_resale(
     if "offers" in required and "offers" not in facts:
         extra_missing.append(
             _missing("offers", "offer counts were not assembled", intent)
+        )
+    already_missing = {m.concept for m in assembled.get("missing") or []}
+    if (
+        "previous_snapshot" in required
+        and "previous_snapshot" not in facts
+        and "previous_snapshot" not in already_missing
+    ):
+        extra_missing.append(
+            _missing(
+                "previous_snapshot",
+                "no prior checkpoint was assembled",
+                intent,
+            )
         )
 
     assembled["missing"] = list(assembled["missing"]) + extra_missing

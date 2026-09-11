@@ -144,6 +144,10 @@ def cmd_build(args: argparse.Namespace) -> int:
             from .analytics import aggregate
             n = aggregate.refresh_voice_profiles(con)
             print(f"Refreshed {n} voice profile version(s)")
+            from .business import ensure_baseline_snapshots
+
+            snaps = ensure_baseline_snapshots(con)
+            print(f"Captured {len(snaps)} business snapshot checkpoint(s)")
             print("Build complete.")
         return rc
     finally:
@@ -250,7 +254,7 @@ def cmd_business(args: argparse.Namespace) -> int:
     con = db.connect(read_only=True)
     try:
         if topic == "snapshot":
-            payload = biz.get_business_snapshot(con).to_dict()
+            payload = biz.get_business_snapshot(con, as_of=args.as_of).to_dict()
         elif topic == "attention":
             payload = biz.get_inventory_attention_queue(
                 con, limit=args.limit
@@ -682,7 +686,7 @@ def main(argv: list[str] | None = None) -> int:
         "--as-of",
         dest="as_of",
         default=None,
-        help="ISO-8601 timestamp for topic=channel (default: now)",
+        help="ISO-8601 timestamp for topic=snapshot or topic=channel (default: live/now)",
     )
     pbiz.add_argument(
         "--handle",

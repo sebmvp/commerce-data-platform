@@ -386,3 +386,16 @@ CREATE TABLE IF NOT EXISTS ops.notes (
 
 CREATE INDEX IF NOT EXISTS notes_object
   ON ops.notes (object_type, object_id);
+
+-- Named checkpoints. Canonical history remains item_events / listing_events.
+CREATE TABLE IF NOT EXISTS ops.business_snapshots (
+  snapshot_id   TEXT PRIMARY KEY,
+  captured_at   TIMESTAMP NOT NULL,
+  as_of         TIMESTAMP NOT NULL,
+  trigger       TEXT NOT NULL,
+  payload_json  JSONB NOT NULL,
+  content_hash  TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS business_snapshots_captured
+  ON ops.business_snapshots (captured_at DESC, as_of DESC);

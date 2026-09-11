@@ -132,11 +132,11 @@ public JSONL worlds (demo / held-out)
         → CLI / FastAPI / MCP / React operator workspace
         → grounded answer (abstains when insufficient)
         → human-approved sandbox action → listing_events / item_events
+        → recent_changes diffs live projection vs reconstructed prior snapshot
 
 NEXT
 ====
 LLM-judged answers on the same ids
-persisted previous snapshot (recent_changes still abstains)
 marketplace listing/order/engagement adapters when those files exist
 Redis only if evaluation/model runs become async jobs
 ```
