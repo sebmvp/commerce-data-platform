@@ -17,6 +17,8 @@ def _parse(value: Any) -> datetime | None:
 def validate_world(world: dict[str, list[dict[str, Any]]]) -> list[str]:
     errors: list[str] = []
     items = {row["sku"]: row for row in world.get("items") or []}
+    if len(items) != len(world.get("items") or []):
+        errors.append("duplicate item sku")
     listings = world.get("listings") or []
     events = world.get("item_events") or []
     listing_events = world.get("listing_events") or []
@@ -65,6 +67,10 @@ def validate_world(world: dict[str, list[dict[str, Any]]]) -> list[str]:
             val = order.get(field)
             if val is not None and float(val) < 0:
                 errors.append(f"order {order.get('order_id')} negative {field}")
+        price = order.get("price_usd")
+        fees = order.get("fees_usd")
+        if price is not None and fees is not None and float(fees) > float(price):
+            errors.append(f"order {order.get('order_id')} fees exceed price")
 
     for snap in engagement:
         sku = snap.get("listing_ref")

@@ -25,13 +25,12 @@ export async function getContext(question: string, sku?: string) {
   return res.json();
 }
 
-export async function getAnswer(question: string, sku?: string) {
-  const url = new URL("/answer", API);
-  url.searchParams.set("question", question);
-  if (sku) url.searchParams.set("sku", sku);
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+export async function postAnswer(question: string, sku?: string, asOf?: string) {
+  return sendJson("/answer", {
+    question,
+    sku: sku || undefined,
+    as_of: asOf || undefined,
+  });
 }
 
 export const getEval = () => getJson("/eval");

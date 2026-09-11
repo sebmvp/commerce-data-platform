@@ -87,7 +87,29 @@ class ContextBundle:
     why: str = ""
     requirements: list[dict[str, Any]] = field(default_factory=list)
 
+    def citeable_refs(self) -> dict[str, str]:
+        """Stable evidence units a model may cite. Never invent extra keys."""
+        out: dict[str, str] = {}
+        for obj in self.objects:
+            out[f"object:{obj.ref()}"] = "object"
+        for key in self.facts:
+            out[f"fact:{key}"] = "fact"
+        for key in self.metrics:
+            out[f"metric:{key}"] = "metric"
+        for i, event in enumerate(self.events):
+            out[f"event:{i}:{event.type}"] = "event"
+        for note in self.retrieved_evidence:
+            nid = note.get("note_id") or note.get("title")
+            if nid:
+                out[f"note:{nid}"] = "note"
+        for rule in self.applicable_rules:
+            name = rule.get("name")
+            if name:
+                out[f"rule:{name}"] = "rule"
+        return out
+
     def to_dict(self) -> dict[str, Any]:
+        catalog = self.citeable_refs()
         return {
             "question": self.question,
             "intent": self.intent,
@@ -104,4 +126,5 @@ class ContextBundle:
             "sufficient": self.sufficient,
             "why": self.why,
             "requirements": self.requirements,
+            "evidence_catalog": sorted(catalog),
         }

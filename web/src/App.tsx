@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import {
-  getAnswer,
   getAttention,
   getCompleteness,
-  getContext,
   getEval,
   getEvalCompare,
   getIngestRuns,
@@ -13,6 +11,7 @@ import {
   getItemHistory,
   getRuntime,
   getSnapshot,
+  postAnswer,
 } from "./api";
 import { ContextPage } from "./ContextPage";
 import { EvaluationPage } from "./EvaluationPage";
@@ -47,14 +46,9 @@ export default function App() {
     setAskBusy(true);
     setError(null);
     try {
-      const data = await getContext(q, itemSku);
-      setBundle(data);
-      try {
-        setAnswer(await getAnswer(q, itemSku));
-      } catch (err) {
-        setAnswer(null);
-        setError(String(err));
-      }
+      const data = await postAnswer(q, itemSku);
+      setBundle(data.bundle || null);
+      setAnswer(data);
     } catch (err) {
       setError(String(err));
     } finally {

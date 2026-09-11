@@ -119,3 +119,13 @@ def test_reject_does_not_mutate(warehouse):
     assert rejected["data"]["status"] == "rejected"
     item = get_item(warehouse, "reject-loop-s")
     assert item.data["listings"][0]["price_usd"] == 90.0
+
+
+def test_suggest_reprice_does_not_invent_a_markdown(warehouse):
+    _seed_listed_item(warehouse, sku="review-s", price=200.0)
+    suggestion = actions.suggest_reprice(warehouse, "review-s")
+    assert suggestion["requires_operator_price"] is True
+    assert "new_price_usd" not in suggestion["payload"]
+    assert suggestion["payload"]["previous_price_usd"] == 200.0
+    assert "review" in suggestion["reason"].lower()
+

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { RelationshipMap } from "./RelationshipMap";
 import type { ContextBundle, ContextObject } from "./types";
-import { Field, itemLabel, objectLabel, relVerb, Section } from "./ui";
+import { Field, itemLabel, Section } from "./ui";
 
 const SAMPLES = [
   "Should I reprice j4-military-s?",
@@ -62,7 +62,11 @@ export function ContextPage({
         <>
           <div className={`banner ${bundle.sufficient ? "ok" : "bad"}`} data-testid="sufficiency">
             <div>
-              <div className="banner-kicker">{bundle.intent}{bundle.as_of ? ` · as of ${bundle.as_of}` : ""}</div>
+              <div className="banner-kicker" data-testid="interpreted-plan">
+                {(answer?.plan?.capability || bundle.intent)
+                  + (answer?.plan?.subject ? ` · ${answer.plan.subject}` : "")
+                  + (bundle.as_of ? ` · as of ${bundle.as_of}` : "")}
+              </div>
               <div className="banner-title">{bundle.sufficient ? "SUFFICIENT" : "INSUFFICIENT"}</div>
             </div>
             <p className="banner-q" data-testid="assembled-question">{bundle.question}</p>
@@ -73,6 +77,16 @@ export function ContextPage({
               <p>{answer.answer}</p>
               {!!answer.caveats?.length && (
                 <p className="lede">{(answer.caveats as string[]).join(" · ")}</p>
+              )}
+              {!!answer.evidence_refs?.length && (
+                <ul className="req-list" data-testid="cited-evidence">
+                  {answer.evidence_refs.map((ref: string) => (
+                    <li key={ref} className="pass">{ref}</li>
+                  ))}
+                </ul>
+              )}
+              {answer.grounding_status === "invalid" && (
+                <p className="err">Grounding rejected: {answer.invalid_reason}</p>
               )}
             </section>
           )}
@@ -114,15 +128,8 @@ export function ContextPage({
             </Section>
             <Section title="Relationships" testId="relationships">
               <RelationshipMap bundle={bundle} onOpen={onOpenObject} />
-              {(bundle.relationships || []).map((r, i) => (
-                <p key={i} className="rel">
-                  <strong>{objectLabel(objects, r.from_ref)}</strong>
-                  <span className="rel-verb"> {relVerb(r.type)} </span>
-                  <strong>{objectLabel(objects, r.to_ref)}</strong>
-                </p>
-              ))}
             </Section>
-            <Section title="Facts / metrics" testId="facts">
+            <Section title="Decisive facts" testId="facts">
               {Object.keys(facts).length ? Object.entries(facts).map(([k, v]) => {
                 if (v != null && typeof v === "object") {
                   if (k === "listing_as_of") {

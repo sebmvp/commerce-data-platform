@@ -18,6 +18,7 @@ export function ActionPanel({
   const [suggestion, setSuggestion] = useState<any>(null);
   const [pending, setPending] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [price, setPrice] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -44,18 +45,30 @@ export function ActionPanel({
 
   async function propose() {
     if (!suggestion) return;
+    const entered = Number(price);
+    if (!Number.isFinite(entered) || entered <= 0) {
+      setError("Enter a positive sandbox price.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      await proposeAction({
+      const created = await proposeAction({
         target_type: "item",
         target_id: sku,
         action_type: suggestion.action_type,
         reason: suggestion.reason,
-        payload: suggestion.payload,
+        payload: {
+          ...(suggestion.payload || {}),
+          sku,
+          listing_id: suggestion.target_id,
+          new_price_usd: entered,
+        },
         recommendation_action: "consider_reprice",
         context_question: `Should I reprice ${sku}?`,
+        supporting_context: suggestion.evidence || {},
       });
+      setPending(created.data || created);
       await refresh();
     } catch (err) {
       setError(String(err));
@@ -91,10 +104,26 @@ export function ActionPanel({
       {error && <p className="err">{error}</p>}
       {suggestion && !pending && (
         <>
-          <Field label="recommended" value={`${evidence.asking_price_usd} → ${evidence.suggested_price_usd}`} />
-          <button data-testid="propose-action" className="obj-link" disabled={busy} onClick={() => void propose()}>
-            Propose reprice
-          </button>
+          <p data-testid="price-review">{suggestion.reason}</p>
+          <Field label="current ask" value={evidence.asking_price_usd} />
+          <Field label="why" value={evidence.note} />
+          <form
+            className="ask"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void propose();
+            }}
+          >
+            <input
+              data-testid="sandbox-price"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="sandbox price USD"
+            />
+            <button data-testid="propose-action" className="obj-link" disabled={busy} type="submit">
+              Propose reprice
+            </button>
+          </form>
         </>
       )}
       {pending && (

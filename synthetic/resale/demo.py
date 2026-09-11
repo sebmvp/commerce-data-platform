@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Deterministic public synthetic resale world.
 
-Calibrated from private lifecycle *patterns* (dual channel, unlisted capital,
-sparse engagement, supply stages, notes-on-everything). No private identifiers.
+Named gold SKUs are explicit scenarios. Background rows use shared
+lifecycle primitives. Calibration vs illustrative: see calibration.py.
+Not all dimensions are measured from private data.
 
 Usage: python scripts/generate_public_world.py [--world demo|heldout|all]
 """
@@ -13,17 +14,24 @@ import random
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from synthetic.resale.lifecycle import (
+    engagement_series,
+)
+from synthetic.resale.lifecycle import (
+    events_for as _events_for,
+)
+from synthetic.resale.lifecycle import (
+    iso as _iso,
+)
+from synthetic.resale.lifecycle import (
+    item_row as _item,
+)
+
 SEED = 20260909
 NOW = datetime(2026, 9, 9, 12, 0, 0)
 OUT = Path(__file__).resolve().parents[2] / "sample_data"
 
 random.seed(SEED)
-
-
-def _iso(dt: datetime | None) -> str | None:
-    if dt is None:
-        return None
-    return dt.isoformat(timespec="seconds")
 
 
 def _w(name: str, rows: list[dict]) -> None:
@@ -34,53 +42,13 @@ def _w(name: str, rows: list[dict]) -> None:
     print(f"  {name}: {len(rows)}")
 
 
-def _item(**kw) -> dict:
-    base = {
-        "variant": None,
-        "size": None,
-        "category": "catalog.sneakers",
-        "condition": "used",
-        "acquisition_channel": "wholesale",
-        "qty": 1,
-        "notes": "synthetic public fixture",
-        "target_price_usd": None,
-        "acquisition_cost_cny": None,
-    }
-    base.update(kw)
-    return base
-
-
-def _events_for(sku: str, ordered: datetime, received: datetime | None,
-                listed: datetime | None, sold: datetime | None,
-                price: float | None = None) -> list[dict]:
-    out = [{"item_sku": sku, "event_type": "ordered", "event_at": _iso(ordered),
-            "actor": "batchimport", "payload": {"supplier": "cnx433"}}]
-    if received:
-        out.append({"item_sku": sku, "event_type": "received", "event_at": _iso(received),
-                    "actor": "batchimport", "payload": {}})
-    if listed:
-        out.append({"item_sku": sku, "event_type": "listed", "event_at": _iso(listed),
-                    "payload": {"price_usd": price}})
-    if sold:
-        out.append({"item_sku": sku, "event_type": "sold", "event_at": _iso(sold),
-                    "payload": {}})
-    return out
-
-
 def _eng(sku: str, platform: str, start: datetime, days: int, *,
          views_base: int, watch_frac: float, offer_frac: float) -> list[dict]:
-    rows = []
-    for d in range(1, days + 1):
-        day_gain = max(2, int(views_base * (0.9 ** d) * random.uniform(0.7, 1.2)))
-        rows.append({
-            "listing_ref": sku,
-            "platform": platform,
-            "snapshot_at": (start + timedelta(days=d)).date().isoformat(),
-            "views": day_gain,
-            "watchers": max(0, int(day_gain * watch_frac)),
-            "offers": max(0, int(day_gain * offer_frac)),
-        })
-    return rows
+    return engagement_series(
+        sku, platform, start, days,
+        views_base=views_base, watch_frac=watch_frac, offer_frac=offer_frac,
+        rng=random,
+    )
 
 
 def generate() -> None:

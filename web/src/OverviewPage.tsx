@@ -11,6 +11,9 @@ export function OverviewPage({
 }) {
   const data = snapshot?.data || {};
   const recs = attention?.data?.recommendations || [];
+  const queue = attention?.data?.queue || [];
+  const productFor = (sku: string) =>
+    queue.find((row: any) => row.sku === sku)?.product || sku;
   return (
     <div data-testid="overview-page">
       <Section title="Needs attention">
@@ -23,7 +26,8 @@ export function OverviewPage({
               onClick={() => onOpenSku(r.sku)}
             >
               <span>
-                <strong>{r.sku}</strong>
+                <strong>{productFor(r.sku)}</strong>
+                <span className="dim"> {r.sku}</span>
               </span>
               <span className="lede" style={{ margin: 0 }}>{r.why || r.action || r.attention_reason}</span>
             </div>
@@ -34,7 +38,9 @@ export function OverviewPage({
       </Section>
       <div className="grid">
         <Section title="Inventory state">
-          <Field label="items" value={data.items_total} />
+          <div data-testid="overview-items-total">
+            <Field label="items" value={data.items_total} />
+          </div>
           <Field label="owned unlisted" value={data.owned_unlisted} />
           <Field label="listed" value={data.listed_items} />
           <Field label="sold" value={data.sold_items} />

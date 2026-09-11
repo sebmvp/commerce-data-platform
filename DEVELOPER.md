@@ -79,7 +79,19 @@ Channels use SCD-2. Ask `get_channel_as_of`. Listings/items/orders upsert.
 
 ## Adding a new source
 
-1. Natural key + pydantic model in `validate.py`.
-2. `IngestJob` subclass, registered in dependency order.
-3. `CREATE TABLE` in `schema/001_init.sql` + Alembic revision.
-4. Coverage in `tests/test_build_smoke.py`.
+1. Implement `SourceAdapter.adapt() -> AdaptedBatch` under the domain
+   (`domains/resale/adapters/` for resale). Each `AdaptedRecord` carries
+   `SourceLineage` (`source_system`, `source_record_reference`,
+   `content_hash`, `observed_at`, per-record `effective_at` or unknown).
+2. Map adapted records onto existing canonical tables (or add a table in
+   `schema/001_init.sql` + Alembic if the domain model actually needs it).
+3. Register the adapter with the shared ingest runner so hash skip,
+   quarantine, one-transaction, and `core.record_lineage` apply.
+4. Cover it in tests (`tests/test_build_smoke.py` and an adapter test).
+
+Do not add a YAML mapping DSL or a plugin loader. Python composition is
+enough. Private notes and public JSONL converge after adaptation — they
+do not need identical raw formats.
+
+`IngestJob` still loads JSONL streams in dependency order. That is the
+file-shaped path into the same canonical write machinery.

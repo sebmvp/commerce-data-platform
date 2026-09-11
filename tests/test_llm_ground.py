@@ -31,7 +31,9 @@ def test_sufficient_bundle_answers_with_evidence(warehouse):
         warehouse, question="Should I reprice j4-military-s?"
     )
     assert result["abstained"] is False
+    assert result["grounding_status"] == "grounded"
     assert result["bundle"]["sufficient"] is True
     assert "j4-military-s" in result["answer"]
-    assert result["evidence"]
+    assert result["evidence_refs"]
+    assert all(ref in result["bundle"]["evidence_catalog"] for ref in result["evidence_refs"])
     assert result["provider"] == "fake"

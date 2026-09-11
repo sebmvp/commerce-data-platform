@@ -13,6 +13,8 @@ test("overview loads and attention item can be opened", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByTestId("overview-page")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("environment")).toContainText("DEMO");
+  await expect(page.locator("[data-testid^='attention-']").first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("overview-items-total")).not.toHaveText("—");
   await page.screenshot({
     path: path.join(root, "docs/screenshots/overview.png"),
     fullPage: true,
@@ -31,9 +33,9 @@ test("item object view shows listing and history", async ({ page }) => {
   await expect(page.getByTestId("item-view")).toBeVisible();
   await expect(page.getByTestId("item-state")).toContainText("j4-military-s");
   await expect(page.getByTestId("item-timeline")).toBeVisible();
-  await page.screenshot({
+  await page.getByTestId("item-view").scrollIntoViewIfNeeded();
+  await page.getByTestId("item-view").screenshot({
     path: path.join(root, "docs/screenshots/item-object.png"),
-    fullPage: true,
   });
 });
 
@@ -51,6 +53,8 @@ test("app loads a sufficient context bundle", async ({ page }) => {
   await expect(page.getByTestId("provenance")).toBeVisible();
   await expect(page.getByTestId("why")).toBeVisible();
   await expect(page.getByTestId("grounded-output")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("cited-evidence")).toBeVisible();
+  await expect(page.getByTestId("interpreted-plan")).toContainText("reprice");
   await page.screenshot({
     path: path.join(root, "docs/screenshots/context-inspector.png"),
     fullPage: true,
@@ -81,6 +85,7 @@ test("sandbox reprice can be proposed and approved", async ({ page }) => {
   await page.getByTestId("sku-input").fill("j4-military-s");
   await page.getByRole("button", { name: "Load" }).click();
   await expect(page.getByTestId("action-panel")).toBeVisible();
+  await page.getByTestId("sandbox-price").fill("620");
   await page.getByTestId("propose-action").click();
   await expect(page.getByTestId("pending-action")).toBeVisible();
   await page.getByTestId("approve-action").click();

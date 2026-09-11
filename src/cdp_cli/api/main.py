@@ -31,6 +31,13 @@ class ActionDecide(BaseModel):
     reason: str | None = None
 
 
+class AnswerRequest(BaseModel):
+    question: str = ""
+    intent: str | None = None
+    sku: str | None = None
+    as_of: str | None = None
+
+
 def _rows(con, sql: str, params: list | None = None) -> list[dict]:
     rel = con.execute(sql, params or [])
     cols = [c[0] for c in rel.description]
@@ -225,20 +232,22 @@ def create_app() -> FastAPI:
         finally:
             con.close()
 
-    @app.get("/answer")
-    def grounded_answer(
-        question: str = Query(""),
-        intent: str | None = Query(None),
-        sku: str | None = Query(None),
-    ):
+    @app.post("/answer")
+    def post_grounded_answer(body: AnswerRequest):
         from ..llm import ground_answer
 
-        if not (question or "").strip() and not intent:
+        if not (body.question or "").strip() and not body.intent:
             raise HTTPException(400, "question or intent is required")
         _require_db()
         con = db.connect(read_only=True)
         try:
-            return ground_answer(con, question=question, intent=intent, sku=sku)
+            return ground_answer(
+                con,
+                question=body.question,
+                intent=body.intent,
+                sku=body.sku,
+                as_of=body.as_of,
+            )
         except KeyError as e:
             raise HTTPException(404, str(e)) from e
         except ValueError as e:

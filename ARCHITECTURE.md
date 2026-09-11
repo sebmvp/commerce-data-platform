@@ -27,7 +27,9 @@ flowchart TD
   bundle --> mcp[MCP]
   bundle --> cli[CLI]
   api --> ui[React operator UI]
-  ui --> llm[Grounded LLM]
+  api --> llm[Grounded LLM]
+  llm --> api
+  api --> ui
   ui --> human[Human-approved actions]
 ```
 
@@ -93,18 +95,33 @@ graph LR
 ```mermaid
 sequenceDiagram
   participant Q as Question
-  participant D as Domain intents
+  participant P as QuestionPlan
+  participant D as Domain capabilities
   participant R as Resolvers
   participant E as Engine
   participant B as ContextBundle
-  Q->>D: resolve intent + subject
+  participant L as Grounded LLM
+  Q->>P: deterministic parse or validated LLM plan
+  P->>D: registered capability + subject
   D->>R: required concepts
   R->>E: objects, facts, history, evidence
-  E->>B: sufficiency + provenance
-  B-->>Q: sufficient or named gaps
+  E->>B: sufficiency + provenance + evidence catalog
+  alt insufficient
+    B-->>Q: abstain, named gaps
+  else sufficient
+    B->>L: POST /answer over this exact bundle
+    L-->>Q: answer + validated evidence refs
+  end
 ```
 
-Intents are bounded and rule-based. This is not free-form NL planning.
+Deterministic parsing remains CI, gold questions, and fallback. An optional
+LLM planner may map natural phrasing onto registered capabilities. Neither
+path may emit SQL. Invalid planner output falls back to the deterministic
+parser — it is not guessed.
+
+Grounding fails closed: malformed JSON, unknown citations, missing citations
+on a non-abstaining answer, or an unregistered suggested action are not
+trusted answers.
 
 ## Runtime interfaces
 
@@ -125,12 +142,13 @@ flowchart LR
 CURRENT
 =======
 private item-note adapter → isolated cdp_private
-public JSONL worlds (demo / held-out)
-        → IngestJob (hash skip, quarantine, one transaction)
+public JSONL worlds (demo / held-out) from synthetic/resale/
+        → SourceAdapter → AdaptedBatch
+        → ingest runner (hash skip, quarantine, one transaction, lineage)
         → PostgreSQL
         → domain services + context engine
         → CLI / FastAPI / MCP / React operator workspace
-        → grounded answer (abstains when insufficient)
+        → POST /answer (plan + exact ContextBundle + grounding)
         → human-approved sandbox action → listing_events / item_events
         → recent_changes diffs live projection vs reconstructed prior snapshot
 
@@ -153,7 +171,7 @@ Redis only if evaluation/model runs become async jobs
 | dbt / Polars / Neo4j / Kafka / Spark / Airflow / K8s | **NOT ADOPTED** | No capability they uniquely unlock here |
 | MCP | **CURRENT** | Typed tools over shared services |
 | React/TS | **CURRENT** | Operator UI + Context Inspector |
-| LLM copilot | **CURRENT (thin)** | FakeProvider default; env provider when keyed; abstains if insufficient |
+| LLM copilot | **CURRENT** | FakeProvider default; env provider when keyed; fail-closed grounding; POST /answer |
 | Lexical retrieval baseline | **CURRENT (eval)** | TF-IDF vs gold ids. Not the architecture. Not RAG. |
 
 ## ContextBundle

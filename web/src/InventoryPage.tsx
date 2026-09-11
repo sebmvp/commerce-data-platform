@@ -91,10 +91,10 @@ export function InventoryPage({
       {item && (
         <div className="grid" data-testid="item-view">
           <Section title="Identity / current state" testId="item-state">
-            <Field label="name" value={itemData.product} />
-            <Field label="sku" value={itemData.sku} />
-            <Field label="status" value={itemData.status} />
+            <h2 className="object-name">{itemData.product || itemData.sku}</h2>
+            <p className="lede">{itemData.status} · {itemData.sku}</p>
             <Field label="acquisition CNY" value={itemData.acquisition_cost_cny} />
+            <Field label="target usd" value={itemData.target_price_usd} />
             <Field label="inventory age" value={itemData.inventory_age_days} />
           </Section>
           <Section title="Listings">

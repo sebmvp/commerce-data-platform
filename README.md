@@ -85,9 +85,10 @@ in `sample_data/world.json`, so next month's run matches this one.
 
 ## Boundaries
 
-- Public data is synthetic. Scenarios were calibrated from real resale
-  workflow patterns (dual channel, unlisted capital, in-transit supply,
-  missing cost/engagement). Private rows are never committed.
+- Public data is synthetic. A few dimensions copy rounded private
+  operational *patterns* (size, state mix, cost missingness, owned vs
+  listed). Dual-channel, engagement paths, and notes/policies are
+  illustrative. Private rows are never committed.
 - This is not a scale claim and not live marketplace integration.
 - Grounded answers use the ContextBundle. Default provider is fake; no keys in the repo.
 - The published LICENSE is MIT (already on GitHub). That is not an

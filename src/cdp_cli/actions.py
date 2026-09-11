@@ -432,28 +432,28 @@ def sandbox_type_for_recommendation(rec_action: str) -> str:
 
 
 def suggest_reprice(con, sku: str) -> dict[str, Any]:
-    """Build a sandbox reprice proposal from the current active listing."""
+    """Price review: evidence only. Operator supplies the sandbox price."""
     row = _active_listing(con, sku=sku, listing_id=None)
     if row is None:
         raise KeyError(f"no active listing for sku={sku!r}")
     listing_id, old_price, _status, _item_id, sku = row
     old = float(old_price)
-    proposed = round(old * 0.89, 2)
-    if proposed >= old:
-        proposed = round(max(old - 1, 0.01), 2)
     return {
         "action_type": "propose_reprice",
         "target_type": "listing",
         "target_id": listing_id,
+        "requires_operator_price": True,
         "payload": {
             "sku": sku,
             "previous_price_usd": old,
-            "new_price_usd": proposed,
         },
-        "reason": f"Sandbox reprice {old} -> {proposed} (internal only)",
+        "reason": "Price review recommended",
         "evidence": {
             "listing_id": listing_id,
             "asking_price_usd": old,
-            "suggested_price_usd": proposed,
+            "note": (
+                "No numeric markdown. Enter a sandbox price after reviewing "
+                "listing age, engagement, and acquisition cost."
+            ),
         },
     }

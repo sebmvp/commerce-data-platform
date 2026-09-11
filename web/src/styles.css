@@ -21,7 +21,7 @@ body {
   font: 14px/1.45 ui-sans-serif, system-ui, sans-serif;
 }
 
-.app { max-width: 1080px; padding: 24px 20px 64px; }
+.app { max-width: 1180px; padding: 28px 32px 80px; }
 .shell { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
 .env-badge {
   font-size: 11px;
@@ -40,6 +40,13 @@ h2 {
   letter-spacing: 0.1em;
   color: var(--muted);
   margin: 0 0 10px;
+}
+h2.object-name {
+  font-size: 20px;
+  text-transform: none;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+  color: var(--fg);
 }
 
 .tabs { display: flex; gap: 8px; margin: 16px 0; }
@@ -137,6 +144,11 @@ h2 {
   padding: 12px 16px;
   margin-bottom: 14px;
   color: var(--bad);
+}
+.missing-panel.ok-panel {
+  border-color: #14532d;
+  background: #101610;
+  color: var(--fg);
 }
 .missing-panel ul { margin: 0; padding-left: 18px; }
 .missing-panel li { margin: 6px 0; }

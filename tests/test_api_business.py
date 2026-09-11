@@ -157,3 +157,22 @@ def test_api_eval_compare_keeps_engine_gold(warehouse):
     assert "hybrid" in body["by_category"]
     hybrid = body["by_category"]["hybrid"]
     assert hybrid["lexical_pass"] == hybrid["n"]
+
+
+def test_post_answer_returns_the_bundle_used(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    from cdp_cli.api.main import create_app
+
+    client = TestClient(create_app())
+    res = client.post("/answer", json={"question": "Should I reprice j4-military-s?"})
+    assert res.status_code == 200
+    body = res.json()
+    assert body["grounding_status"] == "grounded"
+    assert body["plan"]["capability"] == "reprice_item"
+    assert body["bundle"]["sufficient"] is True
+    assert body["evidence_refs"]
+    assert all(ref in body["bundle"]["evidence_catalog"] for ref in body["evidence_refs"])
+    missing = client.get("/answer", params={"question": "Should I reprice j4-military-s?"})
+    assert missing.status_code == 405
+

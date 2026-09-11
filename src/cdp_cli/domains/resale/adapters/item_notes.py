@@ -156,6 +156,19 @@ def note_to_records(
         if mapped in {"new", "like_new", "used", "worn"}:
             condition = mapped
 
+    target = _num(meta.get("target_price_usd"))
+    grailed_price = _num(meta.get("grailed_price_usd"))
+    if (
+        target is not None
+        and grailed_price is not None
+        and abs(target - grailed_price) > 1e-6
+    ):
+        return {
+            "reject": "target_price_usd and grailed_price_usd disagree",
+            "records": None,
+        }
+    operator_price = target if target is not None else grailed_price
+
     item = {
         "sku": sku,
         "product": product,
@@ -167,14 +180,14 @@ def note_to_records(
         "acquisition_cost_cny": _num(meta.get("bought_cny")),
         "qty": int(_num(meta.get("qty")) or 1),
         "status": status,
-        "target_price_usd": _num(meta.get("target_price_usd") or meta.get("grailed_price_usd")),
+        "target_price_usd": operator_price,
         "notes": meta.get("notes") or None,
         "_lineage": lineage,
     }
 
     events: list[dict[str, Any]] = []
     ordered_at = _when(meta.get("ordered_at")) or _when(meta.get("acquired_at"))
-    if status != "planned" or meta.get("ordered") is True:
+    if ordered_at is not None or meta.get("ordered") is True:
         events.append(
             {
                 "item_sku": sku,
@@ -185,25 +198,46 @@ def note_to_records(
                     "supplier": meta.get("store"),
                     "source_system": source_system,
                     "source_record_reference": source_ref,
+                    "assertion": "observed" if ordered_at else "inferred_from_flag",
+                    "verification": "unverified" if ordered_at is None else "source",
                 },
             }
         )
     received_at = _when(meta.get("received_at"))
-    if received_at is not None or status in {"owned", "listed", "sold"}:
+    if received_at is not None:
         events.append(
             {
                 "item_sku": sku,
                 "event_type": "received",
-                "event_at": None if received_at is None else received_at.isoformat(timespec="seconds"),
+                "event_at": received_at.isoformat(timespec="seconds"),
                 "actor": "item_notes",
-                "payload": {"source_record_reference": source_ref},
+                "payload": {
+                    "source_record_reference": source_ref,
+                    "assertion": "observed",
+                    "verification": "source",
+                },
+            }
+        )
+    elif status in {"owned", "listed", "sold"}:
+        events.append(
+            {
+                "item_sku": sku,
+                "event_type": "received",
+                "event_at": None,
+                "actor": "item_notes",
+                "payload": {
+                    "source_record_reference": source_ref,
+                    "assertion": "inferred_from_status",
+                    "status": status,
+                    "verification": "unverified",
+                },
             }
         )
 
     listings: list[dict[str, Any]] = []
     listing_events: list[dict[str, Any]] = []
     listing_reject = None
-    price = _num(meta.get("grailed_price_usd"))
+    price = grailed_price if grailed_price is not None else operator_price
     listed_at = _when(meta.get("listed_at") or meta.get("grailed_listed_at"))
     wants_listing = (
         grailed_status in GRAILED_LISTING
@@ -341,22 +375,30 @@ class ItemNotesAdapter:
             parsed = parse_item_note(path)
             result = note_to_records(parsed)
             lineage_raw = (result.get("records") or {}).get("item", {}).get("_lineage") or {}
-            lineage = SourceLineage(
-                source_system=self.source_system,
-                source_record_reference=path.name,
-                content_hash=parsed["content_hash"],
-                observed_at=_now(),
-                effective_at=_when((parsed.get("meta") or {}).get("listed_at"))
-                or _when((parsed.get("meta") or {}).get("received_at"))
-                or _when((parsed.get("meta") or {}).get("ordered_at")),
-            )
+            observed = _now()
+
+            def lin(
+                effective: datetime | None = None,
+                *,
+                _path: Path = path,
+                _parsed: dict[str, Any] = parsed,
+                _observed: datetime = observed,
+            ) -> SourceLineage:
+                return SourceLineage(
+                    source_system=self.source_system,
+                    source_record_reference=_path.name,
+                    content_hash=_parsed["content_hash"],
+                    observed_at=_observed,
+                    effective_at=effective,
+                )
+
             if result.get("reject") or not result.get("records"):
                 batch.rejects.append(
                     AdaptedRecord(
                         entity_type="item",
                         natural_key=path.name,
                         payload={"path": path.name},
-                        lineage=lineage,
+                        lineage=lin(),
                         reject_reason=str(result.get("reject") or "no records"),
                     )
                 )
@@ -368,7 +410,7 @@ class ItemNotesAdapter:
                     entity_type="item",
                     natural_key=item["sku"],
                     payload=item,
-                    lineage=lineage,
+                    lineage=lin(),
                 )
             )
             for event in recs["events"]:
@@ -377,7 +419,7 @@ class ItemNotesAdapter:
                         entity_type="item_event",
                         natural_key=f"{event['item_sku']}:{event['event_type']}:{event.get('event_at')}",
                         payload=event,
-                        lineage=lineage,
+                        lineage=lin(_when(event.get("event_at"))),
                     )
                 )
             for listing in recs["listings"]:
@@ -386,7 +428,7 @@ class ItemNotesAdapter:
                         entity_type="listing",
                         natural_key=f"{listing['item_sku']}:{listing['platform']}",
                         payload=listing,
-                        lineage=lineage,
+                        lineage=lin(_when(listing.get("listed_at"))),
                     )
                 )
             for event in recs["listing_events"]:
@@ -398,7 +440,7 @@ class ItemNotesAdapter:
                             f"{event['event_type']}:{event['event_at']}"
                         ),
                         payload=event,
-                        lineage=lineage,
+                        lineage=lin(_when(event.get("event_at"))),
                     )
                 )
             if recs.get("note"):
@@ -408,7 +450,7 @@ class ItemNotesAdapter:
                         entity_type="note",
                         natural_key=note["note_id"],
                         payload=note,
-                        lineage=lineage,
+                        lineage=lin(),
                     )
                 )
             if result.get("listing_reject"):
@@ -417,7 +459,7 @@ class ItemNotesAdapter:
                         entity_type="listing",
                         natural_key=path.name,
                         payload={"kept": "item", **lineage_raw},
-                        lineage=lineage,
+                        lineage=lin(),
                         reject_reason=str(result["listing_reject"]),
                     )
                 )
