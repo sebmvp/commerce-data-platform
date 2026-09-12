@@ -7,6 +7,9 @@ required objects, metrics, and missing-context disclosures?
 The lexical retrieval baseline lives in `evals/lexical_baseline.py` and
 is scored by `cdp eval --compare`. It is TF-IDF over serialized rows —
 not RAG, and not a retrieval layer inside assemble_context.
+Grounded answers on these same ids are scored by `cdp eval --answers`
+(`evals/answer_eval.py`). That checks the FakeProvider copilot contract,
+not a paid model and not an LLM-as-judge.
 """
 from __future__ import annotations
 

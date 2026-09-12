@@ -21,6 +21,7 @@ Makefile is the developer lifecycle. `cdp` is product behavior.
 | `make eval` | Gold Context Engine evaluation (strict) |
 | `make eval-heldout` | Held-out scenario validation |
 | `make eval-compare` | Engine vs lexical retrieval baseline |
+| `make eval-answers` | Gold grounded-answer contract (FakeProvider) |
 | `make demo` | Operator workspace (API + Vite). Prints `http://127.0.0.1:5173` |
 | `make demo-cli` | Isolated CLI reliability story |
 | `make test-e2e` | Playwright |
@@ -38,11 +39,12 @@ Makefile is the developer lifecycle. `cdp` is product behavior.
 | `cdp eval` | GOLD / DEVELOPMENT catalog |
 | `cdp eval --heldout` | HELD OUT catalog (needs the held-out world) |
 | `cdp eval --compare` | Engine vs lexical retrieval baseline |
+| `cdp eval --answers` | Grounded-answer contract on the same ids |
 | `cdp business snapshot \| attention \| health \| item \| history \| channel` | Typed business tools |
 | `cdp demo` | Isolated warehouse → decision → quarantine story |
 | `cdp mcp` | MCP stdio server (read tools only) |
 | `cdp action propose \| list \| get \| approve \| reject` | Sandbox actions; no marketplace mutation |
-| `cdp serve` | FastAPI (`/context`, `/answer`, `/eval`, `/eval/compare`, `/business/*`) |
+| `cdp serve` | FastAPI (`/context`, `/answer`, `/eval`, `/eval/compare`, `/eval/answers`, `/business/*`) |
 | `cdp build --sample` | Schema + ingest from `CDP_DATA` |
 | `cdp init / ingest / validate / query / report / tables` | Warehouse operations |
 

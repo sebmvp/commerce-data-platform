@@ -75,9 +75,15 @@ a lexical TF-IDF baseline over serialized warehouse rows. Hybrid note
 questions are expected to tie; multi-hop and missing-context disclosure
 are not.
 
+`cdp eval --answers` (or `GET /eval/answers`) scores the grounded
+copilot contract on those same ids. The default FakeProvider must
+abstain when the bundle is insufficient, cite only `evidence_catalog`
+refs, and restate values that are already in the bundle. That is not
+an LLM-as-judge and not a claim about a paid model.
+
 `cdp answer` runs a thin grounded path over that bundle. The default
-provider is fake. A real model is used only when `CDP_LLM_API_KEY` is
-set. Insufficient bundles abstain.
+provider is fake and extractive. A real model is used only when
+`CDP_LLM_API_KEY` is set. Insufficient bundles abstain.
 
 Relative phrases such as "two weeks ago" resolve against the world clock
 in `sample_data/world.json`, so next month's run matches this one.
@@ -106,5 +112,6 @@ in `sample_data/world.json`, so next month's run matches this one.
 | Gold eval | `evals/context_questions.py` |
 | Held-out eval | `evals/heldout_questions.py` |
 | Lexical baseline | `evals/lexical_baseline.py` |
+| Answer eval | `evals/answer_eval.py` |
 | Inspector | `web/` |
 | Detail | [ARCHITECTURE.md](ARCHITECTURE.md) · [DEVELOPER.md](DEVELOPER.md) · [docs/DEMO.md](docs/DEMO.md) |

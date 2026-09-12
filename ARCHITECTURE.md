@@ -151,10 +151,10 @@ public JSONL worlds (demo / held-out) from synthetic/resale/
         → POST /answer (plan + exact ContextBundle + grounding)
         → human-approved sandbox action → listing_events / item_events
         → recent_changes diffs live projection vs reconstructed prior snapshot
+        → grounded-answer eval on the same ids (FakeProvider copilot contract)
 
 NEXT
 ====
-LLM-judged answers on the same ids
 marketplace listing/order/engagement adapters when those files exist
 Redis only if evaluation/model runs become async jobs
 ```
@@ -193,4 +193,5 @@ Both score the engine, not an LLM.
 
 `cdp eval --compare` / `GET /eval/compare` scores a lexical TF-IDF
 baseline on the same ids. Call it lexical retrieval, not RAG.
-CI fails on engine FAIL or SKIP.
+`cdp eval --answers` / `GET /eval/answers` scores the grounded copilot
+contract (FakeProvider) on those ids. CI fails on engine FAIL or SKIP.

@@ -11,7 +11,7 @@ Commands:
   status                Health snapshot + ingest reconciliation
   business <topic>      snapshot | attention | health | metric | item | history | channel
   context               assemble a typed context bundle (objects/links/missing)
-  eval [--compare] [--heldout]  gold or held-out eval; optional lexical baseline
+  eval [--compare|--answers] [--heldout]  assembly, lexical compare, or grounded answers
   demo                  3-minute warehouse → decision → failure story
   action                propose | list | get | approve | reject  (sandbox)
   tables                Row counts per table
@@ -480,6 +480,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
     import sys
 
     sys.path.insert(0, str(db.project_root()))
+    from evals.answer_eval import run_answer_eval
     from evals.run import run_compare, run_eval
 
     suite = "heldout" if getattr(args, "heldout", False) else "gold"
@@ -488,7 +489,10 @@ def cmd_eval(args: argparse.Namespace) -> int:
         return 1
     con = db.connect(read_only=True)
     try:
-        if getattr(args, "compare", False):
+        if getattr(args, "answers", False):
+            compare = None
+            report = run_answer_eval(con, suite=suite)
+        elif getattr(args, "compare", False):
             compare = run_compare(con, suite=suite)
             report = compare["engine"]
         else:
@@ -501,6 +505,21 @@ def cmd_eval(args: argparse.Namespace) -> int:
         ok = report["ok"] if compare is None else compare["engine"]["ok"]
         return 0 if ok else 1
     label = (compare or report).get("suite") or suite
+    if getattr(args, "answers", False):
+        print(
+            f"SUITE       {label}\n"
+            f"LAYER       grounded answers ({report.get('provider')})\n"
+            f"TOTAL       {report['total']}\n"
+            f"PASS        {report['passed']}\n"
+            f"FAIL        {report['failed']}\n"
+            f"SKIP        {report['skipped']}"
+        )
+        for case in report["cases"]:
+            mark = "PASS" if case["passed"] else ("SKIP" if case["skipped"] else "FAIL")
+            print(f"  [{mark}] {case['id']:4} {case['question']}")
+            for err in case["errors"]:
+                print(f"         {err}")
+        return 0 if report["ok"] else 1
     if compare is None:
         print(
             f"SUITE       {label}\n"
@@ -720,6 +739,11 @@ def main(argv: list[str] | None = None) -> int:
         "--compare",
         action="store_true",
         help="Also score the lexical retrieval baseline on the same ids",
+    )
+    pe.add_argument(
+        "--answers",
+        action="store_true",
+        help="Score grounded answers (FakeProvider copilot contract) on the same ids",
     )
     pe.add_argument(
         "--heldout",

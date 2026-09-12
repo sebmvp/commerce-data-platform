@@ -56,6 +56,7 @@ jobs:
           cdp status
           cdp eval
           cdp eval --compare
+          cdp eval --answers
 
       - name: Held-out eval
         env:

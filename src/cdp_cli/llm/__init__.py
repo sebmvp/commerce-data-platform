@@ -49,15 +49,141 @@ class GroundedModelOutput(BaseModel):
     suggested_action: SuggestedActionModel | None = None
 
 
+def _bundle_payload_from_prompt(prompt: str) -> dict[str, Any] | None:
+    marker = "Answer using only this ContextBundle."
+    blob = prompt[prompt.index(marker) :] if marker in prompt else prompt
+    start = blob.find("{")
+    if start < 0:
+        return None
+    try:
+        payload = json.loads(blob[start:])
+    except json.JSONDecodeError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _scalar_lines(mapping: dict[str, Any] | None, kind: str, *, limit: int = 12) -> list[str]:
+    lines: list[str] = []
+
+    def consider(key: str, value: Any) -> None:
+        if len(lines) >= limit:
+            return
+        if "margin" in key.lower():
+            return
+        if isinstance(value, bool):
+            lines.append(f"{kind} {key}: {'true' if value else 'false'}")
+        elif isinstance(value, (int, float)) or (isinstance(value, str) and value.strip()):
+            lines.append(f"{kind} {key}: {value}")
+        elif isinstance(value, dict):
+            for nested_key, nested in value.items():
+                consider(f"{key}.{nested_key}", nested)
+                if len(lines) >= limit:
+                    return
+
+    for raw_key, raw_value in (mapping or {}).items():
+        consider(str(raw_key), raw_value)
+        if len(lines) >= limit:
+            break
+    return lines
+
+
+def _select_refs(payload: dict[str, Any]) -> list[str]:
+    catalog = [str(item) for item in payload.get("evidence_catalog") or []]
+    allowed = set(catalog)
+    chosen: list[str] = []
+
+    def take(ref: str) -> None:
+        if ref in allowed and ref not in chosen:
+            chosen.append(ref)
+
+    seen_types: set[str] = set()
+    for obj in payload.get("objects") or []:
+        if not isinstance(obj, dict):
+            continue
+        typ = str(obj.get("type") or "")
+        ident = str(obj.get("id") or "")
+        if typ and ident and typ not in seen_types:
+            take(f"object:{typ}:{ident}")
+            seen_types.add(typ)
+    for ref in catalog:
+        if ref.startswith(("fact:", "metric:")):
+            take(ref)
+    for prefix in ("rule:", "note:", "event:"):
+        for ref in catalog:
+            if ref.startswith(prefix):
+                take(ref)
+    for ref in catalog:
+        if ref.startswith("object:"):
+            take(ref)
+        if len(chosen) >= 12:
+            break
+    return chosen[:12]
+
+
+def _extractive_output(payload: dict[str, Any] | None) -> dict[str, Any]:
+    if not payload:
+        return {
+            "answer": "ABSTAIN: the fake provider could not read the ContextBundle.",
+            "abstained": True,
+            "evidence_refs": [],
+            "caveats": ["bundle payload missing from prompt"],
+            "suggested_action": None,
+        }
+    refs = _select_refs(payload)
+    if not refs:
+        return {
+            "answer": "ABSTAIN: the ContextBundle published no citeable evidence.",
+            "abstained": True,
+            "evidence_refs": [],
+            "caveats": ["empty evidence_catalog"],
+            "suggested_action": None,
+        }
+    lines = [
+        "Extracted from the ContextBundle (fake provider; not a model).",
+    ]
+    intent = payload.get("intent")
+    if intent:
+        lines.append(f"intent: {intent}")
+    lines.extend(_scalar_lines(payload.get("facts"), "fact"))
+    lines.extend(_scalar_lines(payload.get("metrics"), "metric"))
+    object_bits = []
+    for obj in payload.get("objects") or []:
+        if isinstance(obj, dict) and obj.get("type") and obj.get("id"):
+            object_bits.append(f"{obj['type']}:{obj['id']}")
+        if len(object_bits) >= 8:
+            break
+    if object_bits:
+        lines.append("objects: " + "; ".join(object_bits))
+    notes = payload.get("retrieved_evidence") or []
+    note_titles = []
+    for note in notes:
+        if isinstance(note, dict):
+            title = note.get("title") or note.get("note_id")
+            if title:
+                note_titles.append(str(title))
+        if len(note_titles) >= 3:
+            break
+    if note_titles:
+        lines.append("notes: " + "; ".join(note_titles))
+    return {
+        "answer": "\n".join(lines),
+        "abstained": False,
+        "evidence_refs": refs,
+        "caveats": [],
+        "suggested_action": None,
+    }
+
+
 class FakeProvider:
-    """Deterministic provider. Cites catalog refs present in the prompt."""
+    """Deterministic extractive provider. Restates bundle values; invents none."""
 
     name = "fake"
 
     def complete(self, prompt: str) -> str:
         if "capabilities:" in prompt and "schema:" in prompt:
             return json.dumps({"capability": "item_state", "subject": None})
-        if "SUFFICIENT: false" in prompt or "SUFFICIENT: False" in prompt:
+        first = prompt.splitlines()[0] if prompt else ""
+        if first.upper().startswith("SUFFICIENT: FALSE"):
             return json.dumps(
                 {
                     "answer": (
@@ -70,36 +196,7 @@ class FakeProvider:
                     "suggested_action": None,
                 }
             )
-        refs: list[str] = []
-        catalog_marker = '"evidence_catalog":'
-        if catalog_marker in prompt:
-            try:
-                blob = prompt[prompt.index(catalog_marker) :]
-                start = blob.index("[")
-                end = blob.index("]", start)
-                refs = json.loads(blob[start : end + 1])
-            except (ValueError, json.JSONDecodeError):
-                refs = []
-        object_refs = [r for r in refs if str(r).startswith("object:")][:4]
-        sku = ""
-        for token in prompt.split():
-            if "-" in token and any(ch.isdigit() for ch in token):
-                sku = token.strip(".,\"")
-                break
-        return json.dumps(
-            {
-                "answer": (
-                    "Grounded on the assembled ContextBundle"
-                    + (f" for {sku}" if sku else "")
-                    + ". Use the cited objects, metrics, and history; "
-                    "do not add facts that are not in the bundle."
-                ),
-                "abstained": False,
-                "evidence_refs": object_refs,
-                "caveats": [],
-                "suggested_action": None,
-            }
-        )
+        return json.dumps(_extractive_output(_bundle_payload_from_prompt(prompt)))
 
 
 class EnvProvider:

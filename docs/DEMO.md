@@ -33,7 +33,7 @@ Insufficient path: `Should I reprice stone-cargo-l?` Missing listing and engagem
 
 Temporal path: `What was the active listing state for j4-military-s two weeks ago?` Uses the world clock, not today's date.
 
-Evaluation: TOTAL / PASS / FAIL / SKIP on the gold catalog, plus Context Engine vs lexical retrieval on the same ids.
+Evaluation: TOTAL / PASS / FAIL / SKIP on the gold catalog, Context Engine vs lexical retrieval, and the FakeProvider grounded-answer contract on the same ids.
 
 ## Engineering reliability deep dive (CLI)
 

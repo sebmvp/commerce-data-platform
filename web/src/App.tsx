@@ -3,6 +3,7 @@ import {
   getAttention,
   getCompleteness,
   getEval,
+  getEvalAnswers,
   getEvalCompare,
   getIngestRuns,
   getIngestTrust,
@@ -26,6 +27,7 @@ export default function App() {
   const [bundle, setBundle] = useState<ContextBundle | null>(null);
   const [evalReport, setEvalReport] = useState<any>(null);
   const [compare, setCompare] = useState<any>(null);
+  const [answers, setAnswers] = useState<any>(null);
   const [sku, setSku] = useState("j4-military-s");
   const [item, setItem] = useState<any>(null);
   const [history, setHistory] = useState<any>(null);
@@ -60,9 +62,10 @@ export default function App() {
     setBusy(true);
     setError(null);
     try {
-      const [engine, cmp] = await Promise.all([getEval(), getEvalCompare()]);
+      const [engine, cmp, ans] = await Promise.all([getEval(), getEvalCompare(), getEvalAnswers()]);
       setEvalReport(engine);
       setCompare(cmp);
+      setAnswers(ans);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -194,6 +197,7 @@ export default function App() {
         <EvaluationPage
           evalReport={evalReport}
           compare={compare}
+          answers={answers}
           busy={busy}
           onRerun={() => void runEval()}
           onOpenQuestion={(q) => { setQuestion(q); setTab("context"); void runQuestion(q); }}

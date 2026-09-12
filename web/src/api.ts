@@ -35,6 +35,7 @@ export async function postAnswer(question: string, sku?: string, asOf?: string) 
 
 export const getEval = () => getJson("/eval");
 export const getEvalCompare = () => getJson("/eval/compare");
+export const getEvalAnswers = () => getJson("/eval/answers");
 export const getItem = (sku: string) =>
   getJson(`/business/items/${encodeURIComponent(sku)}`);
 export const getItemHistory = (sku: string) =>

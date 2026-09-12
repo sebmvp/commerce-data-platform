@@ -1,4 +1,4 @@
-.PHONY: help doctor up down seed seed-heldout reset-demo ingest-private test eval eval-heldout eval-compare frontend demo demo-cli test-e2e clean migrate ai-smoke
+.PHONY: help doctor up down seed seed-heldout reset-demo ingest-private test eval eval-heldout eval-compare eval-answers frontend demo demo-cli test-e2e clean migrate ai-smoke
 
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
@@ -22,6 +22,7 @@ help:
 	@echo "  make eval         Gold Context Engine evaluation"
 	@echo "  make eval-heldout Held-out scenario validation"
 	@echo "  make eval-compare Engine vs lexical retrieval baseline"
+	@echo "  make eval-answers Gold grounded-answer contract (FakeProvider)"
 	@echo "  make demo         Operator workspace (API + Vite)"
 	@echo "  make ai-smoke     Optional real-provider smoke (needs CDP_LLM_API_KEY)"
 	@echo "  make demo-cli     Isolated CLI/system behavior demo"
@@ -66,6 +67,9 @@ eval-heldout: seed-heldout
 
 eval-compare: up
 	$(CDP) eval --compare
+
+eval-answers: up
+	$(CDP) eval --answers
 
 frontend:
 	cd $(WEB) && npm install && npm run dev -- --port 5173 --host 127.0.0.1

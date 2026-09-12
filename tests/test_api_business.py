@@ -159,6 +159,23 @@ def test_api_eval_compare_keeps_engine_gold(warehouse):
     assert hybrid["lexical_pass"] == hybrid["n"]
 
 
+def test_api_eval_answers_is_strict_twenty(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    from cdp_cli.api.main import create_app
+
+    client = TestClient(create_app())
+    res = client.get("/eval/answers")
+    assert res.status_code == 200
+    body = res.json()
+    assert body["total"] == 20
+    assert body["passed"] == 20
+    assert body["failed"] == 0
+    assert body["ok"] is True
+    assert body["layer"] == "grounded_answers"
+    assert body["provider"] == "fake"
+
+
 def test_post_answer_returns_the_bundle_used(warehouse):
     _build(warehouse)
     warehouse.close()

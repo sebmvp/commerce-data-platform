@@ -1,12 +1,14 @@
 export function EvaluationPage({
   evalReport,
   compare,
+  answers,
   busy,
   onRerun,
   onOpenQuestion,
 }: {
   evalReport: any;
   compare: any;
+  answers: any;
   busy: boolean;
   onRerun: () => void;
   onOpenQuestion: (q: string) => void;
@@ -19,6 +21,7 @@ export function EvaluationPage({
         <>
           <p className="lede" style={{ marginTop: 12 }}>
             Scores the Context Engine, not an LLM. Lexical retrieval is TF-IDF, not RAG.
+            Grounded answers score FakeProvider against the same ids.
           </p>
           <div className="eval-bar" data-testid="eval-summary">
             <span>TOTAL <strong data-testid="eval-total">{evalReport.total}</strong></span>
@@ -36,6 +39,17 @@ export function EvaluationPage({
                 <div className="banner-kicker">Lexical retrieval</div>
                 <div className="compare-n" data-testid="lexical-pass">{lexical.passed}/{lexical.total}</div>
                 <p className="lede" style={{ margin: "4px 0 0" }}>TF-IDF over serialized rows. Not RAG.</p>
+              </div>
+            </div>
+          )}
+          {answers && (
+            <div className="compare-bar" data-testid="eval-answers">
+              <div>
+                <div className="banner-kicker">Grounded answers</div>
+                <div className="compare-n">{answers.passed}/{answers.total}</div>
+                <p className="lede" style={{ margin: "4px 0 0" }}>
+                  FakeProvider copilot contract. Not an LLM judge.
+                </p>
               </div>
             </div>
           )}

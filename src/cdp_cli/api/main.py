@@ -1,7 +1,7 @@
 """FastAPI read layer.
 
 Inventory/listing/insight routes read views. `/business/*`, `/context`,
-`/eval`, and `/eval/compare` call shared services — same tools as the CLI and MCP.
+`/eval`, `/eval/compare`, and `/eval/answers` call shared services — same tools as the CLI and MCP.
 
 Run: `cdp serve` then http://127.0.0.1:8000/docs
 """
@@ -284,6 +284,22 @@ def create_app() -> FastAPI:
         con = db.connect(read_only=True)
         try:
             return run_compare(con)
+        finally:
+            con.close()
+
+    @app.get("/eval/answers")
+    def eval_answers():
+        import sys
+
+        from .. import db as _db
+
+        sys.path.insert(0, str(_db.project_root()))
+        from evals.answer_eval import run_answer_eval
+
+        _require_db()
+        con = db.connect(read_only=True)
+        try:
+            return run_answer_eval(con)
         finally:
             con.close()
 
