@@ -66,6 +66,8 @@ def _repricing_rules(
         {
             "name": "stale_listing",
             "kind": "rule",
+            "policy_id": "resale.decision.stale-listing",
+            "policy_version": "v1",
             "threshold_days": M.STALE_LISTING_DAYS,
             "applies": stale,
             "definition": M.METRICS["stale_listing"].definition,
@@ -73,11 +75,25 @@ def _repricing_rules(
         {
             "name": "high_attention_no_offers",
             "kind": "heuristic",
+            "policy_id": "resale.decision.price-review",
+            "policy_version": "v1",
             "threshold_watch_rate": M.HIGH_WATCH_RATE,
             "applies": high_no_offer,
             "definition": (
                 f"Active listing with watch_rate >= {M.HIGH_WATCH_RATE} "
-                "and zero offers — interest without conversion."
+                "and zero offers — interest without conversion. "
+                "Not a numeric markdown."
+            ),
+        },
+        {
+            "name": "price_review",
+            "kind": "policy",
+            "policy_id": "resale.decision.price-review",
+            "policy_version": "v1",
+            "applies": True,
+            "definition": (
+                "REVIEW PRICE, KEEP PRICE, or INSUFFICIENT EVIDENCE. "
+                "No invented target price."
             ),
         },
     ]

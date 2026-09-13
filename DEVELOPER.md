@@ -22,6 +22,10 @@ Makefile is the developer lifecycle. `cdp` is product behavior.
 | `make eval-heldout` | Held-out scenario validation |
 | `make eval-compare` | Engine vs lexical retrieval baseline |
 | `make eval-answers` | Gold grounded-answer contract (FakeProvider) |
+| `make eval-plan` | Question/tool planning |
+| `make eval-analyst` | Analyst Agent task success |
+| `make ai-doctor` | Model gateway diagnostics (no secrets, no downloads) |
+| `make ai-smoke` | Optional real/local provider smoke (never in CI) |
 | `make demo` | Operator workspace (API + Vite). Prints `http://127.0.0.1:5173` |
 | `make demo-cli` | Isolated CLI reliability story |
 | `make test-e2e` | Playwright |
@@ -35,11 +39,14 @@ Makefile is the developer lifecycle. `cdp` is product behavior.
 | `cdp ingest-private` | Private item notes → `cdp_private` (set `CDP_PRIVATE_SOURCE`) |
 | `cdp status` | Health snapshot + ingest reconciliation |
 | `cdp context "…"` | Assemble a ContextBundle (`--intent`, `--sku`, `--as-of`, `--json`) |
-| `cdp answer "…"` | Grounded answer over that bundle (abstains if insufficient) |
+| `cdp answer "…"` | Analyst Agent over that bundle (abstains if insufficient) |
+| `cdp onboard profile \| propose \| review` | Source contract proposal; does not ingest |
 | `cdp eval` | GOLD / DEVELOPMENT catalog |
 | `cdp eval --heldout` | HELD OUT catalog (needs the held-out world) |
 | `cdp eval --compare` | Engine vs lexical retrieval baseline |
 | `cdp eval --answers` | Grounded-answer contract on the same ids |
+| `cdp eval --plan` | Question/tool planning on the same ids |
+| `cdp eval --analyst` | Analyst Agent task success on the same ids |
 | `cdp business snapshot \| attention \| health \| item \| history \| channel` | Typed business tools |
 | `cdp demo` | Isolated warehouse → decision → quarantine story |
 | `cdp mcp` | MCP stdio server (read tools only) |
@@ -65,7 +72,8 @@ instead of running Alembic each time; the SQL files are the source.
 World clock: `sample_data/world.json` (`as_of`) freezes listing ages and
 relative phrases. `CDP_AS_OF=now` uses the wall clock.
 
-A missing `CDP_LLM_API_KEY` does not block deterministic evaluation.
+A missing `CDP_MODEL_API_KEY` does not block deterministic evaluation.
+See docs/ai.md. `make ai-doctor` never prints secrets.
 
 ## Ingest order matters
 

@@ -1,4 +1,4 @@
-.PHONY: help doctor up down seed seed-heldout reset-demo ingest-private test eval eval-heldout eval-compare eval-answers frontend demo demo-cli test-e2e clean migrate ai-smoke
+.PHONY: help doctor up down seed seed-heldout reset-demo ingest-private test eval eval-heldout eval-compare eval-answers eval-plan eval-analyst frontend demo demo-cli test-e2e clean migrate ai-doctor ai-smoke
 
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
@@ -23,8 +23,11 @@ help:
 	@echo "  make eval-heldout Held-out scenario validation"
 	@echo "  make eval-compare Engine vs lexical retrieval baseline"
 	@echo "  make eval-answers Gold grounded-answer contract (FakeProvider)"
+	@echo "  make eval-plan    Question/tool planning eval"
+	@echo "  make eval-analyst Analyst Agent task-success eval"
 	@echo "  make demo         Operator workspace (API + Vite)"
-	@echo "  make ai-smoke     Optional real-provider smoke (needs CDP_LLM_API_KEY)"
+	@echo "  make ai-doctor    Model gateway diagnostics (no secrets, no downloads)"
+	@echo "  make ai-smoke     Optional real/local provider smoke (never in CI)"
 	@echo "  make demo-cli     Isolated CLI/system behavior demo"
 	@echo "  make test-e2e     Playwright smoke against a running inspector"
 	@echo "  make clean        Remove safe generated artifacts (not private data)"
@@ -71,6 +74,12 @@ eval-compare: up
 eval-answers: up
 	$(CDP) eval --answers
 
+eval-plan: up
+	$(CDP) eval --plan
+
+eval-analyst: up
+	$(CDP) eval --analyst
+
 frontend:
 	cd $(WEB) && npm install && npm run dev -- --port 5173 --host 127.0.0.1
 
@@ -83,9 +92,11 @@ demo-cli: up seed
 test-e2e:
 	cd $(WEB) && npm install && npx playwright test
 
+ai-doctor:
+	@$(PYTHON) -c "from cdp_cli.llm.doctor import main; raise SystemExit(main())"
+
 ai-smoke:
-	@if [ -z "$$CDP_LLM_API_KEY" ]; then echo "CDP_LLM_API_KEY is not set — skipping paid provider"; exit 1; fi
-	CDP_LLM_PROVIDER=env $(CDP) answer "Should I reprice j4-military-s?"
+	@$(PYTHON) -c "from cdp_cli.llm.smoke import main; raise SystemExit(main())"
 
 clean:
 	rm -rf .pytest_cache .ruff_cache src/*.egg-info web/dist web/node_modules/.vite

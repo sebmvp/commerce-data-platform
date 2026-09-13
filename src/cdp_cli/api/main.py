@@ -54,7 +54,7 @@ def _require_db() -> None:
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Commerce Data Platform API",
-        version="0.6.0",
+        version="0.7.0",
         description="Read layer over the context engine and operational store.",
     )
     app.add_middleware(
@@ -234,14 +234,14 @@ def create_app() -> FastAPI:
 
     @app.post("/answer")
     def post_grounded_answer(body: AnswerRequest):
-        from ..llm import ground_answer
+        from ..llm import run_analyst
 
         if not (body.question or "").strip() and not body.intent:
             raise HTTPException(400, "question or intent is required")
         _require_db()
         con = db.connect(read_only=True)
         try:
-            return ground_answer(
+            return run_analyst(
                 con,
                 question=body.question,
                 intent=body.intent,
@@ -300,6 +300,38 @@ def create_app() -> FastAPI:
         con = db.connect(read_only=True)
         try:
             return run_answer_eval(con)
+        finally:
+            con.close()
+
+    @app.get("/eval/plan")
+    def eval_plan():
+        import sys
+
+        from .. import db as _db
+
+        sys.path.insert(0, str(_db.project_root()))
+        from evals.plan_eval import run_plan_eval
+
+        _require_db()
+        con = db.connect(read_only=True)
+        try:
+            return run_plan_eval(con)
+        finally:
+            con.close()
+
+    @app.get("/eval/analyst")
+    def eval_analyst():
+        import sys
+
+        from .. import db as _db
+
+        sys.path.insert(0, str(_db.project_root()))
+        from evals.analyst_eval import run_analyst_eval
+
+        _require_db()
+        con = db.connect(read_only=True)
+        try:
+            return run_analyst_eval(con)
         finally:
             con.close()
 

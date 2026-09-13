@@ -31,6 +31,10 @@ body {
   color: var(--muted);
   white-space: nowrap;
 }
+.badges { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+.model-fake { color: var(--muted); }
+.model-local { color: var(--accent-2); }
+.model-remote { color: var(--accent); }
 .env-private { color: var(--accent-2); border-color: #164e63; }
 .lede { color: var(--muted); margin: 0 0 16px; max-width: 64ch; }
 h1 { font-size: 22px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.02em; }
@@ -150,6 +154,19 @@ h2.object-name {
   background: #101610;
   color: var(--fg);
 }
+.missing-panel.invalid-panel {
+  border-color: #92400e;
+  background: #1a140c;
+  color: #fdba74;
+}
+.dev-trace {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  color: var(--muted);
+}
+.dev-trace summary { cursor: pointer; }
 .missing-panel ul { margin: 0; padding-left: 18px; }
 .missing-panel li { margin: 6px 0; }
 .missing-panel span { color: var(--fg); margin-left: 8px; }

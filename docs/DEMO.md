@@ -21,10 +21,10 @@ environment badge should read **DEMO · SYNTHETIC**.
 1. **Overview** — owned / listed / sold, capital, and the attention queue. Names first, SKUs second.
 2. **Attention item** — click a row. The why line is the reason it is on the queue.
 3. **Object view** — identity, listings, engagement, orders, timeline, sandbox action.
-4. **Ask** — “Should I reprice this?” from the object, or type it on Context.
+4. **Ask Analyst** — “Should I reprice this?” from the object, or type it on Context.
 5. **Interpreted plan** — registered capability + subject. Not SQL.
 6. **Sufficiency** — SUFFICIENT or INSUFFICIENT, with required evidence named.
-7. **Grounded answer** — FakeProvider by default; a real model only if `CDP_LLM_API_KEY` is set. Citations must exist in the same ContextBundle.
+7. **Grounded answer** — ANSWERED / ABSTAINED / INVALID MODEL OUTPUT. Fake/Test by default (extractive, not a model). Citations must exist in the same ContextBundle. See docs/ai.md.
 8. **Action** — price review is not a numeric markdown. Enter a sandbox price, propose, human-approve. Internal `listing_events` change. No marketplace write.
 9. **Ask again** — Context reflects the new asking price / history.
 10. **Reset** — `make reset-demo` rebuilds the demo world.

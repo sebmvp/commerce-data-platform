@@ -448,6 +448,11 @@ def suggest_reprice(con, sku: str) -> dict[str, Any]:
             "previous_price_usd": old,
         },
         "reason": "Price review recommended",
+        "recommendation": "REVIEW_PRICE",
+        "policy": {
+            "id": "resale.decision.price-review",
+            "version": "v1",
+        },
         "evidence": {
             "listing_id": listing_id,
             "asking_price_usd": old,

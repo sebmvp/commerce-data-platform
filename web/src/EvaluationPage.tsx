@@ -2,6 +2,8 @@ export function EvaluationPage({
   evalReport,
   compare,
   answers,
+  planEval,
+  analystEval,
   busy,
   onRerun,
   onOpenQuestion,
@@ -9,6 +11,8 @@ export function EvaluationPage({
   evalReport: any;
   compare: any;
   answers: any;
+  planEval: any;
+  analystEval: any;
   busy: boolean;
   onRerun: () => void;
   onOpenQuestion: (q: string) => void;
@@ -20,8 +24,9 @@ export function EvaluationPage({
       {evalReport && (
         <>
           <p className="lede" style={{ marginTop: 12 }}>
-            Scores the Context Engine, not an LLM. Lexical retrieval is TF-IDF, not RAG.
-            Grounded answers score FakeProvider against the same ids.
+            Layers are reported separately. There is no combined “AI accuracy” number.
+            Context assembly scores the engine. Planning scores capability mapping.
+            Grounding scores FakeProvider citations. Analyst scores the registered-tool loop.
           </p>
           <div className="eval-bar" data-testid="eval-summary">
             <span>TOTAL <strong data-testid="eval-total">{evalReport.total}</strong></span>
@@ -32,7 +37,7 @@ export function EvaluationPage({
           {lexical && (
             <div className="compare-bar" data-testid="eval-compare">
               <div>
-                <div className="banner-kicker">Context Engine</div>
+                <div className="banner-kicker">Context assembly</div>
                 <div className="compare-n">{compare.engine.passed}/{compare.engine.total}</div>
               </div>
               <div>
@@ -42,17 +47,29 @@ export function EvaluationPage({
               </div>
             </div>
           )}
-          {answers && (
-            <div className="compare-bar" data-testid="eval-answers">
-              <div>
-                <div className="banner-kicker">Grounded answers</div>
+          <div className="compare-bar" data-testid="eval-layers">
+            {planEval && (
+              <div data-testid="eval-plan">
+                <div className="banner-kicker">Question / tool planning</div>
+                <div className="compare-n">{planEval.passed}/{planEval.total}</div>
+              </div>
+            )}
+            {answers && (
+              <div data-testid="eval-answers">
+                <div className="banner-kicker">Grounding validity</div>
                 <div className="compare-n">{answers.passed}/{answers.total}</div>
                 <p className="lede" style={{ margin: "4px 0 0" }}>
                   FakeProvider copilot contract. Not an LLM judge.
                 </p>
               </div>
-            </div>
-          )}
+            )}
+            {analystEval && (
+              <div data-testid="eval-analyst">
+                <div className="banner-kicker">Agent task success</div>
+                <div className="compare-n">{analystEval.passed}/{analystEval.total}</div>
+              </div>
+            )}
+          </div>
           {evalReport.cases.map((c: any) => (
             <div
               key={c.id}

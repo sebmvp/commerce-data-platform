@@ -11,7 +11,10 @@ Commands:
   status                Health snapshot + ingest reconciliation
   business <topic>      snapshot | attention | health | metric | item | history | channel
   context               assemble a typed context bundle (objects/links/missing)
-  eval [--compare|--answers] [--heldout]  assembly, lexical compare, or grounded answers
+  eval [--compare|--answers|--plan|--analyst] [--heldout]
+  answer                Analyst Agent over registered read tools
+  onboard               profile | propose | review  (source contract, not ingest)
+
   demo                  3-minute warehouse → decision → failure story
   action                propose | list | get | approve | reject  (sandbox)
   tables                Row counts per table
@@ -24,6 +27,7 @@ import argparse
 import json
 import sys
 from datetime import UTC, datetime
+from pathlib import Path
 
 from . import db
 from .ingest import ALL_JOBS, JOBS_BY_SOURCE
@@ -480,7 +484,9 @@ def cmd_eval(args: argparse.Namespace) -> int:
     import sys
 
     sys.path.insert(0, str(db.project_root()))
+    from evals.analyst_eval import run_analyst_eval
     from evals.answer_eval import run_answer_eval
+    from evals.plan_eval import run_plan_eval
     from evals.run import run_compare, run_eval
 
     suite = "heldout" if getattr(args, "heldout", False) else "gold"
@@ -492,6 +498,12 @@ def cmd_eval(args: argparse.Namespace) -> int:
         if getattr(args, "answers", False):
             compare = None
             report = run_answer_eval(con, suite=suite)
+        elif getattr(args, "plan", False):
+            compare = None
+            report = run_plan_eval(con, suite=suite)
+        elif getattr(args, "analyst", False):
+            compare = None
+            report = run_analyst_eval(con, suite=suite)
         elif getattr(args, "compare", False):
             compare = run_compare(con, suite=suite)
             report = compare["engine"]
@@ -505,10 +517,10 @@ def cmd_eval(args: argparse.Namespace) -> int:
         ok = report["ok"] if compare is None else compare["engine"]["ok"]
         return 0 if ok else 1
     label = (compare or report).get("suite") or suite
-    if getattr(args, "answers", False):
+    if getattr(args, "answers", False) or getattr(args, "plan", False) or getattr(args, "analyst", False):
         print(
             f"SUITE       {label}\n"
-            f"LAYER       grounded answers ({report.get('provider')})\n"
+            f"LAYER       {report.get('layer')} ({report.get('provider') or 'deterministic'})\n"
             f"TOTAL       {report['total']}\n"
             f"PASS        {report['passed']}\n"
             f"FAIL        {report['failed']}\n"
@@ -565,7 +577,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
 
 
 def cmd_answer(args: argparse.Namespace) -> int:
-    from .llm import ground_answer
+    from .llm import run_analyst
 
     question = (args.question or "").strip()
     if not question and not args.intent:
@@ -576,7 +588,7 @@ def cmd_answer(args: argparse.Namespace) -> int:
         return 1
     con = db.connect(read_only=True)
     try:
-        result = ground_answer(
+        result = run_analyst(
             con, question=question, intent=args.intent, sku=args.sku
         )
     except (KeyError, ValueError) as e:
@@ -587,10 +599,50 @@ def cmd_answer(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(result, indent=2, default=str))
         return 0
-    print(f"provider  {result['provider']}")
-    print(f"abstained {result['abstained']}")
+    print(f"provider  {result['provider']}  model={result.get('model')}  kind={result.get('provider_kind')}")
+    print(f"status    {result['grounding_status']}")
+    print(f"plan      {result.get('plan')}")
+    for step in result.get("tool_trace") or []:
+        print(f"tool      {step.get('summary')}")
     print(result["answer"])
     return 0
+
+
+def cmd_onboard(args: argparse.Namespace) -> int:
+    from .onboard import profile_file, propose_file, review_proposal
+
+    sub = args.onboard_cmd
+    if sub == "profile":
+        try:
+            report = profile_file(args.path)
+        except (OSError, ValueError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        print(json.dumps(report, indent=2, default=str))
+        return 0
+    if sub == "propose":
+        try:
+            proposal = propose_file(args.path)
+        except (OSError, ValueError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        if args.out:
+            Path(args.out).write_text(json.dumps(proposal, indent=2, default=str))
+            print(f"wrote {args.out}  status=PROPOSED")
+        else:
+            print(json.dumps(proposal, indent=2, default=str))
+        return 0
+    if sub == "review":
+        try:
+            reviewed = review_proposal(args.path)
+        except (OSError, ValueError, TypeError, json.JSONDecodeError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
+        print(json.dumps(reviewed, indent=2, default=str))
+        print(reviewed.get("review_note"))
+        return 0
+    print("unknown onboard command", file=sys.stderr)
+    return 1
 
 
 def cmd_mcp(_: argparse.Namespace) -> int:
@@ -746,6 +798,16 @@ def main(argv: list[str] | None = None) -> int:
         help="Score grounded answers (FakeProvider copilot contract) on the same ids",
     )
     pe.add_argument(
+        "--plan",
+        action="store_true",
+        help="Score question/tool planning on the same ids",
+    )
+    pe.add_argument(
+        "--analyst",
+        action="store_true",
+        help="Score Analyst Agent task success on the same ids",
+    )
+    pe.add_argument(
         "--heldout",
         action="store_true",
         help="Run the held-out catalog (expects the held-out world to be seeded)",
@@ -757,11 +819,21 @@ def main(argv: list[str] | None = None) -> int:
         help="Fail on FAIL or SKIP (default)",
     )
 
-    pa = sub.add_parser("answer", help="Grounded answer over a ContextBundle")
+    pa = sub.add_parser("answer", help="Analyst Agent over a ContextBundle")
     pa.add_argument("question", nargs="?", default="", help="Question to ground")
     pa.add_argument("--intent", choices=sorted(INTENTS))
     pa.add_argument("--sku", default=None)
     pa.add_argument("--json", action="store_true")
+
+    po = sub.add_parser("onboard", help="Profile/propose a source contract (does not ingest)")
+    o_sub = po.add_subparsers(dest="onboard_cmd", required=True)
+    op = o_sub.add_parser("profile", help="Deterministic column profile of one file")
+    op.add_argument("path")
+    opp = o_sub.add_parser("propose", help="Propose a SourceContract (status=PROPOSED)")
+    opp.add_argument("path")
+    opp.add_argument("--out", default=None, help="Write proposal JSON to this path")
+    orv = o_sub.add_parser("review", help="Print a proposal; does not approve or ingest")
+    orv.add_argument("path")
 
     ps = sub.add_parser("serve", help="FastAPI read layer")
     ps.add_argument("--host", default="127.0.0.1")
@@ -786,6 +858,7 @@ def main(argv: list[str] | None = None) -> int:
         "context": cmd_context,
         "eval": cmd_eval,
         "answer": cmd_answer,
+        "onboard": cmd_onboard,
         "report": cmd_report,
         "serve": cmd_serve,
         "mcp": cmd_mcp,

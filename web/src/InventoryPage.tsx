@@ -128,7 +128,7 @@ export function InventoryPage({
                 className="chip"
                 onClick={() => onAskItem(itemData.sku)}
               >
-                Ask about this item
+                Ask Analyst
               </button>
               <ActionPanel sku={itemData.sku} onApplied={onReloadItem} />
             </>

@@ -113,7 +113,7 @@ def plan_question(
     Invalid schema / unknown capability / unknown object type →
     deterministic fallback (never guessed SQL, never silent execute).
     """
-    from . import get_provider
+    from .gateway import get_provider, is_real_provider_name
 
     active = domain or get_active_domain()
     used = provider or get_provider()
@@ -121,7 +121,7 @@ def plan_question(
         return deterministic_plan(
             question, intent=intent, subject=subject, as_of=as_of, domain=active
         )
-    if getattr(used, "name", "fake") not in {"env", "openai"}:
+    if not is_real_provider_name(getattr(used, "name", "fake")):
         return deterministic_plan(
             question, intent=intent, subject=subject, as_of=as_of, domain=active
         )

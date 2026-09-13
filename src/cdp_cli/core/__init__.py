@@ -9,6 +9,7 @@ from .model import (
     ContextObject,
     ContextRequirement,
     EntityRef,
+    EvidenceUnit,
     MissingContext,
     SufficiencyResult,
 )
@@ -22,6 +23,7 @@ __all__ = [
     "ContextRequirement",
     "Domain",
     "EntityRef",
+    "EvidenceUnit",
     "MissingContext",
     "QuestionPlan",
     "SufficiencyResult",

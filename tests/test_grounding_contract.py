@@ -93,13 +93,13 @@ def test_invalid_action_payload_is_invalid() -> None:
             "evidence_refs": ["object:Item:j4-military-s"],
             "suggested_action": {
                 "action_type": "propose_reprice",
-                "payload": {"new_price_usd": "cheap"},
+                "payload": {"new_price_usd": 99},
             },
         }
     )
     result = parse_grounded(raw, _tiny_bundle())
     assert result["ok"] is False
-    assert "new_price_usd" in result["reason"]
+    assert "numeric price" in result["reason"]
 
 
 def test_extra_fields_are_invalid() -> None:

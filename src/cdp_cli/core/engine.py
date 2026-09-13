@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..clock import iso, reference_now
+from ..policy import policy_dicts_for_intent
 from .domain import Domain, get_active_domain
 from .model import ContextBundle, MissingContext, SufficiencyResult
 from .plan import QuestionPlan
@@ -107,6 +108,7 @@ def assemble_context(
         metrics=assembled.get("metrics") or {},
         events=assembled.get("events") or [],
         applicable_rules=assembled.get("rules") or [],
+        applicable_policies=policy_dicts_for_intent(resolved),
         retrieved_evidence=assembled.get("retrieved_evidence") or [],
         provenance={
             "tool": "assemble_context",
@@ -116,6 +118,7 @@ def assemble_context(
             "source_tools": assembled.get("source_tools", []),
             "source_relations": assembled.get("source_relations", []),
             "metric_names": sorted(assembled.get("metrics") or {}),
+            "policy_ids": [p["id"] for p in policy_dicts_for_intent(resolved)],
             "notes": notes,
         },
         missing_context=sufficiency.missing,

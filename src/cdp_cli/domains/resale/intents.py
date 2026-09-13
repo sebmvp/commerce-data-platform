@@ -85,6 +85,10 @@ def resolve_intent(question: str, intent: str | None = None) -> str:
         return "reprice_item"
     if "why" in text and ("attention" in text or "recommend" in text or "queue" in text):
         return "explain_attention"
+    if "unlisted" in text or "how many items" in text:
+        return "focus_today"
+    if ("what should i do about" in text or "what should i do" in text) and _SKU_RE.search(text):
+        return "explain_attention"
     if "focus" in text or "today" in text or "what should i" in text:
         return "focus_today"
     if "history" in text or "what happened" in text:

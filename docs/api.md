@@ -18,10 +18,12 @@ View-backed routes read SQL. `/business/*`, `/context`, and `/ingest/trust` call
 | GET | `/ingest/runs?limit=N` | `core.v_ingest_health` |
 | GET | `/ingest/trust` | `observability.trust_report` |
 | GET | `/context?question=&intent=&sku=` | `assemble_context` (question or intent required) |
-| POST | `/answer` | `ground_answer` (plan + exact bundle + grounding) |
+| POST | `/answer` | Analyst Agent (plan + tools + exact bundle + grounding) |
 | GET | `/eval` | gold context-assembly eval |
 | GET | `/eval/compare` | engine vs lexical baseline |
 | GET | `/eval/answers` | FakeProvider grounded-answer contract |
+| GET | `/eval/plan` | question/tool planning |
+| GET | `/eval/analyst` | Analyst Agent task success |
 | GET | `/business/snapshot` | `get_business_snapshot` |
 | GET | `/business/attention?limit=N` | `get_inventory_attention_queue` |
 | GET | `/business/metrics?name=` | metric registry / `explain_metric` |

@@ -27,9 +27,14 @@ flowchart TD
   bundle --> mcp[MCP]
   bundle --> cli[CLI]
   api --> ui[React operator UI]
-  api --> llm[Grounded LLM]
-  llm --> api
-  api --> ui
+  api --> analyst[Analyst Agent]
+  analyst --> gateway[ModelGateway]
+  gateway --> fake[fake]
+  gateway --> oai[openai_compatible]
+  oai --> ollama[Ollama]
+  oai --> vllm[vLLM]
+  oai --> xai[xAI / compatible]
+  analyst --> api
   ui --> human[Human-approved actions]
 ```
 
@@ -148,15 +153,17 @@ public JSONL worlds (demo / held-out) from synthetic/resale/
         → PostgreSQL
         → domain services + context engine
         → CLI / FastAPI / MCP / React operator workspace
-        → POST /answer (plan + exact ContextBundle + grounding)
+        → POST /answer (Analyst: registered tools + exact ContextBundle + grounding)
         → human-approved sandbox action → listing_events / item_events
         → recent_changes diffs live projection vs reconstructed prior snapshot
-        → grounded-answer eval on the same ids (FakeProvider copilot contract)
+        → eval layers: assembly / planning / grounding / analyst (FakeProvider)
+        → onboard profile/propose/review (PROPOSED contract only)
 
 NEXT
 ====
 marketplace listing/order/engagement adapters when those files exist
 Redis only if evaluation/model runs become async jobs
+operator-defined numeric pricing policy (not invented here)
 ```
 
 ## Technology decisions
@@ -171,7 +178,7 @@ Redis only if evaluation/model runs become async jobs
 | dbt / Polars / Neo4j / Kafka / Spark / Airflow / K8s | **NOT ADOPTED** | No capability they uniquely unlock here |
 | MCP | **CURRENT** | Typed tools over shared services |
 | React/TS | **CURRENT** | Operator UI + Context Inspector |
-| LLM copilot | **CURRENT** | FakeProvider default; env provider when keyed; fail-closed grounding; POST /answer |
+| LLM copilot | **CURRENT** | ModelGateway: fake default; openai_compatible for Ollama/vLLM/xAI; fail-closed grounding; Analyst Agent; onboarding proposals |
 | Lexical retrieval baseline | **CURRENT (eval)** | TF-IDF vs gold ids. Not the architecture. Not RAG. |
 
 ## ContextBundle
@@ -179,8 +186,9 @@ Redis only if evaluation/model runs become async jobs
 `assemble_context(question, as_of?, domain?) → ContextBundle`
 
 Fields: question, intent, as_of, objects, relationships, facts, metrics,
-events, applicable_rules, retrieved_evidence, provenance, missing_context,
-sufficient, why, requirements.
+events, applicable_rules, applicable_policies, retrieved_evidence,
+provenance, missing_context, sufficient, why, requirements,
+evidence_units / evidence_catalog.
 
 `sufficient` is true only when every required concept for the intent is
 present. It is not a numeric confidence.
@@ -194,4 +202,6 @@ Both score the engine, not an LLM.
 `cdp eval --compare` / `GET /eval/compare` scores a lexical TF-IDF
 baseline on the same ids. Call it lexical retrieval, not RAG.
 `cdp eval --answers` / `GET /eval/answers` scores the grounded copilot
-contract (FakeProvider) on those ids. CI fails on engine FAIL or SKIP.
+contract (FakeProvider) on those ids. `cdp eval --plan` and
+`cdp eval --analyst` are separate layers. CI fails on engine FAIL or SKIP.
+See docs/ai.md.

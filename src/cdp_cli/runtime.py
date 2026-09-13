@@ -52,6 +52,19 @@ def world_kind() -> str:
 def runtime_info() -> dict:
     meta = world_meta()
     kind = world_kind()
+    model: dict = {
+        "provider": "fake",
+        "kind": "fake",
+        "model": "fake",
+        "real": False,
+        "auth_configured": False,
+    }
+    try:
+        from .llm.gateway import load_model_config
+
+        model = load_model_config().public_dict()
+    except ValueError as exc:
+        model["config_error"] = str(exc)
     return {
         "environment": kind,
         "world_name": meta.get("name") or kind,
@@ -59,4 +72,5 @@ def runtime_info() -> dict:
         "purpose": meta.get("purpose"),
         "synthetic": kind != "private",
         "database": _safe_url(db.database_url()),
+        "model": model,
     }

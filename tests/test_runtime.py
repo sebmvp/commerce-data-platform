@@ -36,6 +36,8 @@ def test_runtime_info_redacts_password(monkeypatch):
     info = runtime_info()
     assert info["environment"] == "demo"
     assert info["synthetic"] is True
+    assert info["model"]["provider"] == "fake"
+    assert info["model"]["real"] is False
     db = str(info.get("database") or "")
     if ":" in db:
         assert "***" in db or "cdp" not in db.split("@")[0]

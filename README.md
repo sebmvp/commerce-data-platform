@@ -32,7 +32,8 @@ private sources (isolated)     public synthetic worlds
                          → domain services
                          → Context Engine → ContextBundle
                          → CLI / FastAPI / MCP / React
-                         → grounded answer (abstains when insufficient)
+                         → Analyst Agent (ModelGateway; abstains when insufficient)
+                         → human-approved sandbox action
 ```
 
 Resale objects (items, listings, channels, orders, engagement) plug into
@@ -76,14 +77,16 @@ questions are expected to tie; multi-hop and missing-context disclosure
 are not.
 
 `cdp eval --answers` (or `GET /eval/answers`) scores the grounded
-copilot contract on those same ids. The default FakeProvider must
-abstain when the bundle is insufficient, cite only `evidence_catalog`
-refs, and restate values that are already in the bundle. That is not
-an LLM-as-judge and not a claim about a paid model.
+copilot contract on those same ids. `cdp eval --plan` scores capability
+mapping. `cdp eval --analyst` scores the registered-tool Analyst loop.
+Those layers are reported separately. They are not an LLM-as-judge and
+not a combined accuracy number.
 
-`cdp answer` runs a thin grounded path over that bundle. The default
+`cdp answer` runs the Analyst Agent over registered read tools, then
+grounds the answer on the exact ContextBundle used. The default
 provider is fake and extractive. A real model is used only when
-`CDP_LLM_API_KEY` is set. Insufficient bundles abstain.
+`CDP_MODEL_PROVIDER=openai_compatible`. Local endpoints do not need a
+key. Insufficient bundles abstain. See [docs/ai.md](docs/ai.md).
 
 Relative phrases such as "two weeks ago" resolve against the world clock
 in `sample_data/world.json`, so next month's run matches this one.
@@ -97,6 +100,7 @@ in `sample_data/world.json`, so next month's run matches this one.
   illustrative. Private rows are never committed.
 - This is not a scale claim and not live marketplace integration.
 - Grounded answers use the ContextBundle. Default provider is fake; no keys in the repo.
+  Fake output is extractive, not model reasoning. See [docs/ai.md](docs/ai.md).
 - The published LICENSE is MIT (already on GitHub). That is not an
   invitation to treat private business data as public.
 
@@ -113,5 +117,7 @@ in `sample_data/world.json`, so next month's run matches this one.
 | Held-out eval | `evals/heldout_questions.py` |
 | Lexical baseline | `evals/lexical_baseline.py` |
 | Answer eval | `evals/answer_eval.py` |
+| Plan / analyst eval | `evals/plan_eval.py`, `evals/analyst_eval.py` |
+| AI runtime | [docs/ai.md](docs/ai.md) |
 | Inspector | `web/` |
 | Detail | [ARCHITECTURE.md](ARCHITECTURE.md) · [DEVELOPER.md](DEVELOPER.md) · [docs/DEMO.md](docs/DEMO.md) |

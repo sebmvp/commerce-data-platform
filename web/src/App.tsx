@@ -4,6 +4,8 @@ import {
   getCompleteness,
   getEval,
   getEvalAnswers,
+  getEvalAnalyst,
+  getEvalPlan,
   getEvalCompare,
   getIngestRuns,
   getIngestTrust,
@@ -28,6 +30,8 @@ export default function App() {
   const [evalReport, setEvalReport] = useState<any>(null);
   const [compare, setCompare] = useState<any>(null);
   const [answers, setAnswers] = useState<any>(null);
+  const [planEval, setPlanEval] = useState<any>(null);
+  const [analystEval, setAnalystEval] = useState<any>(null);
   const [sku, setSku] = useState("j4-military-s");
   const [item, setItem] = useState<any>(null);
   const [history, setHistory] = useState<any>(null);
@@ -62,10 +66,18 @@ export default function App() {
     setBusy(true);
     setError(null);
     try {
-      const [engine, cmp, ans] = await Promise.all([getEval(), getEvalCompare(), getEvalAnswers()]);
+      const [engine, cmp, ans, plan, analyst] = await Promise.all([
+        getEval(),
+        getEvalCompare(),
+        getEvalAnswers(),
+        getEvalPlan(),
+        getEvalAnalyst(),
+      ]);
       setEvalReport(engine);
       setCompare(cmp);
       setAnswers(ans);
+      setPlanEval(plan);
+      setAnalystEval(analyst);
     } catch (err) {
       setError(String(err));
     } finally {
@@ -138,6 +150,14 @@ export default function App() {
   }
 
   const env = runtime?.environment || "demo";
+  const model = runtime?.model;
+  const modelKind = model?.kind || "fake";
+  const modelLabel =
+    modelKind === "fake"
+      ? `Fake / Test · ${model?.model || "fake"}`
+      : modelKind === "local"
+        ? `Local · ${model?.model || "local"}`
+        : `Remote · ${model?.model || "model"}`;
 
   return (
     <div className="app">
@@ -146,8 +166,13 @@ export default function App() {
           <h1>Commerce Data Platform</h1>
           <p className="lede">Operational workspace for resale context and sandbox decisions.</p>
         </div>
-        <div className={`env-badge env-${env}`} data-testid="environment">
-          {env === "private" ? "PRIVATE · LOCAL" : env === "heldout" ? "HELD OUT · EVALUATION" : "DEMO · SYNTHETIC"}
+        <div className="badges">
+          <div className={`env-badge env-${env}`} data-testid="environment">
+            {env === "private" ? "PRIVATE · LOCAL" : env === "heldout" ? "HELD OUT · EVALUATION" : "DEMO · SYNTHETIC"}
+          </div>
+          <div className={`env-badge model-${modelKind}`} data-testid="model-status" title={model?.real ? "Configured model" : "Not a real model"}>
+            {modelLabel}
+          </div>
         </div>
       </header>
       <div className="tabs">
@@ -198,6 +223,8 @@ export default function App() {
           evalReport={evalReport}
           compare={compare}
           answers={answers}
+          planEval={planEval}
+          analystEval={analystEval}
           busy={busy}
           onRerun={() => void runEval()}
           onOpenQuestion={(q) => { setQuestion(q); setTab("context"); void runQuestion(q); }}

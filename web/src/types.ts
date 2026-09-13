@@ -42,6 +42,7 @@ export interface ContextBundle {
   metrics: Record<string, unknown>;
   events: ContextEvent[];
   applicable_rules: Array<Record<string, unknown>>;
+  applicable_policies?: Array<Record<string, unknown>>;
   retrieved_evidence: Array<Record<string, unknown>>;
   provenance: Record<string, unknown>;
   missing_context: MissingContext[];
@@ -57,6 +58,14 @@ export interface RuntimeInfo {
   purpose?: string;
   synthetic: boolean;
   database?: string;
+  model?: {
+    provider: string;
+    kind: "fake" | "local" | "remote";
+    model: string;
+    real?: boolean;
+    auth_configured?: boolean;
+    base_url?: string | null;
+  };
 }
 
 export interface InventoryRow {

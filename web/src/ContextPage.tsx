@@ -49,7 +49,7 @@ export function ContextPage({
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Ask an operational question"
         />
-        <button type="submit" disabled={busy}>Assemble</button>
+        <button type="submit" disabled={busy}>Ask Analyst</button>
       </form>
       <div className="samples">
         {SAMPLES.map((s) => (
@@ -72,8 +72,28 @@ export function ContextPage({
             <p className="banner-q" data-testid="assembled-question">{bundle.question}</p>
           </div>
           {answer && (
-            <section className={`missing-panel ${answer.abstained ? "" : "ok-panel"}`} data-testid="grounded-output">
-              <h2 data-testid="grounded-answer">{answer.abstained ? "Abstained" : "Grounded answer"}</h2>
+            <section
+              className={`missing-panel ${
+                answer.grounding_status === "grounded"
+                  ? "ok-panel"
+                  : answer.grounding_status === "invalid"
+                    ? "invalid-panel"
+                    : ""
+              }`}
+              data-testid="grounded-output"
+            >
+              <h2 data-testid="grounded-answer">
+                {answer.grounding_status === "invalid"
+                  ? "INVALID MODEL OUTPUT"
+                  : answer.abstained
+                    ? "ABSTAINED"
+                    : "ANSWERED"}
+              </h2>
+              {answer.provider === "fake" && (
+                <p className="lede" data-testid="fake-disclaimer">
+                  Fake / Test provider. This restates bundle values; it is not model reasoning.
+                </p>
+              )}
               <p>{answer.answer}</p>
               {!!answer.caveats?.length && (
                 <p className="lede">{(answer.caveats as string[]).join(" · ")}</p>
@@ -88,7 +108,29 @@ export function ContextPage({
               {answer.grounding_status === "invalid" && (
                 <p className="err">Grounding rejected: {answer.invalid_reason}</p>
               )}
+              {!!answer.suggested_action && (
+                <p data-testid="suggested-action">
+                  Proposed action: {answer.suggested_action.action_type}
+                  {answer.suggested_action.recommendation
+                    ? ` · ${answer.suggested_action.recommendation}`
+                    : ""}
+                  {" "}(human approval required)
+                </p>
+              )}
             </section>
+          )}
+          {!!answer?.tool_trace?.length && (
+            <details className="dev-trace" data-testid="tool-trace">
+              <summary>Developer: tool execution</summary>
+              <ul>
+                {(answer.tool_trace as Array<{ summary: string }>).map((step, i) => (
+                  <li key={i}>{step.summary}</li>
+                ))}
+              </ul>
+              <p className="lede">
+                provider {answer.provider} · model {answer.model} · kind {answer.provider_kind}
+              </p>
+            </details>
           )}
           <section className="why-panel" data-testid="why">
             <h2>Why</h2>
@@ -156,6 +198,13 @@ export function ContextPage({
               {(bundle.applicable_rules || []).length
                 ? bundle.applicable_rules.map((r: any, i) => (
                     <p key={i}><strong>{r.name || "rule"}</strong> {r.definition ? `— ${r.definition}` : ""}</p>
+                  ))
+                : <p className="lede">None.</p>}
+            </Section>
+            <Section title="Applicable policies" testId="policies">
+              {((answer?.policies || bundle.applicable_policies) || []).length
+                ? ((answer?.policies || bundle.applicable_policies) as Array<Record<string, string>>).map((p) => (
+                    <p key={p.id}><strong>{p.id}:{p.version}</strong> — {p.title}</p>
                   ))
                 : <p className="lede">None.</p>}
             </Section>

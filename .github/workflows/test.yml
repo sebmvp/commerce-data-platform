@@ -57,6 +57,8 @@ jobs:
           cdp eval
           cdp eval --compare
           cdp eval --answers
+          cdp eval --plan
+          cdp eval --analyst
 
       - name: Held-out eval
         env:

@@ -65,7 +65,7 @@ test("insufficient case makes missing context obvious", async ({ page }) => {
   await page.goto("/");
   await openContext(page);
   await page.getByTestId("question-input").fill("Should I reprice stone-cargo-l?");
-  await page.getByRole("button", { name: "Assemble" }).click();
+  await page.getByRole("button", { name: "Ask Analyst" }).click();
   await expect(page.getByTestId("sufficiency")).toContainText("INSUFFICIENT");
   await expect(page.getByTestId("missing-context")).toBeVisible();
   await expect(page.getByTestId("missing-context")).toContainText("listing");
@@ -93,8 +93,8 @@ test("sandbox reprice can be proposed and approved", async ({ page }) => {
   await expect(page.getByTestId("item-timeline")).toContainText("price_change");
   await openContext(page);
   await page.getByTestId("question-input").fill("Should I reprice j4-military-s?");
-  await expect(page.getByRole("button", { name: "Assemble" })).toBeEnabled();
-  await page.getByRole("button", { name: "Assemble" }).click();
+  await expect(page.getByRole("button", { name: "Ask Analyst" })).toBeEnabled();
+  await page.getByRole("button", { name: "Ask Analyst" }).click();
   await expect(page.getByTestId("sufficiency")).toContainText("SUFFICIENT");
 });
 
@@ -112,7 +112,7 @@ test("grounded answer abstains when context is insufficient", async ({ page }) =
   await page.goto("/");
   await openContext(page);
   await page.getByTestId("question-input").fill("Should I reprice stone-cargo-l?");
-  await page.getByRole("button", { name: "Assemble" }).click();
+  await page.getByRole("button", { name: "Ask Analyst" }).click();
   await expect(page.getByTestId("sufficiency")).toContainText("INSUFFICIENT");
   await expect(page.getByTestId("grounded-output")).toContainText("ABSTAIN", { timeout: 20_000 });
 });
@@ -123,7 +123,7 @@ test("evaluation shows lexical retrieval comparison", async ({ page }) => {
   await expect(page.getByTestId("eval-summary")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("eval-compare")).toBeVisible({ timeout: 30_000 });
   await expect(page.getByTestId("eval-compare")).toContainText("Lexical retrieval");
-  await expect(page.getByTestId("eval-compare")).toContainText("Context Engine");
+  await expect(page.getByTestId("eval-compare")).toContainText("Context assembly");
 });
 
 test("temporal as-of question is sufficient", async ({ page }) => {
@@ -132,7 +132,7 @@ test("temporal as-of question is sufficient", async ({ page }) => {
   await page
     .getByTestId("question-input")
     .fill("What was the active listing state for j4-military-s two weeks ago?");
-  await page.getByRole("button", { name: "Assemble" }).click();
+  await page.getByRole("button", { name: "Ask Analyst" }).click();
   await expect(page.getByTestId("sufficiency")).toContainText("SUFFICIENT");
   await expect(page.getByTestId("facts")).toContainText("listing_as_of");
 });

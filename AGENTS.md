@@ -86,9 +86,16 @@ business sources
     → Context Engine
     → ContextBundle
     → FastAPI / MCP / CLI
-    → React operator UI + grounded LLM
+    → React operator UI + Analyst Agent (ModelGateway)
     → human-approved action
 ```
+
+Two AI roles sit on that path. They do not replace it:
+
+- **Analyst Agent** — registered read tools, fail-closed grounding, optional action proposal.
+- **Data Onboarding Agent** — profile + `PROPOSED` contract. Deterministic ingest remains canonical.
+
+See `docs/ai.md`.
 
 ## Technology responsibility
 

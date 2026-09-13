@@ -1,7 +1,6 @@
 """Local environment checks for `make doctor`."""
 from __future__ import annotations
 
-import os
 import shutil
 import socket
 import subprocess
@@ -143,11 +142,17 @@ def main() -> int:
     else:
         _opt("frontend", "web/node_modules missing (npm install in web/)")
 
-    key = os.environ.get("CDP_LLM_API_KEY")
-    if key:
-        _opt("llm", "CDP_LLM_API_KEY set (env provider available)")
-    else:
-        _opt("llm", "no key — FakeProvider; gold eval does not need a model")
+    try:
+        from .llm.gateway import load_model_config
+
+        cfg = load_model_config()
+        if cfg.provider == "fake":
+            _opt("model", "fake — extractive FakeProvider; eval does not need a model")
+        else:
+            auth = "auth configured" if cfg.api_key else "no key (ok for local)"
+            _opt("model", f"{cfg.provider} {cfg.model} ({cfg.kind}; {auth})")
+    except ValueError as exc:
+        _opt("model", f"config error: {exc}")
 
     print()
     if required:
