@@ -6,8 +6,13 @@ from datetime import datetime
 import pytest
 
 from cdp_cli import actions
-from cdp_cli.business import get_item, get_item_history, get_listing_as_of
 from cdp_cli.core import assemble_context
+from cdp_cli.domains.resale.actions import suggest_reprice
+from cdp_cli.domains.resale.services import (
+    get_item,
+    get_item_history,
+    get_listing_as_of,
+)
 
 
 def _seed_listed_item(con, sku: str = "reprice-loop-s", price: float = 145.0) -> None:
@@ -123,7 +128,7 @@ def test_reject_does_not_mutate(warehouse):
 
 def test_suggest_reprice_does_not_invent_a_markdown(warehouse):
     _seed_listed_item(warehouse, sku="review-s", price=200.0)
-    suggestion = actions.suggest_reprice(warehouse, "review-s")
+    suggestion = suggest_reprice(warehouse, "review-s")
     assert suggestion["requires_operator_price"] is True
     assert "new_price_usd" not in suggestion["payload"]
     assert suggestion["payload"]["previous_price_usd"] == 200.0

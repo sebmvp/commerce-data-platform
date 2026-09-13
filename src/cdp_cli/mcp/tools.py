@@ -10,17 +10,9 @@ from typing import Any
 
 from .. import actions as act
 from .. import db
-from .. import metrics as metrics_mod
-from ..business import (
-    explain_metric,
-    get_business_snapshot,
-    get_channel_as_of,
-    get_ingest_health,
-    get_inventory_attention_queue,
-    get_item,
-    get_item_history,
-)
 from ..core import assemble_context
+from ..domains.resale import services as biz
+from ..domains.resale.metrics import metric_catalog
 
 # Names an agent host might try. They are not registered and call_read_tool
 # rejects them so a later copilot cannot approve through this adapter.
@@ -68,38 +60,38 @@ def _assemble_context(
 
 
 def _snapshot() -> dict[str, Any]:
-    return _with_warehouse(lambda con: get_business_snapshot(con).to_dict())
+    return _with_warehouse(lambda con: biz.get_business_snapshot(con).to_dict())
 
 
 def _attention(*, limit: int = 25) -> dict[str, Any]:
     return _with_warehouse(
-        lambda con: get_inventory_attention_queue(con, limit=limit).to_dict()
+        lambda con: biz.get_inventory_attention_queue(con, limit=limit).to_dict()
     )
 
 
 def _health() -> dict[str, Any]:
-    return _with_warehouse(lambda con: get_ingest_health(con).to_dict())
+    return _with_warehouse(lambda con: biz.get_ingest_health(con).to_dict())
 
 
 def _explain_metric(*, name: str | None = None) -> dict[str, Any]:
     if name:
-        return explain_metric(name).to_dict()
+        return biz.explain_metric(name).to_dict()
     return {
         "kind": "fact",
-        "data": metrics_mod.metric_catalog(),
+        "data": metric_catalog(),
         "provenance": {
             "tool": "metric_catalog",
-            "source_relations": ["cdp_cli.metrics.METRICS"],
+            "source_relations": ["cdp_cli.domains.resale.metrics.METRICS"],
         },
     }
 
 
 def _item(*, sku: str) -> dict[str, Any]:
-    return _with_warehouse(lambda con: get_item(con, sku).to_dict())
+    return _with_warehouse(lambda con: biz.get_item(con, sku).to_dict())
 
 
 def _item_history(*, sku: str) -> dict[str, Any]:
-    return _with_warehouse(lambda con: get_item_history(con, sku).to_dict())
+    return _with_warehouse(lambda con: biz.get_item_history(con, sku).to_dict())
 
 
 def _channel(
@@ -109,7 +101,7 @@ def _channel(
     handle: str | None = None,
 ) -> dict[str, Any]:
     return _with_warehouse(
-        lambda con: get_channel_as_of(
+        lambda con: biz.get_channel_as_of(
             con, platform, as_of=as_of, handle=handle
         ).to_dict()
     )

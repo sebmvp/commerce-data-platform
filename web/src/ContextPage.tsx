@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { RelationshipMap } from "./RelationshipMap";
-import type { ContextBundle, ContextObject } from "./types";
+import type {
+  AnalystResponse,
+  ContextBundle,
+  ContextObject,
+  EvidenceUnit,
+} from "./types";
 import { Field, itemLabel, Section } from "./ui";
 
 const SAMPLES = [
@@ -10,6 +15,28 @@ const SAMPLES = [
   "Which listings have strong attention but weak offer conversion?",
   "What should I focus on today?",
 ];
+
+function formatEvidenceValue(value: unknown): string | null {
+  if (value == null || value === "") return null;
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  if (typeof value === "number") {
+    if (value > 0 && value < 1) return `${(value * 100).toFixed(1)}%`;
+    return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  }
+  if (typeof value === "object") return null;
+  return String(value);
+}
+
+function citedUnits(answer: AnalystResponse | null, bundle: ContextBundle | null): EvidenceUnit[] {
+  const units = [
+    ...(answer?.evidence?.evidence_units || []),
+    ...(bundle?.evidence_units || []),
+  ];
+  const byRef = new Map(units.map((unit) => [unit.ref, unit]));
+  return (answer?.evidence_refs || []).map(
+    (ref) => byRef.get(ref) || { ref, kind: "unknown", label: ref },
+  );
+}
 
 export function ContextPage({
   question,
@@ -23,7 +50,7 @@ export function ContextPage({
   question: string;
   setQuestion: (q: string) => void;
   bundle: ContextBundle | null;
-  answer: any;
+  answer: AnalystResponse | null;
   busy: boolean;
   onAsk: (q: string) => void;
   onOpenObject: (obj: ContextObject) => void;
@@ -33,6 +60,8 @@ export function ContextPage({
   const facts = bundle?.facts ?? {};
   const provenance = bundle?.provenance || {};
   const requirements = bundle?.requirements || [];
+  const fake = answer?.provider === "fake" || answer?.provider_kind === "fake";
+  const cited = citedUnits(answer, bundle);
 
   return (
     <>
@@ -89,20 +118,41 @@ export function ContextPage({
                     ? "ABSTAINED"
                     : "ANSWERED"}
               </h2>
-              {answer.provider === "fake" && (
+              {fake && (
                 <p className="lede" data-testid="fake-disclaimer">
-                  Fake / Test provider. This restates bundle values; it is not model reasoning.
+                  TEST PROVIDER. Deterministic context and evidence below are the product.
+                  The restatement is not model reasoning.
                 </p>
               )}
-              <p>{answer.answer}</p>
-              {!!answer.caveats?.length && (
-                <p className="lede">{(answer.caveats as string[]).join(" · ")}</p>
+              {fake ? (
+                <details className="fake-answer">
+                  <summary>Test provider restatement</summary>
+                  <p>{answer.answer}</p>
+                </details>
+              ) : (
+                <p>{answer.answer}</p>
               )}
-              {!!answer.evidence_refs?.length && (
-                <ul className="req-list" data-testid="cited-evidence">
-                  {answer.evidence_refs.map((ref: string) => (
-                    <li key={ref} className="pass">{ref}</li>
-                  ))}
+              {!!answer.caveats?.length && (
+                <p className="lede">{answer.caveats.join(" · ")}</p>
+              )}
+              {cited.length > 0 && (
+                <ul className="evidence-list" data-testid="cited-evidence">
+                  {cited.map((unit) => {
+                    const value = formatEvidenceValue(unit.value);
+                    return (
+                      <li key={unit.ref} className="pass">
+                        <strong>{unit.label}</strong>
+                        {value ? <span> {value}</span> : null}
+                        {unit.object_ref ? <span className="dim"> · {unit.object_ref}</span> : null}
+                        <details className="raw-ref">
+                          <summary>Details</summary>
+                          <span className="mono">{unit.ref}</span>
+                          {unit.kind ? <span className="dim"> · {unit.kind}</span> : null}
+                          {unit.provenance ? <span className="dim"> · {unit.provenance}</span> : null}
+                        </details>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
               {answer.grounding_status === "invalid" && (
@@ -123,7 +173,7 @@ export function ContextPage({
             <details className="dev-trace" data-testid="tool-trace">
               <summary>Developer: tool execution</summary>
               <ul>
-                {(answer.tool_trace as Array<{ summary: string }>).map((step, i) => (
+                {answer.tool_trace.map((step, i) => (
                   <li key={i}>{step.summary}</li>
                 ))}
               </ul>
@@ -157,7 +207,7 @@ export function ContextPage({
               </ul>
             </section>
           )}
-          <div className="grid">
+          <div className="grid context-grid">
             <Section title="Business objects" testId="objects">
               {objects.length ? objects.map((o) => (
                 <div key={o.type + o.id} className="row">
@@ -175,7 +225,8 @@ export function ContextPage({
               {Object.keys(facts).length ? Object.entries(facts).map(([k, v]) => {
                 if (v != null && typeof v === "object") {
                   if (k === "listing_as_of") {
-                    return <Field key={k} label="listing_as_of" value={(v as any).covered ? "covered" : "not covered"} />;
+                    const covered = (v as { covered?: boolean }).covered;
+                    return <Field key={k} label="listing_as_of" value={covered ? "covered" : "not covered"} />;
                   }
                   return null;
                 }
@@ -196,22 +247,24 @@ export function ContextPage({
             </Section>
             <Section title="Rules" testId="rules">
               {(bundle.applicable_rules || []).length
-                ? bundle.applicable_rules.map((r: any, i) => (
-                    <p key={i}><strong>{r.name || "rule"}</strong> {r.definition ? `— ${r.definition}` : ""}</p>
+                ? bundle.applicable_rules.map((r, i) => (
+                    <p key={i}><strong>{String(r.name || "rule")}</strong> {r.definition ? `— ${String(r.definition)}` : ""}</p>
                   ))
                 : <p className="lede">None.</p>}
             </Section>
             <Section title="Applicable policies" testId="policies">
               {((answer?.policies || bundle.applicable_policies) || []).length
-                ? ((answer?.policies || bundle.applicable_policies) as Array<Record<string, string>>).map((p) => (
-                    <p key={p.id}><strong>{p.id}:{p.version}</strong> — {p.title}</p>
+                ? ((answer?.policies || bundle.applicable_policies) || []).map((p) => (
+                    <p key={`${p.id}:${p.version}`}><strong>{p.id}:{p.version}</strong> — {p.title}</p>
                   ))
                 : <p className="lede">None.</p>}
             </Section>
             <Section title="Unstructured evidence" testId="evidence">
               {bundle.retrieved_evidence?.length
-                ? bundle.retrieved_evidence.map((ev: any) => (
-                    <p key={ev.note_id || ev.title}><strong>{ev.title || ev.kind}</strong> — {ev.body}</p>
+                ? bundle.retrieved_evidence.map((ev) => (
+                    <p key={String(ev.note_id || ev.title)}>
+                      <strong>{String(ev.title || ev.kind)}</strong> — {String(ev.body || "")}
+                    </p>
                   ))
                 : <p className="lede">None for this question.</p>}
             </Section>

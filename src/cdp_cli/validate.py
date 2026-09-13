@@ -92,28 +92,6 @@ class OrderRecord(BaseModel):
     order_at: datetime
 
 
-class ContentRecord(BaseModel):
-    content_id: str
-    item_sku: str | None = None
-    body: str = Field(min_length=1)
-    tone: Literal["urgent", "storyteller", "minimal", "hype", "informative"]
-    cta: str | None = None
-    hooks: list[str] = Field(default_factory=list)
-    status: Literal["draft", "published", "retired"] = "draft"
-    published_at: datetime | None = None
-    platform: str | None = None
-
-
-class ContentEngagementRecord(BaseModel):
-    content_id: str
-    observed_at: datetime
-    window_hours: int = Field(default=48, ge=1)
-    impressions: int = Field(ge=0)
-    saves: int = Field(default=0, ge=0)
-    inquiries: int = Field(default=0, ge=0)
-    conversions: int = Field(default=0, ge=0)
-
-
 class PurchaseOrderRecord(BaseModel):
     order_id: str
     supplier: str

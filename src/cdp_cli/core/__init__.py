@@ -1,6 +1,6 @@
 """Reusable context infrastructure. Verticals live under cdp_cli.domains."""
 
-from .domain import Domain, get_active_domain, register_domain
+from .domain import Domain, ReadToolSpec, get_active_domain, register_domain
 from .engine import assemble_context, evaluate_sufficiency
 from .model import (
     ContextBundle,
@@ -26,6 +26,7 @@ __all__ = [
     "EvidenceUnit",
     "MissingContext",
     "QuestionPlan",
+    "ReadToolSpec",
     "SufficiencyResult",
     "assemble_context",
     "evaluate_sufficiency",

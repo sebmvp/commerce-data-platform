@@ -11,13 +11,13 @@ from __future__ import annotations
 
 from datetime import timedelta
 
-from cdp_cli import metrics
-from cdp_cli.business import (
+from cdp_cli.clock import reference_now
+from cdp_cli.domains.resale import metrics
+from cdp_cli.domains.resale.services import (
     ACTION_FOR_REASON,
     action_for_reason,
     get_inventory_attention_queue,
 )
-from cdp_cli.clock import reference_now
 
 # SKUs are the eval IDs. Keep them stable; tests assert on these names.
 CAPITAL_HIGH = "eval-capital-high"

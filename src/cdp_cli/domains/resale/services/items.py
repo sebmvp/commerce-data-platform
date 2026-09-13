@@ -25,15 +25,11 @@ def _require_item(con: Connection, sku: str) -> dict[str, Any]:
             min(e.event_at) FILTER (WHERE e.event_type = 'ordered'),
             i.created_at
           ) AS acquired_at,
-          date_diff(
-            'day',
-            coalesce(
+          (CAST(? AS date) - coalesce(
               min(e.event_at) FILTER (WHERE e.event_type = 'received'),
               min(e.event_at) FILTER (WHERE e.event_type = 'ordered'),
               i.created_at
-            ),
-            CAST(? AS timestamp)
-          ) AS inventory_age_days
+            )::date) AS inventory_age_days
         FROM catalog.items i
         LEFT JOIN catalog.item_events e ON e.item_id = i.item_id
         WHERE i.sku = ?
@@ -58,7 +54,7 @@ def _item_listings(con: Connection, item_id: str) -> list[dict[str, Any]]:
           l.sold_price_usd, l.platform_url,
           ch.platform, ch.handle,
           CASE WHEN l.listed_at IS NULL THEN NULL
-               ELSE date_diff('day', l.listed_at, CAST(? AS timestamp))
+               ELSE (CAST(? AS date) - l.listed_at::date)
           END AS listing_age_days,
           coalesce(sum(em.views), 0) AS views,
           coalesce(sum(em.watchers), 0) AS watchers,

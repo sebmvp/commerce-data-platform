@@ -6,7 +6,7 @@ cdp serve
 # http://127.0.0.1:8000/docs
 ```
 
-View-backed routes read SQL. `/business/*`, `/context`, and `/ingest/trust` call the same Python tools as the CLI. Item routes retrieve a business object, not a table dump.
+View-backed routes are a thin resale read model. `/business/*`, `/context`, `/answer`, and `/ingest/trust` call domain services / the Analyst. They do not reimplement business rules.
 
 | Method | Path | Source |
 |---|---|---|
@@ -14,7 +14,6 @@ View-backed routes read SQL. `/business/*`, `/context`, and `/ingest/trust` call
 | GET | `/inventory/summary` | `catalog.v_inventory_summary` |
 | GET | `/inventory/unlisted?limit=N` | `catalog.v_unlisted_queue` |
 | GET | `/listings/performance?platform=X` | `sales.v_listing_performance` |
-| GET | `/insights/voice-profiles` | current `insights.voice_profile` |
 | GET | `/ingest/runs?limit=N` | `core.v_ingest_health` |
 | GET | `/ingest/trust` | `observability.trust_report` |
 | GET | `/context?question=&intent=&sku=` | `assemble_context` (question or intent required) |

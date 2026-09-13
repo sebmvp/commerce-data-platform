@@ -32,14 +32,3 @@ Views decay ~10%/day after listing (`0.9^day × jitter`) — recency
 matters on marketplace pages, early views are a large fraction of total.
 
 Watch rate 5–20% of views; offers are much rarer (0–5% of views).
-
-## Content tones & conversion
-Deliberately separated: `storyteller` content gets the highest
-engagement-to-inquiry rate because detailed sizing/tooling/provenance
-information reduces pre-sale anxiety on high-ticket resale. `hype` wins
-raw impressions but converts worse — measurable in
-`insights.v_content_effectiveness`.
-
-## Content snapshot window
-48 hours: long enough that algorithmic boosts have stabilized, short
-enough to still be "about this drop."

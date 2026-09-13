@@ -6,7 +6,6 @@ from pydantic import ValidationError
 
 from cdp_cli.validate import (
     ChannelRecord,
-    ContentRecord,
     EngagementRecord,
     ItemRecord,
     ListingRecord,
@@ -44,12 +43,6 @@ def test_listing_sold_requires_sold_price():
 def test_channel_valid():
     rec = ChannelRecord(platform="grailed", handle="h", valid_from="2025-01-01T00:00:00")
     assert rec.standing == "active"
-
-
-def test_content_valid():
-    rec = ContentRecord(content_id="p1", body="here", tone="minimal", status="published",
-                        published_at="2026-05-01T00:00:00")
-    assert rec.tone == "minimal"
 
 
 def test_engagement_non_negative():

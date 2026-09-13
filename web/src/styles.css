@@ -21,7 +21,7 @@ body {
   font: 14px/1.45 ui-sans-serif, system-ui, sans-serif;
 }
 
-.app { max-width: 1180px; padding: 28px 32px 80px; }
+.app { max-width: 1280px; width: 100%; padding: 24px 32px 80px; }
 .shell { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; }
 .env-badge {
   font-size: 11px;
@@ -172,6 +172,17 @@ h2.object-name {
 .missing-panel span { color: var(--fg); margin-left: 8px; }
 
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.overview-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(280px, 0.9fr);
+  gap: 12px;
+  align-items: start;
+}
+.overview-side { display: grid; gap: 12px; }
+.evidence-list { margin: 8px 0 0; padding-left: 18px; }
+.evidence-list li { margin: 6px 0; }
+.raw-ref, .fake-answer { margin-top: 4px; color: var(--muted); }
+.raw-ref summary, .fake-answer summary { cursor: pointer; font-size: 12px; }
 .card {
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -227,7 +238,7 @@ h2.object-name {
 .req-list li { margin: 4px 0; font-variant: small-caps; letter-spacing: 0.04em; }
 
 @media (max-width: 720px) {
-  .grid { grid-template-columns: 1fr; }
+  .grid, .overview-layout { grid-template-columns: 1fr; }
   .banner { flex-direction: column; align-items: flex-start; }
   .banner-q { text-align: left; }
   .field { grid-template-columns: 1fr; }

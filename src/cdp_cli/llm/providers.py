@@ -35,8 +35,6 @@ def _scalar_lines(mapping: dict[str, Any] | None, kind: str, *, limit: int = 12)
     def consider(key: str, value: Any) -> None:
         if len(lines) >= limit:
             return
-        if "margin" in key.lower():
-            return
         if isinstance(value, bool):
             lines.append(f"{kind} {key}: {'true' if value else 'false'}")
         elif isinstance(value, (int, float)) or (isinstance(value, str) and value.strip()):
@@ -151,15 +149,12 @@ class FakeProvider:
         if "registered_tools:" in prompt:
             return json.dumps({"action": "finish", "tools": []})
         if "capabilities:" in prompt and "schema:" in prompt:
-            return json.dumps({"capability": "item_state", "subject": None})
+            return json.dumps({"capability": "unsupported", "subject": None})
         first = prompt.splitlines()[0] if prompt else ""
         if first.upper().startswith("SUFFICIENT: FALSE"):
             return json.dumps(
                 {
-                    "answer": (
-                        "ABSTAIN: required context is missing. "
-                        "Do not invent a listing, price, or market."
-                    ),
+                    "answer": "ABSTAIN: required context is missing.",
                     "abstained": True,
                     "evidence_refs": [],
                     "caveats": ["required evidence is missing"],
@@ -285,12 +280,6 @@ class OpenAICompatibleProvider:
 
 def _safe_http_error(exc: urllib.error.HTTPError) -> RuntimeError:
     return RuntimeError(f"provider HTTP {exc.code}")
-
-
-class EnvProvider(OpenAICompatibleProvider):
-    """Backward-compatible alias. Prefer OpenAICompatibleProvider."""
-
-    name = "env"
 
 
 def extractive_from_bundle(bundle: ContextBundle) -> dict[str, Any]:

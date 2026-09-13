@@ -6,7 +6,7 @@ import json
 from cdp_cli import db
 from cdp_cli.ingest import ALL_JOBS
 from cdp_cli.llm import FakeProvider, ScriptedProvider, run_analyst
-from cdp_cli.llm.analyst import MAX_ITERATIONS, REGISTERED_TOOLS
+from cdp_cli.llm.analyst import MAX_ITERATIONS, registered_tools
 
 
 def _build(con):
@@ -15,8 +15,8 @@ def _build(con):
 
 
 def test_registered_tools_are_read_only() -> None:
-    assert "sql" not in REGISTERED_TOOLS
-    assert "python" not in REGISTERED_TOOLS
+    assert "sql" not in registered_tools()
+    assert "python" not in registered_tools()
     assert MAX_ITERATIONS <= 5
 
 

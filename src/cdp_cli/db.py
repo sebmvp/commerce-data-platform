@@ -19,7 +19,7 @@ import psycopg
 DEFAULT_URL = "postgresql://cdp:cdp@127.0.0.1:5432/cdp"
 TEST_URL = "postgresql://cdp:cdp@127.0.0.1:5432/cdp_test"
 DEMO_URL = "postgresql://cdp:cdp@127.0.0.1:5432/cdp_demo"
-SCHEMAS = ("core", "catalog", "supply", "sales", "insights", "ops")
+SCHEMAS = ("core", "catalog", "supply", "sales", "ops")
 
 
 def project_root() -> Path:
@@ -252,7 +252,7 @@ def table_counts(con: Connection) -> list[tuple[str, str, int]]:
         """
         SELECT table_schema, table_name
         FROM information_schema.tables
-        WHERE table_schema IN ('core','catalog','supply','sales','insights','ops')
+        WHERE table_schema IN ('core','catalog','supply','sales','ops')
           AND table_type = 'BASE TABLE'
         ORDER BY 1, 2
         """

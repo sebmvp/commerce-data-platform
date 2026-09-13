@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 
 from cdp_cli import db
-from cdp_cli.business import get_item, get_item_history
+from cdp_cli.domains.resale.services import get_item, get_item_history
 from cdp_cli.ingest import ALL_JOBS
 
 

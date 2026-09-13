@@ -22,14 +22,3 @@ def test_full_build_loads_all_sources(warehouse):
     assert notes >= 4
     (channels,) = warehouse.execute("SELECT count(*) FROM core.channels").fetchone()
     assert channels == 3
-
-
-def test_voice_profiles_derived(warehouse):
-    for job_cls in ALL_JOBS:
-        job_cls(warehouse, db.data_dir()).run()
-    from cdp_cli.analytics.aggregate import refresh_voice_profiles
-    n = refresh_voice_profiles(warehouse)
-    assert n >= 1
-    (current,) = warehouse.execute(
-        "SELECT count(*) FROM insights.voice_profile WHERE is_current").fetchone()
-    assert current >= 1

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ActionPanel } from "./ActionPanel";
-import type { InventoryRow } from "./types";
+import type { InventoryRow, ItemHistory, ItemPayload } from "./types";
 import { Field, Section } from "./ui";
 
 export function InventoryPage({
@@ -20,8 +20,8 @@ export function InventoryPage({
   inventory: InventoryRow[];
   invFilter: string;
   setFilter: (v: string) => void;
-  item: any;
-  history: any;
+  item: ItemPayload | null;
+  history: ItemHistory | null;
   onLoad: (sku: string) => void;
   onReloadItem: () => void;
   onAskItem: (sku: string) => void;
@@ -91,14 +91,14 @@ export function InventoryPage({
       {item && (
         <div className="grid" data-testid="item-view">
           <Section title="Identity / current state" testId="item-state">
-            <h2 className="object-name">{itemData.product || itemData.sku}</h2>
-            <p className="lede">{itemData.status} · {itemData.sku}</p>
+            <h2 className="object-name">{String(itemData.product || itemData.sku || "")}</h2>
+            <p className="lede">{String(itemData.status || "")} · {String(itemData.sku || "")}</p>
             <Field label="acquisition CNY" value={itemData.acquisition_cost_cny} />
             <Field label="target usd" value={itemData.target_price_usd} />
             <Field label="inventory age" value={itemData.inventory_age_days} />
           </Section>
           <Section title="Listings">
-            {listings.length ? listings.map((l: any, i: number) => (
+            {listings.length ? listings.map((l, i) => (
               <div key={i} className="listing-block">
                 <Field label="platform" value={l.platform} />
                 <Field label="status" value={l.status} />
@@ -110,7 +110,7 @@ export function InventoryPage({
             )) : <p className="lede">No listings.</p>}
           </Section>
           <Section title="Orders">
-            {orders.length ? orders.map((o: any, i: number) => (
+            {orders.length ? orders.map((o, i) => (
               <div key={i}>
                 <Field label="order" value={o.order_id} />
                 <Field label="sale usd" value={o.price_usd} />
@@ -119,20 +119,20 @@ export function InventoryPage({
           </Section>
           <Section title="Timeline / history" testId="item-timeline">
             <pre className="mono">
-              {timeline.map((e: any) => `${e.at ?? "?"}  ${e.type}`).join("\n") || "—"}
+              {timeline.map((e) => `${String(e.at ?? "?")}  ${String(e.type ?? "")}`).join("\n") || "—"}
             </pre>
           </Section>
-          {itemData.sku && (
+          {itemData.sku ? (
             <>
               <button
                 className="chip"
-                onClick={() => onAskItem(itemData.sku)}
+                onClick={() => onAskItem(String(itemData.sku))}
               >
                 Ask Analyst
               </button>
-              <ActionPanel sku={itemData.sku} onApplied={onReloadItem} />
+              <ActionPanel sku={String(itemData.sku)} onApplied={onReloadItem} />
             </>
-          )}
+          ) : null}
         </div>
       )}
     </>

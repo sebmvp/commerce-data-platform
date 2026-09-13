@@ -90,6 +90,6 @@ def run_analyst_eval(
 
 
 def _allowed() -> set[str]:
-    from cdp_cli.llm.analyst import REGISTERED_TOOLS
+    from cdp_cli.llm.analyst import registered_tools
 
-    return set(REGISTERED_TOOLS)
+    return set(registered_tools())

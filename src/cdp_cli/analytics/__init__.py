@@ -1,1 +1,1 @@
-"""Derived analytics: voice profiles (aggregation) and report renderers."""
+"""Report renderers over canonical views."""

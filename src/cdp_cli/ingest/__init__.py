@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from .base import IngestJob, recover_orphaned_runs
 from .catalog import ChannelIngest, ItemEventIngest, ItemIngest
-from .insights import ContentIngest, ContentSnapshotIngest
 from .notes import NoteIngest
 from .sales import EngagementIngest, ListingEventIngest, ListingIngest, OrderIngest
 
@@ -15,8 +14,6 @@ ALL_JOBS: list[type[IngestJob]] = [
     ListingEventIngest,
     EngagementIngest,
     OrderIngest,
-    ContentIngest,
-    ContentSnapshotIngest,
     NoteIngest,
 ]
 

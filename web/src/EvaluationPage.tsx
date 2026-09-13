@@ -1,3 +1,5 @@
+import type { EvalLayerReport } from "./types";
+
 export function EvaluationPage({
   evalReport,
   compare,
@@ -8,11 +10,11 @@ export function EvaluationPage({
   onRerun,
   onOpenQuestion,
 }: {
-  evalReport: any;
-  compare: any;
-  answers: any;
-  planEval: any;
-  analystEval: any;
+  evalReport: EvalLayerReport | null;
+  compare: EvalLayerReport | null;
+  answers: EvalLayerReport | null;
+  planEval: EvalLayerReport | null;
+  analystEval: EvalLayerReport | null;
   busy: boolean;
   onRerun: () => void;
   onOpenQuestion: (q: string) => void;
@@ -38,7 +40,7 @@ export function EvaluationPage({
             <div className="compare-bar" data-testid="eval-compare">
               <div>
                 <div className="banner-kicker">Context assembly</div>
-                <div className="compare-n">{compare.engine.passed}/{compare.engine.total}</div>
+                <div className="compare-n">{compare.engine?.passed}/{compare.engine?.total}</div>
               </div>
               <div>
                 <div className="banner-kicker">Lexical retrieval</div>
@@ -70,18 +72,18 @@ export function EvaluationPage({
               </div>
             )}
           </div>
-          {evalReport.cases.map((c: any) => (
+          {(evalReport.cases || []).map((c) => (
             <div
-              key={c.id}
+              key={String(c.id)}
               className="row"
               data-testid={`eval-case-${c.id}`}
-              onClick={() => onOpenQuestion(c.question)}
+              onClick={() => onOpenQuestion(String(c.question))}
             >
               <span>
                 <span className={c.passed ? "pass" : c.skipped ? "skip" : "fail"}>
                   {c.passed ? "PASS" : c.skipped ? "SKIP" : "FAIL"}
                 </span>{" "}
-                {c.id} {c.question}
+                {String(c.id || "")} {String(c.question || "")}
               </span>
             </div>
           ))}

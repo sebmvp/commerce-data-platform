@@ -14,13 +14,13 @@ stdio is the transport. A host (Claude Desktop, Cursor, Inspector) launches `cdp
 | Tool | Source |
 |---|---|
 | `assemble_context` | context engine |
-| `get_business_snapshot` | `business.py` |
-| `get_inventory_attention_queue` | `business.py` |
-| `get_ingest_health` | `business.py` |
-| `explain_metric` | metric registry |
-| `get_item` | `business.py` |
-| `get_item_history` | `business.py` |
-| `get_channel_as_of` | `business.py` |
+| `get_business_snapshot` | `domains/resale/services` |
+| `get_inventory_attention_queue` | `domains/resale/services` |
+| `get_ingest_health` | `domains/resale/services` |
+| `explain_metric` | `domains/resale/metrics` |
+| `get_item` | `domains/resale/services` |
+| `get_item_history` | `domains/resale/services` |
+| `get_channel_as_of` | `domains/resale/services` |
 | `list_actions` | sandbox log (read) |
 
 Not registered: `propose_action`, `approve_action`, `reject_action`, `execute_action`.

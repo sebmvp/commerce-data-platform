@@ -41,21 +41,30 @@ def main() -> int:
         "Should I reprice j4-military-s?",
         "Should I reprice stone-cargo-l?",
         "What should I focus on today?",
+        "What was the active listing state for j4-military-s two weeks ago?",
+        "What do seller notes say about stone-cargo-l?",
     ]
     con = db.connect(read_only=True)
+    failed = 0
     try:
         for question in questions:
-            result = run_analyst(con, question=question, provider=provider)
             print("---")
             print(f"q         {question}")
+            try:
+                result = run_analyst(con, question=question, provider=provider)
+            except Exception as exc:
+                failed += 1
+                print(f"status    provider_error {type(exc).__name__}: {exc}")
+                continue
             print(f"status    {result.get('grounding_status')}")
             print(f"plan      {result.get('plan')}")
             print(f"tools     {[t.get('summary') for t in result.get('tool_trace') or []]}")
-            print(f"answer    {str(result.get('answer') or '')[:240]}")
-    except Exception as exc:
-        print(f"smoke failed: {type(exc).__name__}: {exc}")
-        return 1
+            print(f"sufficient {result.get('sufficient')}")
+            print(f"citations {result.get('evidence_refs')}")
+            print(f"answer    {str(result.get('answer') or '')[:180]}")
     finally:
         con.close()
-    print("ai-smoke ok (no business state mutated)")
+    print("ai-smoke finished (no business state mutated)")
+    if failed:
+        print(f"provider errors: {failed}/{len(questions)} (fail-closed; not CI)")
     return 0

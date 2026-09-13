@@ -52,6 +52,7 @@ CDP_MODEL_API_KEY=          # optional for local endpoints
 CDP_MODEL_TIMEOUT=30
 CDP_MODEL_TEMPERATURE=0
 CDP_MODEL_MAX_TOKENS=
+CDP_MODEL_JSON_MODE=0     # opt-in; not assumed for local models
 ```
 
 Local endpoints do not require a key. Keys are never logged.
@@ -75,7 +76,8 @@ fake provider and refuses a remote endpoint with no key.
 
 ## Analyst Agent
 
-Bounded loop (max 4 iterations) over **registered read tools**:
+Bounded loop (max 4 iterations) over **read tools registered by the
+active domain**. The generic loop does not know resale vocabulary.
 
 - business snapshot
 - attention queue

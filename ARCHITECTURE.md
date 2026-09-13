@@ -14,28 +14,24 @@ businesses.
 
 ```mermaid
 flowchart TD
-  sources[Business sources] --> adapters[Source adapters]
-  synth[Public synthetic worlds] --> adapters
-  adapters --> pg[(PostgreSQL canonical store)]
-  pg --> services[Domain services]
-  services --> structured[Structured context]
-  services --> search[Unstructured evidence]
-  structured --> engine[Context Engine]
-  search --> engine
-  engine --> bundle[ContextBundle]
-  bundle --> api[FastAPI]
-  bundle --> mcp[MCP]
-  bundle --> cli[CLI]
-  api --> ui[React operator UI]
-  api --> analyst[Analyst Agent]
-  analyst --> gateway[ModelGateway]
+  react[React] --> fastapi[FastAPI]
+  fastapi --> analyst[Analyst Agent]
+  analyst --> tools[Domain read capabilities]
+  tools --> engine[Context Engine]
+  engine --> pg[(PostgreSQL)]
+  engine --> bundle[ContextBundle + evidence]
+  bundle --> gateway[ModelGateway]
   gateway --> fake[fake]
   gateway --> oai[openai_compatible]
   oai --> ollama[Ollama]
   oai --> vllm[vLLM]
   oai --> xai[xAI / compatible]
-  analyst --> api
-  ui --> human[Human-approved actions]
+  gateway --> grounded[Validated grounded answer]
+  grounded --> fastapi
+  fastapi --> react
+  react --> human[Human-approved sandbox action]
+  human --> apply[Domain apply hook]
+  apply --> pg
 ```
 
 PostgreSQL owns structured operational truth. The engine assembles a
@@ -46,14 +42,19 @@ not reimplement domain logic.
 
 ```mermaid
 flowchart LR
-  raw[Private raw sources] --> private[(cdp_private)]
-  raw --> calib[Private calibration patterns]
-  calib --> gen[Synthetic generator]
-  gen --> demo[demo world]
-  gen --> held[held-out world]
-  gen --> scale[optional scale profile]
-  demo --> public[(public demo DB)]
-  held --> helddb[(cdp_heldout)]
+  subgraph canonical [Private canonical]
+    raw[Private raw sources] --> adapter[SourceAdapter]
+    adapter --> batch[AdaptedBatch]
+    batch --> runner[Ingest runner]
+    runner --> private[(cdp_private Postgres)]
+  end
+  subgraph public [Public synthetic]
+    calib[Private aggregate calibration knowledge] --> gen[Synthetic generator]
+    gen --> demo[demo world]
+    gen --> held[held-out world]
+    demo --> publicdb[(public demo DB)]
+    held --> helddb[(cdp_heldout)]
+  end
 ```
 
 Private rows never enter git. Public worlds copy lifecycle *patterns*,
@@ -68,15 +69,20 @@ flowchart TB
     suff[Sufficiency]
     prov[Provenance]
     assemble[Generic assembly]
+    analystCore[Generic Analyst loop]
+    ground[Fail-closed grounding]
+    actions[Action state machine]
     ifaces[FastAPI / MCP / CLI]
     inspector[Generic bundle renderer]
   end
   subgraph resale [Resale vertical]
     items[Items / listings / channels]
     intents[Resale intents]
+    tools[Registered read tools]
     metrics[Resale metrics / rules]
     notesAdapter[Item-note adapters]
     views[Overview / inventory views]
+    apply[Resale action apply]
   end
   resale --> core
 ```

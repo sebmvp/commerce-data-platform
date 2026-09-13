@@ -27,8 +27,6 @@ ENTITY_ORDER = (
     "listing_event",
     "engagement",
     "order",
-    "content",
-    "content_snapshot",
     "note",
 )
 

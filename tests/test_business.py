@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import pytest
 
-from cdp_cli import db, metrics
-from cdp_cli.business import (
+from cdp_cli import db
+from cdp_cli.domains.resale import metrics
+from cdp_cli.domains.resale.services import (
     explain_metric,
     get_business_snapshot,
     get_ingest_health,

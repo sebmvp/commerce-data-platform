@@ -87,7 +87,7 @@ def _snapshot_current(con: Connection, at: datetime) -> dict[str, Any]:
           count(*) FILTER (
             WHERE status = 'active'
               AND listed_at IS NOT NULL
-              AND date_diff('day', listed_at, CAST(? AS timestamp)) >= ?
+              AND (CAST(? AS date) - listed_at::date) >= ?
           ) AS stale_active_listings
         FROM sales.listings
         """,
@@ -199,7 +199,7 @@ def _snapshot_as_of(con: Connection, at: datetime) -> dict[str, Any]:
           count(*) FILTER (
             WHERE listed_at IS NOT NULL AND listed_at <= ?
               AND (sold_at IS NULL OR sold_at > ?)
-              AND date_diff('day', listed_at, CAST(? AS timestamp)) >= ?
+              AND (CAST(? AS date) - listed_at::date) >= ?
           ) AS stale_active_listings
         FROM sales.listings
         """,

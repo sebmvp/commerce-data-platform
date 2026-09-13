@@ -1,7 +1,8 @@
 """FastAPI read layer.
 
-Inventory/listing/insight routes read views. `/business/*`, `/context`,
-`/eval`, `/eval/compare`, and `/eval/answers` call shared services — same tools as the CLI and MCP.
+A. Generic platform interface: /health, /runtime, /context, /answer, /eval*.
+B. Resale operator read model: /inventory/*, /listings/performance (thin SQL).
+C. Shared domain services: /business/*, /ingest/trust (no duplicated rules).
 
 Run: `cdp serve` then http://127.0.0.1:8000/docs
 """
@@ -171,23 +172,6 @@ def create_app() -> FastAPI:
         finally:
             con.close()
 
-    @app.get("/insights/voice-profiles")
-    def voice_profiles():
-        _require_db()
-        con = db.connect(read_only=True)
-        try:
-            return _rows(
-                con,
-                """
-                SELECT tone, hook_style, sample_size, avg_watchers,
-                       avg_conversion, summary_md, version
-                FROM insights.voice_profile
-                WHERE is_current ORDER BY avg_conversion DESC
-                """,
-            )
-        finally:
-            con.close()
-
     @app.get("/ingest/runs")
     def ingest_runs(limit: int = Query(20, le=100)):
         _require_db()
@@ -337,7 +321,7 @@ def create_app() -> FastAPI:
 
     @app.get("/business/snapshot")
     def business_snapshot(as_of: str | None = Query(None)):
-        from ..business import get_business_snapshot
+        from ..domains.resale.services import get_business_snapshot
 
         _require_db()
         con = db.connect(read_only=True)
@@ -348,7 +332,7 @@ def create_app() -> FastAPI:
 
     @app.get("/business/attention")
     def business_attention(limit: int = Query(25, le=200)):
-        from ..business import get_inventory_attention_queue
+        from ..domains.resale.services import get_inventory_attention_queue
 
         _require_db()
         con = db.connect(read_only=True)
@@ -359,8 +343,8 @@ def create_app() -> FastAPI:
 
     @app.get("/business/metrics")
     def business_metrics(name: str | None = None):
-        from ..business import explain_metric
-        from ..metrics import metric_catalog
+        from ..domains.resale.metrics import metric_catalog
+        from ..domains.resale.services import explain_metric
 
         if name:
             try:
@@ -375,7 +359,7 @@ def create_app() -> FastAPI:
         as_of: str | None = Query(None),
         handle: str | None = Query(None),
     ):
-        from ..business import get_channel_as_of
+        from ..domains.resale.services import get_channel_as_of
 
         _require_db()
         con = db.connect(read_only=True)
@@ -392,7 +376,7 @@ def create_app() -> FastAPI:
 
     @app.get("/business/items/{sku}")
     def business_item(sku: str):
-        from ..business import get_item
+        from ..domains.resale.services import get_item
 
         _require_db()
         con = db.connect(read_only=True)
@@ -405,7 +389,7 @@ def create_app() -> FastAPI:
 
     @app.get("/business/items/{sku}/history")
     def business_item_history(sku: str):
-        from ..business import get_item_history
+        from ..domains.resale.services import get_item_history
 
         _require_db()
         con = db.connect(read_only=True)
@@ -418,12 +402,12 @@ def create_app() -> FastAPI:
 
     @app.get("/business/items/{sku}/suggest-action")
     def suggest_item_action(sku: str):
-        from .. import actions as act
+        from ..domains.resale.actions import suggest_reprice
 
         _require_db()
         con = db.connect(read_only=True)
         try:
-            return {"kind": "recommendation", "data": act.suggest_reprice(con, sku)}
+            return {"kind": "recommendation", "data": suggest_reprice(con, sku)}
         except KeyError as e:
             raise HTTPException(404, str(e)) from e
         finally:

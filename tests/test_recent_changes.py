@@ -4,15 +4,15 @@ from __future__ import annotations
 from datetime import timedelta
 
 from cdp_cli import db
-from cdp_cli.business import (
+from cdp_cli.clock import reference_now
+from cdp_cli.core import assemble_context
+from cdp_cli.domains.resale.metrics import STALE_LISTING_DAYS
+from cdp_cli.domains.resale.services import (
     capture_business_snapshot,
     get_business_snapshot,
     list_business_snapshots,
 )
-from cdp_cli.clock import reference_now
-from cdp_cli.core import assemble_context
 from cdp_cli.ingest import ALL_JOBS
-from cdp_cli.metrics import STALE_LISTING_DAYS
 
 
 def _build(con):

@@ -6,7 +6,7 @@ import json
 import pytest
 
 from cdp_cli import db
-from cdp_cli.business import get_channel_as_of, get_item
+from cdp_cli.domains.resale.services import get_channel_as_of, get_item
 from cdp_cli.ingest import ALL_JOBS
 from cdp_cli.ingest.catalog import ChannelIngest, ItemIngest
 from cdp_cli.ingest.sales import ListingIngest

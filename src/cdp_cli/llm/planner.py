@@ -76,7 +76,7 @@ def _validate_plan_payload(payload: dict[str, Any], domain: Domain) -> QuestionP
         raise ValueError(f"unknown capability {capability!r}; known: {known}")
     subject = (parsed.subject or "").strip() or None
     subject_type = (parsed.subject_type or "").strip() or None
-    allowed_types = set(domain.entity_types) | {domain.subject_name, "Item", "sku"}
+    allowed_types = set(domain.entity_types) | {domain.subject_name}
     if subject_type and domain.entity_types and subject_type not in allowed_types:
         raise ValueError(f"unknown object type {subject_type!r}")
     as_of = parsed.as_of.strip() if parsed.as_of else None

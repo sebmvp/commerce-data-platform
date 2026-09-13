@@ -12,9 +12,14 @@ async function openContext(page: import("@playwright/test").Page) {
 test("overview loads and attention item can be opened", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByTestId("overview-page")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByTestId("environment")).toContainText("DEMO");
+  await expect(page.getByTestId("environment")).toContainText("DEMO · SYNTHETIC");
+  await expect(page.getByRole("button", { name: "Overview" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Context", exact: true })).toBeVisible();
   await expect(page.locator("[data-testid^='attention-']").first()).toBeVisible({ timeout: 20_000 });
+  const attentionCount = await page.locator("[data-testid^='attention-']").count();
+  expect(attentionCount).toBeGreaterThan(0);
   await expect(page.getByTestId("overview-items-total")).not.toHaveText("—");
+  await expect(page.getByText("Loading")).toHaveCount(0);
   await page.screenshot({
     path: path.join(root, "docs/screenshots/overview.png"),
     fullPage: true,

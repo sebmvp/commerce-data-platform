@@ -54,14 +54,3 @@ platform rate (Grailed 9%, Depop 10%) — it does **not** look up
 version is 12%, so sample order `fees_usd` and as-of channel fee can
 disagree. Treat order fees as recorded facts; treat channel `fee_pct`
 as the account's contracted rate at a point in time.
-
-## content_pieces.jsonl
-
-Published listing-content copies with `tone` / `cta` metadata. Tones are
-distribution-weighted to favor `storyteller` — see `docs/assumptions.md`.
-
-## content_snapshots.jsonl
-
-48-hour post-publish performance snapshots feeding
-`insights.voice_profile`. `TONE_WEIGHTS` in the generator creates the
-separation between conversion styles.

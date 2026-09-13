@@ -8,7 +8,7 @@ and never emits SQL.
 Grounding fails closed: malformed output, missing citations, unknown refs,
 or invalid suggested actions are not trusted answers.
 """
-from .analyst import MAX_ITERATIONS, REGISTERED_TOOLS, run_analyst
+from .analyst import MAX_ITERATIONS, registered_tools, run_analyst
 from .gateway import (
     ModelCapabilities,
     ModelConfig,
@@ -25,7 +25,6 @@ from .grounding import (
 )
 from .planner import deterministic_plan, plan_question
 from .providers import (
-    EnvProvider,
     FakeProvider,
     OpenAICompatibleProvider,
     ScriptedProvider,
@@ -33,8 +32,6 @@ from .providers import (
 
 __all__ = [
     "MAX_ITERATIONS",
-    "REGISTERED_TOOLS",
-    "EnvProvider",
     "FakeProvider",
     "GroundedModelOutput",
     "ModelCapabilities",
@@ -50,5 +47,6 @@ __all__ = [
     "load_model_config",
     "parse_grounded",
     "plan_question",
+    "registered_tools",
     "run_analyst",
 ]

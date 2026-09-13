@@ -21,32 +21,47 @@ import { EvaluationPage } from "./EvaluationPage";
 import { HealthPage } from "./HealthPage";
 import { InventoryPage } from "./InventoryPage";
 import { OverviewPage } from "./OverviewPage";
-import type { ContextBundle, ContextObject, InventoryRow, RuntimeInfo, Tab } from "./types";
+import type {
+  AnalystResponse,
+  AttentionQueue,
+  BusinessSnapshot,
+  CompletenessReport,
+  ContextBundle,
+  ContextObject,
+  EvalLayerReport,
+  IngestRun,
+  InventoryRow,
+  ItemHistory,
+  ItemPayload,
+  RuntimeInfo,
+  Tab,
+  TrustReport,
+} from "./types";
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("overview");
   const [question, setQuestion] = useState("Should I reprice j4-military-s?");
   const [bundle, setBundle] = useState<ContextBundle | null>(null);
-  const [evalReport, setEvalReport] = useState<any>(null);
-  const [compare, setCompare] = useState<any>(null);
-  const [answers, setAnswers] = useState<any>(null);
-  const [planEval, setPlanEval] = useState<any>(null);
-  const [analystEval, setAnalystEval] = useState<any>(null);
+  const [evalReport, setEvalReport] = useState<EvalLayerReport | null>(null);
+  const [compare, setCompare] = useState<EvalLayerReport | null>(null);
+  const [answers, setAnswers] = useState<EvalLayerReport | null>(null);
+  const [planEval, setPlanEval] = useState<EvalLayerReport | null>(null);
+  const [analystEval, setAnalystEval] = useState<EvalLayerReport | null>(null);
   const [sku, setSku] = useState("j4-military-s");
-  const [item, setItem] = useState<any>(null);
-  const [history, setHistory] = useState<any>(null);
-  const [answer, setAnswer] = useState<any>(null);
+  const [item, setItem] = useState<ItemPayload | null>(null);
+  const [history, setHistory] = useState<ItemHistory | null>(null);
+  const [answer, setAnswer] = useState<AnalystResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [askBusy, setAskBusy] = useState(false);
-  const [snapshot, setSnapshot] = useState<any>(null);
-  const [attention, setAttention] = useState<any>(null);
+  const [snapshot, setSnapshot] = useState<BusinessSnapshot | null>(null);
+  const [attention, setAttention] = useState<AttentionQueue | null>(null);
   const [inventory, setInventory] = useState<InventoryRow[]>([]);
   const [invFilter, setInvFilter] = useState("");
-  const [trust, setTrust] = useState<any>(null);
-  const [ingestRuns, setIngestRuns] = useState<any[]>([]);
+  const [trust, setTrust] = useState<TrustReport | null>(null);
+  const [ingestRuns, setIngestRuns] = useState<IngestRun[]>([]);
   const [runtime, setRuntime] = useState<RuntimeInfo | null>(null);
-  const [completeness, setCompleteness] = useState<any>(null);
+  const [completeness, setCompleteness] = useState<CompletenessReport | null>(null);
 
   async function runQuestion(q: string, itemSku?: string) {
     setAskBusy(true);

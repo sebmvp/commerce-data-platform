@@ -16,8 +16,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import TextIO
 
-from . import business as biz
 from . import db
+from .domains.resale import services as biz
 from .ingest import JOBS_BY_SOURCE
 from .ingest.catalog import ItemIngest
 from .observability import trust_report
@@ -98,9 +98,6 @@ def _run_isolated_demo(catalog: Path, url: str, file: TextIO) -> int:
         if rc != 0:
             print("build failed", file=sys.stderr)
             return rc
-        from .analytics import aggregate
-
-        aggregate.refresh_voice_profiles(con)
         print("build complete.", file=file)
 
         _banner("2. BUSINESS STATE", file)

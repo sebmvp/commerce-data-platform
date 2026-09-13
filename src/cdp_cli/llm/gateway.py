@@ -117,7 +117,7 @@ def load_model_config() -> ModelConfig:
     )
     key = _env("CDP_MODEL_API_KEY", "CDP_LLM_API_KEY") or None
     caps = ModelCapabilities(
-        json_mode=_flag("CDP_MODEL_JSON_MODE") or provider == "openai_compatible",
+        json_mode=_flag("CDP_MODEL_JSON_MODE"),
         structured_output=_flag("CDP_MODEL_STRUCTURED"),
         tool_calling=_flag("CDP_MODEL_TOOLS"),
         streaming=_flag("CDP_MODEL_STREAMING"),

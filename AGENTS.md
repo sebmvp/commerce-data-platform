@@ -40,11 +40,13 @@ Requirements + sufficiency            Source adapters (JSONL, item notes)
 Generic assembly mechanics            Operator views (inventory, overview)
 FastAPI / MCP / CLI adapters
 Generic Context Inspector rendering
+Generic Analyst / grounding / action lifecycle
 ```
 
 A new domain provides entities, relationships, intents/requirements,
-resolvers, metrics, rules, evidence, and adapters. It does not rewrite
-ContextBundle, generic sufficiency, or interface adapters.
+resolvers, metrics, rules, evidence, adapters, registered read tools,
+and action validation/apply hooks. It does not rewrite ContextBundle,
+the generic Analyst loop, grounding, or interface adapters.
 
 Resale remains the only fully implemented vertical. Do not ship fake
 second businesses as product features. A contract test may use an
@@ -173,8 +175,10 @@ quota. Do not force-push.
 ## Developer surface
 
 Makefile = developer lifecycle (`doctor`, `up`, `down`, `seed`,
-`seed-heldout`, `ingest-private`, `test`, `eval`, `eval-heldout`,
-`eval-compare`, `frontend`, `demo`, `demo-cli`, `clean`).
+`reset-demo`, `seed-heldout`, `ingest-private`, `test`, `eval`,
+`eval-heldout`, `eval-compare`, `eval-answers`, `eval-plan`,
+`eval-analyst`, `frontend`, `demo`, `demo-cli`, `test-e2e`, `ai-doctor`,
+`ai-smoke`, `clean`, `migrate`).
 
 `cdp` = product behavior (`status`, `context`, `answer`, `eval`, `demo`,
 `item`, `action`, `ingest-private`, `mcp`, …).

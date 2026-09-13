@@ -103,8 +103,6 @@ def materialize_item_notes(source: Path, dest: Path) -> dict[str, Any]:
     for empty in (
         "engagement_metrics.jsonl",
         "orders.jsonl",
-        "content_pieces.jsonl",
-        "content_snapshots.jsonl",
     ):
         write_jsonl(dest / empty, [])
     (dest / "rejects.json").write_text(json.dumps(rejected, indent=2) + "\n")

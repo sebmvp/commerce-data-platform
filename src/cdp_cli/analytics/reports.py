@@ -54,19 +54,6 @@ def _funnel(con: Connection) -> list[str]:
     out += _md_table(
         ["platform", "listings", "sold", "sell_through", "avg_days_to_sell", "gross_usd"],
         con.execute("SELECT * FROM sales.v_sell_through").fetchall())
-    out += ["", "## Content effectiveness (published pieces)", ""]
-    out += _md_table(
-        ["tone", "cta", "pieces", "impressions", "saves", "inquiries",
-         "conversions", "avg_er"],
-        con.execute("SELECT * FROM insights.v_content_effectiveness").fetchall())
-    out += ["", "## Current voice profiles", ""]
-    out += _md_table(
-        ["tone", "hook_style", "sample", "avg_watchers", "avg_conv", "version"],
-        con.execute("""
-            SELECT tone, hook_style, sample_size, avg_watchers,
-                   avg_conversion, version
-            FROM insights.voice_profile WHERE is_current
-            ORDER BY avg_conversion DESC""").fetchall())
     return out
 
 

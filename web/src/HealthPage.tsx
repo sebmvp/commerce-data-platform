@@ -1,5 +1,5 @@
 import { Field, Section } from "./ui";
-import type { RuntimeInfo } from "./types";
+import type { CompletenessReport, IngestRun, RuntimeInfo, TrustReport } from "./types";
 
 export function HealthPage({
   trust,
@@ -7,9 +7,9 @@ export function HealthPage({
   completeness,
   runtime,
 }: {
-  trust: any;
-  ingestRuns: any[];
-  completeness: any;
+  trust: TrustReport | null;
+  ingestRuns: IngestRun[];
+  completeness: CompletenessReport | null;
   runtime: RuntimeInfo | null;
 }) {
   const counts = completeness?.counts || {};
@@ -45,7 +45,7 @@ export function HealthPage({
       )}
       <Section title="Source coverage">
         {coverage.length
-          ? coverage.map((row: any) => (
+          ? coverage.map((row) => (
               <div key={row.category} className="row">
                 <span><strong>{row.category}</strong> {row.status}</span>
                 <span className="lede" style={{ margin: 0 }}>{row.detail}</span>
@@ -59,7 +59,7 @@ export function HealthPage({
         ) : null}
       </Section>
       <Section title="Recent ingest runs">
-        {ingestRuns.length ? ingestRuns.slice(0, 12).map((run: any) => (
+        {ingestRuns.length ? ingestRuns.slice(0, 12).map((run) => (
           <div key={run.run_id || run.source} className="row">
             <span><strong>{run.source}</strong> {run.status}</span>
             <span className="lede" style={{ margin: 0 }}>

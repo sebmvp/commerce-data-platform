@@ -480,26 +480,6 @@ def generate() -> None:
          "body": "White Cement 3s are drawing saves but no offers. Ask is probably 20–30 over recent comps."},
     ])
 
-    content = []
-    snapshots = []
-    tones = ["storyteller", "urgent", "informative", "minimal", "hype"]
-    for i, sku in enumerate(["j4-military-s", "carhartt-mich-m", "fresh-samba-8",
-                             "stale-bogo-m", "watchy-aj3-10", "dual-nb990-10",
-                             "j1-panda-m", "fast-j1-chicago-9", "viewy-dunk-9"]):
-        cid = f"cap-{sku}"
-        tone = tones[i % len(tones)]
-        content.append({
-            "content_id": cid, "item_sku": sku, "body": f"Public listing copy for {sku}.",
-            "tone": tone, "cta": "check pinned for sizing", "hooks": ["fit"],
-            "status": "published", "published_at": _iso(NOW - timedelta(days=20 - i)),
-            "platform": "grailed",
-        })
-        snapshots.append({
-            "content_id": cid, "observed_at": _iso(NOW - timedelta(days=18 - i)),
-            "window_hours": 48, "impressions": 200 + i * 15, "saves": 8 + i,
-            "inquiries": 2 + (i % 3), "conversions": 1 if i % 3 == 0 else 0,
-        })
-
     _w("channels.jsonl", channels)
     _w("catalog_items.jsonl", items)
     _w("item_events.jsonl", sorted(events, key=lambda e: e["event_at"] or ""))
@@ -508,8 +488,6 @@ def generate() -> None:
     _w("engagement_metrics.jsonl", engagement)
     _w("orders.jsonl", orders)
     _w("notes.jsonl", notes)
-    _w("content_pieces.jsonl", content)
-    _w("content_snapshots.jsonl", snapshots)
     meta = {
         "name": "demo",
         "as_of": _iso(NOW),

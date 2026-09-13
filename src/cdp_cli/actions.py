@@ -1,34 +1,19 @@
-"""Sandbox operational actions.
+"""Sandbox operational actions — generic propose/approve state machine.
 
-Recommendations suggest. A human approves or rejects. Only after approval
-does the sandbox apply an internal canonical change. Nothing here calls a
-marketplace API.
+Domain-specific application (what a reprice does) lives on the active
+Domain.apply_action hook. Nothing here calls a marketplace API.
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import uuid
 from datetime import UTC, datetime
 from typing import Any
 
 from . import db
+from .core.domain import get_active_domain
 
-ACTION_TYPES = frozenset({
-    "propose_list",
-    "propose_reprice",
-    "propose_channel_change",
-    "mark_reviewed",
-})
-TARGET_TYPES = frozenset({"item", "listing"})
 STATUSES = frozenset({"proposed", "approved", "rejected", "applied"})
-
-SANDBOX_FOR_REC = {
-    "list_next": "propose_list",
-    "review_price_or_channel": "propose_reprice",
-    "consider_reprice": "propose_reprice",
-    "monitor": "mark_reviewed",
-}
 
 _SANDBOX_NOTE = (
     "Sandbox only. Does not mutate any marketplace listing. "
@@ -42,10 +27,6 @@ def _now() -> datetime:
 
 def _now_iso() -> str:
     return _now().isoformat(timespec="seconds") + "Z"
-
-
-def _event_id(*parts: Any) -> str:
-    return hashlib.sha256(":".join(str(p) for p in parts).encode()).hexdigest()[:16]
 
 
 def _row(rec: dict[str, Any]) -> dict[str, Any]:
@@ -107,12 +88,15 @@ def propose(
     action_type = (action_type or "").strip()
     actor = (actor or "").strip() or "operator"
     reason = (reason or "").strip()
-    if target_type not in TARGET_TYPES:
-        raise ValueError(f"target_type must be one of {sorted(TARGET_TYPES)}")
+    domain = get_active_domain()
+    allowed_targets = domain.target_types
+    allowed_actions = domain.action_types
+    if allowed_targets and target_type not in allowed_targets:
+        raise ValueError(f"target_type must be one of {sorted(allowed_targets)}")
     if not target_id:
         raise ValueError("target_id is required")
-    if action_type not in ACTION_TYPES:
-        raise ValueError(f"action_type must be one of {sorted(ACTION_TYPES)}")
+    if allowed_actions and action_type not in allowed_actions:
+        raise ValueError(f"action_type must be one of {sorted(allowed_actions)}")
     if not reason:
         raise ValueError("reason is required")
 
@@ -204,131 +188,8 @@ def list_actions(
     return _payload("list_actions", {"actions": rows, "count": len(rows)})
 
 
-def _active_listing(con, *, sku: str | None, listing_id: str | None):
-    if listing_id:
-        return con.execute(
-            """
-            SELECT l.listing_id, l.price_usd, l.status, i.item_id, i.sku
-            FROM sales.listings l
-            JOIN catalog.items i ON i.item_id = l.item_id
-            WHERE l.listing_id = ?
-            """,
-            [listing_id],
-        ).fetchone()
-    if sku:
-        return con.execute(
-            """
-            SELECT l.listing_id, l.price_usd, l.status, i.item_id, i.sku
-            FROM sales.listings l
-            JOIN catalog.items i ON i.item_id = l.item_id
-            WHERE i.sku = ? AND l.status = 'active'
-            ORDER BY l.listed_at DESC NULLS LAST
-            LIMIT 1
-            """,
-            [sku],
-        ).fetchone()
-    return None
-
-
-def _apply_reprice(con, rec: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
-    payload = rec.get("proposed_payload") or {}
-    new_price = payload.get("new_price_usd")
-    if new_price is None:
-        new_price = payload.get("price_usd")
-    try:
-        new_price = float(new_price)
-    except (TypeError, ValueError) as exc:
-        raise ValueError("propose_reprice requires numeric new_price_usd") from exc
-    if new_price <= 0:
-        raise ValueError("new_price_usd must be positive")
-
-    listing_id = rec["target_id"] if rec["target_type"] == "listing" else None
-    sku = rec["target_id"] if rec["target_type"] == "item" else payload.get("sku")
-    row = _active_listing(con, sku=sku, listing_id=listing_id)
-    if row is None:
-        raise ValueError("no listing found to reprice in the sandbox")
-    listing_id, old_price, status, item_id, sku = row
-    if old_price is None:
-        raise ValueError("listing has no current price to reprice")
-    old_price = float(old_price)
-    if status != "active":
-        raise ValueError(f"listing {listing_id} is {status}, not active")
-    at = _now()
-    event_id = _event_id("lev", listing_id, "price_change", rec["action_id"])
-    con.execute(
-        """
-        INSERT INTO sales.listing_events
-          (event_id, listing_id, event_type, event_at, price_usd, status, payload_json)
-        VALUES (?, ?, 'price_change', ?, ?, 'active', ?::jsonb)
-        ON CONFLICT (event_id) DO NOTHING
-        """,
-        [
-            event_id,
-            listing_id,
-            at,
-            new_price,
-            json.dumps(
-                {
-                    "action_id": rec["action_id"],
-                    "previous_price_usd": old_price,
-                    "sandbox": True,
-                }
-            ),
-        ],
-    )
-    con.execute(
-        "UPDATE sales.listings SET price_usd = ?, updated_at = ? WHERE listing_id = ?",
-        [new_price, at, listing_id],
-    )
-    item_event_id = _event_id("event", item_id, "price_change", rec["action_id"])
-    con.execute(
-        """
-        INSERT INTO catalog.item_events
-          (event_id, item_id, event_type, event_at, actor, payload_json)
-        VALUES (?, ?, 'price_change', ?, ?, ?::jsonb)
-        ON CONFLICT (event_id) DO NOTHING
-        """,
-        [
-            item_event_id,
-            item_id,
-            at,
-            rec.get("decided_by") or rec.get("actor") or "operator",
-            json.dumps(
-                {
-                    "action_id": rec["action_id"],
-                    "listing_id": listing_id,
-                    "previous_price_usd": old_price,
-                    "new_price_usd": new_price,
-                    "sandbox": True,
-                }
-            ),
-        ],
-    )
-    previous = {
-        "listing_id": listing_id,
-        "sku": sku,
-        "price_usd": old_price,
-    }
-    resulting = {
-        "listing_id": listing_id,
-        "sku": sku,
-        "price_usd": new_price,
-        "sandbox": True,
-    }
-    return previous, resulting
-
-
 def _apply(con, rec: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
-    action_type = rec["action_type"]
-    if action_type == "propose_reprice":
-        return _apply_reprice(con, rec)
-    if action_type in {"mark_reviewed", "propose_list", "propose_channel_change"}:
-        return None, {
-            "sandbox": True,
-            "mutated": False,
-            "note": "No catalog mutation for this action type.",
-        }
-    raise ValueError(f"cannot apply action_type {action_type}")
+    return get_active_domain().apply_action(con, rec)
 
 
 def _decide(
@@ -381,9 +242,7 @@ def _decide(
                     action_id,
                 ],
             )
-            from .business import capture_business_snapshot
-
-            capture_business_snapshot(con, trigger="action_apply")
+            get_active_domain().on_action_applied(con)
         data = _fetch(con, action_id)
         con.execute("COMMIT")
     except Exception:
@@ -425,40 +284,4 @@ def reject_action(
 
 
 def sandbox_type_for_recommendation(rec_action: str) -> str:
-    try:
-        return SANDBOX_FOR_REC[rec_action]
-    except KeyError as e:
-        raise ValueError(f"unknown recommendation action {rec_action!r}") from e
-
-
-def suggest_reprice(con, sku: str) -> dict[str, Any]:
-    """Price review: evidence only. Operator supplies the sandbox price."""
-    row = _active_listing(con, sku=sku, listing_id=None)
-    if row is None:
-        raise KeyError(f"no active listing for sku={sku!r}")
-    listing_id, old_price, _status, _item_id, sku = row
-    old = float(old_price)
-    return {
-        "action_type": "propose_reprice",
-        "target_type": "listing",
-        "target_id": listing_id,
-        "requires_operator_price": True,
-        "payload": {
-            "sku": sku,
-            "previous_price_usd": old,
-        },
-        "reason": "Price review recommended",
-        "recommendation": "REVIEW_PRICE",
-        "policy": {
-            "id": "resale.decision.price-review",
-            "version": "v1",
-        },
-        "evidence": {
-            "listing_id": listing_id,
-            "asking_price_usd": old,
-            "note": (
-                "No numeric markdown. Enter a sandbox price after reviewing "
-                "listing age, engagement, and acquisition cost."
-            ),
-        },
-    }
+    return get_active_domain().sandbox_type_for_recommendation(rec_action)

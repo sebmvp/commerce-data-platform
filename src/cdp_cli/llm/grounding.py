@@ -2,8 +2,8 @@
 
 Malformed provider output is INVALID, not trusted prose. Unknown or
 missing citations are grounding failures. The model cannot override
-an insufficient bundle. Suggested actions must match registered schemas
-and must not invent a numeric price.
+an insufficient bundle. Suggested actions are validated by the active
+domain.
 """
 from __future__ import annotations
 
@@ -82,7 +82,7 @@ def _prompt(bundle: ContextBundle) -> str:
         "Answer using only this ContextBundle.\n"
         "Return JSON only: answer, abstained, evidence_refs, caveats, "
         "suggested_action. Cite only evidence_catalog ids. No extra fields.\n"
-        "Do not invent evidence refs. Do not invent a numeric price.\n"
+        "Do not invent evidence refs.\n"
         f"{json_dumps(compact)}"
     )
 
@@ -93,27 +93,15 @@ def json_dumps(payload: dict[str, Any]) -> str:
     return json.dumps(payload, default=str)
 
 
-def _validate_suggested_action(action: SuggestedActionModel | None) -> str | None:
+def _validate_suggested_action(
+    action: SuggestedActionModel | None, domain=None
+) -> str | None:
     if action is None:
         return None
-    allowed = get_active_domain().action_types
-    if allowed and action.action_type not in allowed:
-        return f"unknown action_type {action.action_type!r}"
-    if action.target_type and action.target_type not in {"item", "listing"}:
-        return f"unknown target_type {action.target_type!r}"
-    payload = action.payload or {}
-    if action.action_type == "propose_reprice":
-        if any(key in payload for key in ("new_price_usd", "price_usd", "markdown")):
-            return (
-                "numeric price is not allowed without an approved pricing policy"
-            )
-        rec = (action.recommendation or "").strip().upper()
-        if rec and rec not in {"REVIEW_PRICE", "KEEP_PRICE", "INSUFFICIENT_EVIDENCE"}:
-            return f"unknown price recommendation {action.recommendation!r}"
-    return None
+    return (domain or get_active_domain()).validate_action(action.model_dump())
 
 
-def parse_grounded(raw: str, bundle: ContextBundle) -> dict[str, Any]:
+def parse_grounded(raw: str, bundle: ContextBundle, domain=None) -> dict[str, Any]:
     """Validate model JSON against the exact bundle. Fail closed."""
     import json
 
@@ -142,7 +130,7 @@ def parse_grounded(raw: str, bundle: ContextBundle) -> dict[str, Any]:
     if parsed.abstained is False and not bundle.sufficient:
         return {"ok": False, "reason": "model overrode insufficient context"}
 
-    action_err = _validate_suggested_action(parsed.suggested_action)
+    action_err = _validate_suggested_action(parsed.suggested_action, domain)
     if action_err:
         return {"ok": False, "reason": action_err}
 
@@ -237,6 +225,7 @@ def ground_from_bundle(
     plan: QuestionPlan | dict[str, Any] | None = None,
     provider: LLMProvider | None = None,
     tool_trace: list[dict[str, Any]] | None = None,
+    domain=None,
 ) -> dict[str, Any]:
     used = provider or get_provider()
     if isinstance(plan, QuestionPlan):
@@ -274,7 +263,7 @@ def ground_from_bundle(
             plan=plan_dict,
             provider=used,
         )
-    parsed = parse_grounded(raw, bundle)
+    parsed = parse_grounded(raw, bundle, domain)
     if not parsed.get("ok"):
         return _invalid(
             reason=str(parsed.get("reason") or "invalid grounding"),

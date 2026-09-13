@@ -145,10 +145,7 @@ def cmd_build(args: argparse.Namespace) -> int:
         print(f"Schema initialized: {db.db_path()}")
         rc = _run_ingest(con, list(JOBS_BY_SOURCE), force=args.force)
         if rc == 0:
-            from .analytics import aggregate
-            n = aggregate.refresh_voice_profiles(con)
-            print(f"Refreshed {n} voice profile version(s)")
-            from .business import ensure_baseline_snapshots
+            from .domains.resale.services import ensure_baseline_snapshots
 
             snaps = ensure_baseline_snapshots(con)
             print(f"Captured {len(snaps)} business snapshot checkpoint(s)")
@@ -223,8 +220,8 @@ def cmd_status(_: argparse.Namespace) -> int:
 
 def cmd_business(args: argparse.Namespace) -> int:
     """Operational decision surface — structured facts with provenance."""
-    from . import business as biz
-    from . import metrics as metrics_mod
+    from .domains.resale import metrics as metrics_mod
+    from .domains.resale import services as biz
 
     topic = args.topic
     as_json = args.json
@@ -238,7 +235,7 @@ def cmd_business(args: argparse.Namespace) -> int:
                 "data": metrics_mod.metric_catalog(),
                 "provenance": {
                     "tool": "metric_catalog",
-                    "source_relations": ["cdp_cli.metrics.METRICS"],
+                    "source_relations": ["cdp_cli.domains.resale.metrics.METRICS"],
                 },
             }
             _print_business(payload, as_json=as_json)

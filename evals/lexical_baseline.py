@@ -74,7 +74,7 @@ def build_corpus(con) -> list[dict[str, Any]]:
           i.sku, l.listing_id, l.status, l.price_usd, l.listed_at, l.sold_at,
           ch.platform,
           CASE WHEN l.listed_at IS NULL THEN NULL
-               ELSE date_diff('day', l.listed_at, CAST(? AS timestamp))
+               ELSE (CAST(? AS date) - l.listed_at::date)
           END AS listing_age_days,
           coalesce(sum(em.views), 0) AS views,
           coalesce(sum(em.watchers), 0) AS watchers,

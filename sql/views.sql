@@ -66,22 +66,6 @@ LEFT JOIN core.channels ch ON ch.channel_key = l.channel_key
 GROUP BY ch.platform
 ORDER BY gross_sales_usd DESC NULLS LAST;
 
-CREATE OR REPLACE VIEW insights.v_content_effectiveness AS
-SELECT
-  c.tone,
-  c.cta,
-  count(*)                                AS pieces,
-  sum(coalesce(s.impressions, 0))         AS impressions,
-  sum(coalesce(s.saves, 0))               AS saves,
-  sum(coalesce(s.inquiries, 0))           AS inquiries,
-  sum(coalesce(s.conversions, 0))         AS conversions,
-  round(avg(s.engagement_rate)::numeric, 4) AS avg_engagement_rate
-FROM insights.content_pieces c
-LEFT JOIN insights.content_snapshot s ON s.caption_id = c.caption_id
-WHERE c.status = 'published'
-GROUP BY c.tone, c.cta
-ORDER BY avg_engagement_rate DESC NULLS LAST;
-
 CREATE OR REPLACE VIEW core.v_ingest_health AS
 SELECT
   source,

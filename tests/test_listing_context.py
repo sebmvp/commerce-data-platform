@@ -4,13 +4,13 @@ from __future__ import annotations
 from datetime import timedelta
 
 from cdp_cli import db
-from cdp_cli.business import (
+from cdp_cli.clock import reference_now
+from cdp_cli.core import assemble_context
+from cdp_cli.domains.resale.services import (
     get_channel_comparison,
     get_listing_as_of,
     get_listing_performance,
 )
-from cdp_cli.clock import reference_now
-from cdp_cli.core import assemble_context
 from cdp_cli.ingest import ALL_JOBS
 
 

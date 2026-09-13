@@ -179,8 +179,6 @@ def format_status(
         ("listings", "SELECT count(*) FROM sales.listings"),
         ("orders", "SELECT count(*) FROM sales.orders"),
         ("engagement_snaps", "SELECT count(*) FROM sales.engagement_metric"),
-        ("content_pieces", "SELECT count(*) FROM insights.content_pieces"),
-        ("voice_profiles", "SELECT count(*) FROM insights.voice_profile WHERE is_current"),
         ("rejected_records", "SELECT count(*) FROM core.rejected_records"),
         ("ingest_runs", "SELECT count(*) FROM core.ingest_runs"),
     ]
