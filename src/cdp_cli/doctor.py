@@ -72,7 +72,7 @@ def main() -> int:
         _ok("node", nv)
         _ok("npm", "present")
     else:
-        required.append("node/npm required for the Context Inspector demo")
+        required.append("node/npm required for the operator workspace")
         print("REQUIRED    node/npm     missing")
 
     if not (root / ".env.example").exists():

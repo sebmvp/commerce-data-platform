@@ -8,8 +8,8 @@ from pathlib import Path
 from cdp_cli.core.domain import Domain, ReadToolSpec, reset_active_domain
 from cdp_cli.core.engine import assemble_context
 from cdp_cli.core.model import ContextObject, MissingContext
-from cdp_cli.llm.analyst import run_analyst
 from cdp_cli.llm.grounding import parse_grounded
+from cdp_cli.llm.librarian import run_librarian
 from cdp_cli.llm.providers import FakeProvider
 
 LLM_ROOT = Path(__file__).resolve().parents[1] / "src" / "cdp_cli" / "llm"
@@ -140,9 +140,9 @@ def test_generic_ai_modules_have_no_resale_vocabulary() -> None:
     assert hits == []
 
 
-def test_dummy_domain_analyst_without_resale() -> None:
+def test_dummy_domain_librarian_without_resale() -> None:
     domain = _support_domain()
-    result = run_analyst(
+    result = run_librarian(
         object(),
         question="What is the status of the printer ticket?",
         domain=domain,

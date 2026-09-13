@@ -27,9 +27,9 @@ _ANSWER = ToolAnnotations(
 _INSTRUCTIONS = """\
 Read-only agent interface to the Commerce Data Platform context engine.
 
-Prefer `answer` for operator questions. It is the same Analyst path as
-POST /answer: plan, registered read tools, ContextBundle, fail-closed
-grounding. If grounding_status is abstained, do not invent listings,
+Prefer `answer` for operator questions. It is the same Business Librarian
+path as POST /answer: plan, registered read tools, ContextBundle,
+fail-closed grounding. If grounding_status is abstained, do not invent listings,
 prices, or history. Use assemble_context when you need the typed bundle
 without a model.
 
@@ -74,7 +74,7 @@ def create_server() -> MCPServer:
         sku: str | None = None,
         as_of: str | None = None,
     ) -> dict[str, Any]:
-        """Grounded Analyst answer over the same function as POST /answer."""
+        """Grounded Business Librarian answer; same function as POST /answer."""
         return _invoke(
             "answer", question=question, intent=intent, sku=sku, as_of=as_of
         )

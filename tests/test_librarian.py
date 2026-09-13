@@ -1,12 +1,12 @@
-"""Analyst Agent: registered tools only, bounded loop, exact bundle."""
+"""Business Librarian: registered tools only, bounded loop, exact bundle."""
 from __future__ import annotations
 
 import json
 
 from cdp_cli import db
 from cdp_cli.ingest import ALL_JOBS
-from cdp_cli.llm import FakeProvider, ScriptedProvider, run_analyst
-from cdp_cli.llm.analyst import MAX_ITERATIONS, registered_tools
+from cdp_cli.llm import FakeProvider, ScriptedProvider, run_librarian
+from cdp_cli.llm.librarian import MAX_ITERATIONS, registered_tools
 
 
 def _build(con):
@@ -22,7 +22,7 @@ def test_registered_tools_are_read_only() -> None:
 
 def test_broad_question_uses_multiple_read_tools(warehouse) -> None:
     _build(warehouse)
-    result = run_analyst(
+    result = run_librarian(
         warehouse, question="What should I focus on today?", provider=FakeProvider()
     )
     tools = [t["tool"] for t in result["tool_trace"]]
@@ -36,7 +36,7 @@ def test_broad_question_uses_multiple_read_tools(warehouse) -> None:
 
 def test_item_question_narrows_to_subject(warehouse) -> None:
     _build(warehouse)
-    result = run_analyst(
+    result = run_librarian(
         warehouse,
         question="Should I reprice j4-military-s?",
         provider=FakeProvider(),
@@ -75,7 +75,7 @@ def test_unknown_tool_is_not_executed(warehouse) -> None:
                 }
             )
 
-    result = run_analyst(
+    result = run_librarian(
         warehouse,
         question="Should I reprice j4-military-s?",
         provider=LoopThenAnswer("unused"),
@@ -106,7 +106,7 @@ def test_iteration_limit(warehouse) -> None:
                 }
             )
 
-    result = run_analyst(
+    result = run_librarian(
         warehouse,
         question="Should I reprice j4-military-s?",
         provider=AlwaysMore("unused"),
@@ -118,12 +118,12 @@ def test_iteration_limit(warehouse) -> None:
 
 def test_followup_why_reuses_subject(warehouse) -> None:
     _build(warehouse)
-    first = run_analyst(
+    first = run_librarian(
         warehouse,
         question="What should I focus on today?",
         provider=FakeProvider(),
     )
-    second = run_analyst(
+    second = run_librarian(
         warehouse,
         question="Why?",
         provider=FakeProvider(),
@@ -134,7 +134,7 @@ def test_followup_why_reuses_subject(warehouse) -> None:
 
 def test_insufficient_still_abstains(warehouse) -> None:
     _build(warehouse)
-    result = run_analyst(
+    result = run_librarian(
         warehouse,
         question="Should I reprice stone-cargo-l?",
         provider=FakeProvider(),

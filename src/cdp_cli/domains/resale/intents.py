@@ -81,7 +81,14 @@ def resolve_intent(question: str, intent: str | None = None) -> str:
         return "compare_channels"
     if ("attention" in text and "offer" in text) or "watch_rate" in text or "weak offer" in text:
         return "listing_performance"
-    if "reprice" in text or "price too" in text or "too high" in text or "asking price" in text:
+    if (
+        "reprice" in text
+        or "price too" in text
+        or "too high" in text
+        or "asking price" in text
+        or "review the price" in text
+        or "review price" in text
+    ):
         return "reprice_item"
     if "why" in text and ("attention" in text or "recommend" in text or "queue" in text):
         return "explain_attention"

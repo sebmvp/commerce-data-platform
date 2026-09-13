@@ -1,4 +1,5 @@
 import { Field, Section } from "./ui";
+import { observedDate } from "./format";
 import type { CompletenessReport, IngestRun, RuntimeInfo, TrustReport } from "./types";
 
 export function HealthPage({
@@ -21,7 +22,9 @@ export function HealthPage({
         <p className="lede">
           Viewing the <strong>{runtime.environment}</strong> environment
           {runtime.synthetic ? " (synthetic world)" : " (private evidence only)"}.
-          {completeness?.world_as_of ? ` World as-of ${completeness.world_as_of}.` : ""}
+          {completeness?.world_as_of
+            ? ` World as-of ${observedDate(completeness.world_as_of) || completeness.world_as_of}.`
+            : ""}
           {completeness?.seed != null ? ` Seed ${completeness.seed}.` : ""}
         </p>
       )}
@@ -66,7 +69,7 @@ export function HealthPage({
               loaded {run.rows_loaded ?? "—"} · rejected {run.rows_rejected ?? "—"}
             </span>
           </div>
-        )) : <p className="lede">No ingest runs in this database.</p>}
+        )) : <p className="empty">No ingest runs in this database.</p>}
       </Section>
     </div>
   );

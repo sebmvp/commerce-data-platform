@@ -15,32 +15,34 @@ metrics, and rules so additional operational domains can reuse the same
 context machinery. The repository does not currently implement other
 businesses.
 
-![Context Inspector](docs/screenshots/context-inspector.png)
+![Business Librarian](docs/screenshots/librarian.png)
 
-The operator workspace starts at Overview (attention queue) and Inventory
-(item object view). Context remains the flagship: required evidence,
-sufficiency, and a grounded answer that abstains when context is missing.
-
-![Overview](docs/screenshots/overview.png)
+The operator workspace is object-centric: Overview (attention), Inventory
+(object explorer), and the Business Librarian. The Librarian maps a
+question to registered domain capabilities, assembles the required
+context, and answers only when that evidence is sufficient.
 
 ## How it works
 
 ```
-private sources (isolated)     public synthetic worlds
-        \                         /
-         → adapters → PostgreSQL canonical store
-                         → domain services
-                         → Context Engine → ContextBundle
-                         → CLI / FastAPI / MCP / React
-                         → Analyst Agent (ModelGateway; abstains when insufficient)
-                         → human-approved sandbox action
+DATA STEWARD  →  proposed source contract  →  human approval
+        → deterministic ingest → PostgreSQL canonical store
+        → domain services
+        → BUSINESS LIBRARIAN (registered capabilities)
+        → Context Engine → ContextBundle
+        → sufficiency / evidence → LLM (interpret / explain / propose)
+        → human-approved sandbox action
 ```
 
-Resale objects (items, listings, channels, orders, engagement) plug into
-generic ContextBundle types. RAG / lexical retrieval is a possible
+The Business Librarian does not receive the entire database in a prompt.
+It calls registered read tools. RAG / lexical retrieval is a possible
 context *source*, not the architecture. The evaluation comparison is a
 **lexical retrieval baseline** (TF-IDF, no generation). Redis is not
 used: nothing here is an async job queue yet.
+
+The Data Steward profiles a new source and proposes a data contract for
+human review. Deterministic adapters remain responsible for canonical
+ingestion.
 
 ## Run
 
@@ -78,11 +80,11 @@ are not.
 
 `cdp eval --answers` (or `GET /eval/answers`) scores the grounded
 copilot contract on those same ids. `cdp eval --plan` scores capability
-mapping. `cdp eval --analyst` scores the registered-tool Analyst loop.
-Those layers are reported separately. They are not an LLM-as-judge and
-not a combined accuracy number.
+mapping. `cdp eval --librarian` scores the registered-tool Librarian
+loop. Those layers are reported separately. They are not an LLM-as-judge
+and not a combined accuracy number.
 
-`cdp answer` runs the Analyst Agent over registered read tools, then
+`cdp answer` runs the Business Librarian over registered read tools, then
 grounds the answer on the exact ContextBundle used. The default
 provider is fake and extractive. A real model is used only when
 `CDP_MODEL_PROVIDER=openai_compatible`. Local endpoints do not need a
@@ -117,7 +119,7 @@ in `sample_data/world.json`, so next month's run matches this one.
 | Held-out eval | `evals/heldout_questions.py` |
 | Lexical baseline | `evals/lexical_baseline.py` |
 | Answer eval | `evals/answer_eval.py` |
-| Plan / analyst eval | `evals/plan_eval.py`, `evals/analyst_eval.py` |
+| Plan / librarian eval | `evals/plan_eval.py`, `evals/librarian_eval.py` |
 | AI runtime | [docs/ai.md](docs/ai.md) |
-| Inspector | `web/` |
+| Operator UI | `web/` |
 | Detail | [ARCHITECTURE.md](ARCHITECTURE.md) · [DEVELOPER.md](DEVELOPER.md) · [docs/DEMO.md](docs/DEMO.md) |

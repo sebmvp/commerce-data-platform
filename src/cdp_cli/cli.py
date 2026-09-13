@@ -11,9 +11,9 @@ Commands:
   status                Health snapshot + ingest reconciliation
   business <topic>      snapshot | attention | health | metric | item | history | channel
   context               assemble a typed context bundle (objects/links/missing)
-  eval [--compare|--answers|--plan|--analyst] [--heldout]
-  answer                Analyst Agent over registered read tools
-  onboard               profile | propose | review  (source contract, not ingest)
+  eval [--compare|--answers|--plan|--librarian] [--heldout]
+  answer                Business Librarian over registered read tools
+  onboard               Data Steward: profile | propose | review  (not ingest)
 
   demo                  3-minute warehouse → decision → failure story
   action                propose | list | get | approve | reject  (sandbox)
@@ -481,8 +481,8 @@ def cmd_eval(args: argparse.Namespace) -> int:
     import sys
 
     sys.path.insert(0, str(db.project_root()))
-    from evals.analyst_eval import run_analyst_eval
     from evals.answer_eval import run_answer_eval
+    from evals.librarian_eval import run_librarian_eval
     from evals.plan_eval import run_plan_eval
     from evals.run import run_compare, run_eval
 
@@ -498,9 +498,9 @@ def cmd_eval(args: argparse.Namespace) -> int:
         elif getattr(args, "plan", False):
             compare = None
             report = run_plan_eval(con, suite=suite)
-        elif getattr(args, "analyst", False):
+        elif getattr(args, "librarian", False):
             compare = None
-            report = run_analyst_eval(con, suite=suite)
+            report = run_librarian_eval(con, suite=suite)
         elif getattr(args, "compare", False):
             compare = run_compare(con, suite=suite)
             report = compare["engine"]
@@ -514,7 +514,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
         ok = report["ok"] if compare is None else compare["engine"]["ok"]
         return 0 if ok else 1
     label = (compare or report).get("suite") or suite
-    if getattr(args, "answers", False) or getattr(args, "plan", False) or getattr(args, "analyst", False):
+    if getattr(args, "answers", False) or getattr(args, "plan", False) or getattr(args, "librarian", False):
         print(
             f"SUITE       {label}\n"
             f"LAYER       {report.get('layer')} ({report.get('provider') or 'deterministic'})\n"
@@ -574,7 +574,7 @@ def cmd_eval(args: argparse.Namespace) -> int:
 
 
 def cmd_answer(args: argparse.Namespace) -> int:
-    from .llm import run_analyst
+    from .llm import run_librarian
 
     question = (args.question or "").strip()
     if not question and not args.intent:
@@ -585,7 +585,7 @@ def cmd_answer(args: argparse.Namespace) -> int:
         return 1
     con = db.connect(read_only=True)
     try:
-        result = run_analyst(
+        result = run_librarian(
             con, question=question, intent=args.intent, sku=args.sku
         )
     except (KeyError, ValueError) as e:
@@ -800,9 +800,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Score question/tool planning on the same ids",
     )
     pe.add_argument(
+        "--librarian",
         "--analyst",
+        dest="librarian",
         action="store_true",
-        help="Score Analyst Agent task success on the same ids",
+        help="Score Business Librarian task success on the same ids",
     )
     pe.add_argument(
         "--heldout",
@@ -816,13 +818,13 @@ def main(argv: list[str] | None = None) -> int:
         help="Fail on FAIL or SKIP (default)",
     )
 
-    pa = sub.add_parser("answer", help="Analyst Agent over a ContextBundle")
+    pa = sub.add_parser("answer", help="Business Librarian over a ContextBundle")
     pa.add_argument("question", nargs="?", default="", help="Question to ground")
     pa.add_argument("--intent", choices=sorted(INTENTS))
     pa.add_argument("--sku", default=None)
     pa.add_argument("--json", action="store_true")
 
-    po = sub.add_parser("onboard", help="Profile/propose a source contract (does not ingest)")
+    po = sub.add_parser("onboard", help="Data Steward: profile/propose a source contract (does not ingest)")
     o_sub = po.add_subparsers(dest="onboard_cmd", required=True)
     op = o_sub.add_parser("profile", help="Deterministic column profile of one file")
     op.add_argument("path")

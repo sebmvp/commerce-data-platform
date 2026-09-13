@@ -1,6 +1,6 @@
-"""Resale Analyst read-tool registry.
+"""Resale Business Librarian read-tool registry.
 
-The generic analyst loop consumes these specs. It does not know what
+The generic Librarian loop consumes these specs. It does not know what
 a listing or SKU is.
 """
 from __future__ import annotations

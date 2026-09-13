@@ -31,7 +31,7 @@ def main() -> int:
     print(f"base_url  {config.base_url}")
     print(f"auth      {'yes' if config.api_key else 'no'}")
     from .. import db
-    from .analyst import run_analyst
+    from .librarian import run_librarian
 
     if not db.is_initialized():
         print("schema not initialized — run: make seed")
@@ -51,7 +51,7 @@ def main() -> int:
             print("---")
             print(f"q         {question}")
             try:
-                result = run_analyst(con, question=question, provider=provider)
+                result = run_librarian(con, question=question, provider=provider)
             except Exception as exc:
                 failed += 1
                 print(f"status    provider_error {type(exc).__name__}: {exc}")

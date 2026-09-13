@@ -1,6 +1,5 @@
 import type {
   ActionRecord,
-  AnalystResponse,
   AttentionQueue,
   BusinessSnapshot,
   CompletenessReport,
@@ -10,6 +9,7 @@ import type {
   InventoryRow,
   ItemHistory,
   ItemPayload,
+  LibrarianResponse,
   RuntimeInfo,
   TrustReport,
 } from "./types";
@@ -45,8 +45,8 @@ export async function postAnswer(
   question: string,
   sku?: string,
   asOf?: string,
-): Promise<AnalystResponse> {
-  return sendJson<AnalystResponse>("/answer", {
+): Promise<LibrarianResponse> {
+  return sendJson<LibrarianResponse>("/answer", {
     question,
     sku: sku || undefined,
     as_of: asOf || undefined,
@@ -57,7 +57,7 @@ export const getEval = () => getJson<EvalLayerReport>("/eval");
 export const getEvalCompare = () => getJson<EvalLayerReport>("/eval/compare");
 export const getEvalAnswers = () => getJson<EvalLayerReport>("/eval/answers");
 export const getEvalPlan = () => getJson<EvalLayerReport>("/eval/plan");
-export const getEvalAnalyst = () => getJson<EvalLayerReport>("/eval/analyst");
+export const getEvalLibrarian = () => getJson<EvalLayerReport>("/eval/librarian");
 export const getItem = (sku: string) =>
   getJson<ItemPayload>(`/business/items/${encodeURIComponent(sku)}`);
 export const getItemHistory = (sku: string) =>

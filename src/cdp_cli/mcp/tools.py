@@ -2,7 +2,7 @@
 
 These call the same Python functions as CLI and FastAPI. They do not
 open a second query path and they do not expose approve/execute.
-`answer` is run_analyst (POST /answer); suggested_action is not a write.
+`answer` is run_librarian (POST /answer); suggested_action is not a write.
 """
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from .. import db
 from ..core import assemble_context
 from ..domains.resale import services as biz
 from ..domains.resale.metrics import metric_catalog
-from ..llm import run_analyst
+from ..llm import run_librarian
 
 # Names an agent host might try. They are not registered and call_read_tool
 # rejects them so a later copilot cannot approve through this adapter.
@@ -69,12 +69,12 @@ def _answer(
     sku: str | None = None,
     as_of: str | None = None,
 ) -> dict[str, Any]:
-    # Same Analyst path as POST /answer and `cdp answer`. Suggested
+    # Same Librarian path as POST /answer and `cdp answer`. Suggested
     # actions in the payload are proposals, not writes.
     if not (question or "").strip() and not intent:
         raise ValueError("question or intent is required")
     return _with_warehouse(
-        lambda con: run_analyst(
+        lambda con: run_librarian(
             con, question=question, intent=intent, sku=sku, as_of=as_of
         )
     )

@@ -4,9 +4,15 @@ import { fileURLToPath } from "node:url";
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 
-async function openContext(page: import("@playwright/test").Page) {
-  await page.getByRole("button", { name: "Context", exact: true }).click();
+async function openLibrarian(page: import("@playwright/test").Page) {
+  await page.getByTestId("nav-librarian").click();
+  await expect(page.getByTestId("librarian-page")).toBeVisible();
   await expect(page.getByTestId("question-input")).toBeVisible();
+}
+
+async function ask(page: import("@playwright/test").Page, question: string) {
+  await page.getByTestId("question-input").fill(question);
+  await page.getByRole("button", { name: "Ask the Business Librarian" }).click();
 }
 
 test("overview loads and attention item can be opened", async ({ page }) => {
@@ -14,7 +20,7 @@ test("overview loads and attention item can be opened", async ({ page }) => {
   await expect(page.getByTestId("overview-page")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("environment")).toContainText("DEMO · SYNTHETIC");
   await expect(page.getByRole("button", { name: "Overview" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Context", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Librarian", exact: true })).toBeVisible();
   await expect(page.locator("[data-testid^='attention-']").first()).toBeVisible({ timeout: 20_000 });
   const attentionCount = await page.locator("[data-testid^='attention-']").count();
   expect(attentionCount).toBeGreaterThan(0);
@@ -22,7 +28,6 @@ test("overview loads and attention item can be opened", async ({ page }) => {
   await expect(page.getByText("Loading")).toHaveCount(0);
   await page.screenshot({
     path: path.join(root, "docs/screenshots/overview.png"),
-    fullPage: true,
   });
   const row = page.locator("[data-testid^='attention-']").first();
   await expect(row).toBeVisible();
@@ -36,7 +41,7 @@ test("item object view shows listing and history", async ({ page }) => {
   await page.getByTestId("sku-input").fill("j4-military-s");
   await page.getByRole("button", { name: "Load" }).click();
   await expect(page.getByTestId("item-view")).toBeVisible();
-  await expect(page.getByTestId("item-state")).toContainText("j4-military-s");
+  await expect(page.getByTestId("item-state")).toBeVisible();
   await expect(page.getByTestId("item-timeline")).toBeVisible();
   await page.getByTestId("item-view").scrollIntoViewIfNeeded();
   await page.getByTestId("item-view").screenshot({
@@ -44,9 +49,10 @@ test("item object view shows listing and history", async ({ page }) => {
   });
 });
 
-test("app loads a sufficient context bundle", async ({ page }) => {
+test("librarian answers a sufficient question", async ({ page }) => {
   await page.goto("/");
-  await openContext(page);
+  await openLibrarian(page);
+  await ask(page, "Should I reprice j4-military-s?");
   await expect(page.getByTestId("sufficiency")).toContainText("SUFFICIENT", { timeout: 20_000 });
   await expect(page.getByTestId("assembled-question")).toContainText("j4-military-s");
   await expect(page.getByTestId("objects")).toBeVisible();
@@ -59,18 +65,33 @@ test("app loads a sufficient context bundle", async ({ page }) => {
   await expect(page.getByTestId("why")).toBeVisible();
   await expect(page.getByTestId("grounded-output")).toBeVisible({ timeout: 20_000 });
   await expect(page.getByTestId("cited-evidence")).toBeVisible();
-  await expect(page.getByTestId("interpreted-plan")).toContainText("reprice");
+  await expect(page.getByTestId("cited-evidence")).toContainText(/Watch rate|Watchers|Listing age|Asking price/i);
+  await expect(page.getByTestId("interpreted-plan")).toContainText(/reprice/i);
+});
+
+test("object plus librarian is the decision workspace", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Inventory" }).click();
+  await page.getByTestId("sku-input").fill("j4-military-s");
+  await page.getByRole("button", { name: "Load" }).click();
+  await expect(page.getByTestId("item-view")).toBeVisible();
+  await page.getByRole("button", { name: "Ask Librarian" }).click();
+  await expect(page.getByTestId("librarian-page")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByTestId("item-view")).toBeVisible();
+  await expect(page.getByTestId("sufficiency")).toContainText("SUFFICIENT", { timeout: 20_000 });
+  await expect(page.getByTestId("cited-evidence")).toBeVisible();
+  await expect(page.getByTestId("cited-evidence")).toContainText(/Watch rate|Watchers|Listing age|Asking price/i);
+  await expect(page.getByTestId("relationship-map")).toBeVisible();
+  await expect(page.getByTestId("action-panel")).toBeVisible();
   await page.screenshot({
-    path: path.join(root, "docs/screenshots/context-inspector.png"),
-    fullPage: true,
+    path: path.join(root, "docs/screenshots/librarian.png"),
   });
 });
 
 test("insufficient case makes missing context obvious", async ({ page }) => {
   await page.goto("/");
-  await openContext(page);
-  await page.getByTestId("question-input").fill("Should I reprice stone-cargo-l?");
-  await page.getByRole("button", { name: "Ask Analyst" }).click();
+  await openLibrarian(page);
+  await ask(page, "Should I reprice stone-cargo-l?");
   await expect(page.getByTestId("sufficiency")).toContainText("INSUFFICIENT");
   await expect(page.getByTestId("missing-context")).toBeVisible();
   await expect(page.getByTestId("missing-context")).toContainText("listing");
@@ -78,7 +99,8 @@ test("insufficient case makes missing context obvious", async ({ page }) => {
 
 test("relationship node opens item", async ({ page }) => {
   await page.goto("/");
-  await openContext(page);
+  await openLibrarian(page);
+  await ask(page, "Should I reprice j4-military-s?");
   await expect(page.getByTestId("relationship-map")).toBeVisible({ timeout: 20_000 });
   await page.getByTestId("rel-node-Item-j4-military-s").click();
   await expect(page.getByTestId("item-view")).toBeVisible();
@@ -95,12 +117,10 @@ test("sandbox reprice can be proposed and approved", async ({ page }) => {
   await expect(page.getByTestId("pending-action")).toBeVisible();
   await page.getByTestId("approve-action").click();
   await expect(page.getByTestId("applied-action")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByTestId("item-timeline")).toContainText("price_change");
-  await openContext(page);
-  await page.getByTestId("question-input").fill("Should I reprice j4-military-s?");
-  await expect(page.getByRole("button", { name: "Ask Analyst" })).toBeEnabled();
-  await page.getByRole("button", { name: "Ask Analyst" }).click();
-  await expect(page.getByTestId("sufficiency")).toContainText("SUFFICIENT");
+  await expect(page.getByTestId("item-timeline")).toContainText(/price/i);
+  await openLibrarian(page);
+  await ask(page, "Should I reprice j4-military-s?");
+  await expect(page.getByTestId("sufficiency")).toContainText("SUFFICIENT", { timeout: 20_000 });
 });
 
 test("evaluation reports all 20 cases", async ({ page }) => {
@@ -115,9 +135,8 @@ test("evaluation reports all 20 cases", async ({ page }) => {
 
 test("grounded answer abstains when context is insufficient", async ({ page }) => {
   await page.goto("/");
-  await openContext(page);
-  await page.getByTestId("question-input").fill("Should I reprice stone-cargo-l?");
-  await page.getByRole("button", { name: "Ask Analyst" }).click();
+  await openLibrarian(page);
+  await ask(page, "Should I reprice stone-cargo-l?");
   await expect(page.getByTestId("sufficiency")).toContainText("INSUFFICIENT");
   await expect(page.getByTestId("grounded-output")).toContainText("ABSTAIN", { timeout: 20_000 });
 });
@@ -133,13 +152,10 @@ test("evaluation shows lexical retrieval comparison", async ({ page }) => {
 
 test("temporal as-of question is sufficient", async ({ page }) => {
   await page.goto("/");
-  await openContext(page);
-  await page
-    .getByTestId("question-input")
-    .fill("What was the active listing state for j4-military-s two weeks ago?");
-  await page.getByRole("button", { name: "Ask Analyst" }).click();
+  await openLibrarian(page);
+  await ask(page, "What was the active listing state for j4-military-s two weeks ago?");
   await expect(page.getByTestId("sufficiency")).toContainText("SUFFICIENT");
-  await expect(page.getByTestId("facts")).toContainText("listing_as_of");
+  await expect(page.getByTestId("facts")).toContainText(/listing as-of/i);
 });
 
 test("data health loads", async ({ page }) => {

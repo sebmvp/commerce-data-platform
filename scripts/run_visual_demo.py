@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Start the visual Context Inspector (API + Vite) on a seeded database.
+"""Start the operator workspace (API + Vite) on a seeded database.
 
 make demo  = this script
 cdp demo   = CLI/system behavior story (isolated DB)
@@ -86,7 +86,7 @@ def main() -> int:
         print(f"  frontend already running  {UI}")
 
     print()
-    print("Context Inspector   ", UI)
+    print("Operator workspace  ", UI)
     print("API docs            ", f"{API}/docs")
     print()
     print("make demo  = visual product demo (this process)")

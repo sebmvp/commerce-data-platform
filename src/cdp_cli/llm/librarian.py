@@ -1,8 +1,11 @@
-"""Analyst Agent: bounded read-only loop over the active domain's tools.
+"""Business Librarian: bounded read-only loop over registered domain tools.
 
-The agent does not emit SQL, run Python, walk the filesystem, or call
-the network. Business facts are always re-resolved from the platform.
-Domain vocabulary lives on the Domain registration, not here.
+The Librarian navigates modeled business context (objects, relationships,
+history, metrics, rules, evidence, provenance) by calling tools the
+active domain registered. It does not emit SQL, run Python, walk the
+filesystem, or call the network. Business facts are always re-resolved
+from the platform. Domain vocabulary lives on the Domain registration,
+not here.
 """
 from __future__ import annotations
 
@@ -27,7 +30,7 @@ class ToolCallModel(BaseModel):
     subject: str | None = None
 
 
-class AnalystLoopOutput(BaseModel):
+class LibrarianLoopOutput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     action: str
@@ -159,7 +162,7 @@ def _loop_prompt(
     )
 
 
-def _parse_loop(raw: str) -> AnalystLoopOutput | None:
+def _parse_loop(raw: str) -> LibrarianLoopOutput | None:
     import json
 
     try:
@@ -169,7 +172,7 @@ def _parse_loop(raw: str) -> AnalystLoopOutput | None:
     if not isinstance(payload, dict):
         return None
     try:
-        parsed = AnalystLoopOutput.model_validate(payload)
+        parsed = LibrarianLoopOutput.model_validate(payload)
     except ValidationError:
         return None
     if parsed.action not in {"call", "finish"}:
@@ -177,7 +180,7 @@ def _parse_loop(raw: str) -> AnalystLoopOutput | None:
     return parsed
 
 
-def run_analyst(
+def run_librarian(
     con,
     *,
     question: str,

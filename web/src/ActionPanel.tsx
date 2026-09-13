@@ -7,6 +7,7 @@ import {
   rejectAction,
 } from "./api";
 import { Field, Section } from "./ui";
+import { formatMoney } from "./format";
 import type { ActionRecord } from "./types";
 
 export function ActionPanel({
@@ -108,7 +109,7 @@ export function ActionPanel({
       {suggestion && !pending && (
         <>
           <p data-testid="price-review">{String(suggestion.reason || "")}</p>
-          <Field label="current ask" value={evidence.asking_price_usd} />
+          <Field label="current ask" value={formatMoney(evidence.asking_price_usd, "USD")} />
           <Field label="why" value={evidence.note} />
           <form
             className="ask"

@@ -1,4 +1,4 @@
-export type Tab = "overview" | "inventory" | "context" | "eval" | "health";
+export type View = "overview" | "inventory" | "librarian" | "eval" | "health";
 export type Environment = "demo" | "heldout" | "private";
 export type GroundingStatus = "grounded" | "abstained" | "invalid";
 
@@ -106,7 +106,7 @@ export interface ToolTraceStep {
   detail?: string;
 }
 
-export interface AnalystResponse {
+export interface LibrarianResponse {
   question?: string;
   resolved_question?: string;
   answer: string;
@@ -181,25 +181,26 @@ export interface BusinessSnapshot {
   provenance?: Record<string, unknown>;
 }
 
-export interface AttentionRecommendation {
-  sku: string;
-  action?: string;
-  why?: string;
-  attention_reason?: string;
-  product?: string;
-}
-
 export interface AttentionQueueRow {
   sku: string;
   product?: string;
+  item_status?: string;
   attention_reason?: string;
+  listing_age_days?: number | null;
+  inventory_age_days?: number | null;
+  watchers?: number | null;
+  offers?: number | null;
+  views?: number | null;
+  watch_rate?: number | null;
+  listing_price_usd?: number | null;
+  platform?: string | null;
   [key: string]: unknown;
 }
 
 export interface AttentionQueue {
   kind?: string;
   data?: {
-    recommendations?: AttentionRecommendation[];
+    recommendations?: Array<Record<string, unknown>>;
     queue?: AttentionQueueRow[];
   };
   provenance?: Record<string, unknown>;
@@ -215,6 +216,7 @@ export interface ItemListing {
   views?: number | null;
   offers?: number | null;
   watch_rate?: number | null;
+  listing_age_days?: number | null;
   [key: string]: unknown;
 }
 
@@ -235,6 +237,7 @@ export interface ItemHistory {
   kind?: string;
   data?: {
     timeline?: Array<Record<string, unknown>>;
+    engagement?: Array<Record<string, unknown>>;
     [key: string]: unknown;
   };
   provenance?: Record<string, unknown>;

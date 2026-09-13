@@ -8,7 +8,6 @@ and never emits SQL.
 Grounding fails closed: malformed output, missing citations, unknown refs,
 or invalid suggested actions are not trusted answers.
 """
-from .analyst import MAX_ITERATIONS, registered_tools, run_analyst
 from .gateway import (
     ModelCapabilities,
     ModelConfig,
@@ -23,6 +22,7 @@ from .grounding import (
     ground_from_bundle,
     parse_grounded,
 )
+from .librarian import MAX_ITERATIONS, registered_tools, run_librarian
 from .planner import deterministic_plan, plan_question
 from .providers import (
     FakeProvider,
@@ -48,5 +48,5 @@ __all__ = [
     "parse_grounded",
     "plan_question",
     "registered_tools",
-    "run_analyst",
+    "run_librarian",
 ]

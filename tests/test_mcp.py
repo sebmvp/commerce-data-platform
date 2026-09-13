@@ -11,7 +11,7 @@ import pytest
 from cdp_cli import db
 from cdp_cli.core import assemble_context
 from cdp_cli.ingest import ALL_JOBS
-from cdp_cli.llm import run_analyst
+from cdp_cli.llm import run_librarian
 from cdp_cli.mcp.tools import FORBIDDEN_TOOL_NAMES, READ_TOOL_NAMES, call_read_tool
 
 
@@ -99,7 +99,7 @@ def test_answer_tool_requires_question_or_intent():
         call_read_tool("answer")
 
 
-def test_answer_tool_matches_analyst(warehouse):
+def test_answer_tool_matches_librarian(warehouse):
     _build(warehouse)
     warehouse.close()
     via_tool = call_read_tool(
@@ -110,7 +110,7 @@ def test_answer_tool_matches_analyst(warehouse):
     )
     con = db.connect(read_only=True)
     try:
-        via_analyst = run_analyst(
+        via_librarian = run_librarian(
             con,
             question="Should I reprice stone-cargo-l?",
             intent="reprice_item",
@@ -123,10 +123,10 @@ def test_answer_tool_matches_analyst(warehouse):
     assert via_tool["grounding_status"] == "abstained"
     assert via_tool["bundle"]["sufficient"] is False
     assert "listing" in {row["concept"] for row in via_tool["bundle"]["missing_context"]}
-    assert via_tool["plan"] == via_analyst["plan"]
-    assert via_tool["grounding_status"] == via_analyst["grounding_status"]
-    assert via_tool["answer"] == via_analyst["answer"]
-    assert via_tool["evidence_refs"] == via_analyst["evidence_refs"]
+    assert via_tool["plan"] == via_librarian["plan"]
+    assert via_tool["grounding_status"] == via_librarian["grounding_status"]
+    assert via_tool["answer"] == via_librarian["answer"]
+    assert via_tool["evidence_refs"] == via_librarian["evidence_refs"]
 
 
 def test_answer_tool_grounds_sufficient_bundle(warehouse):

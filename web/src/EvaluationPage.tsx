@@ -5,7 +5,7 @@ export function EvaluationPage({
   compare,
   answers,
   planEval,
-  analystEval,
+  librarianEval,
   busy,
   onRerun,
   onOpenQuestion,
@@ -14,7 +14,7 @@ export function EvaluationPage({
   compare: EvalLayerReport | null;
   answers: EvalLayerReport | null;
   planEval: EvalLayerReport | null;
-  analystEval: EvalLayerReport | null;
+  librarianEval: EvalLayerReport | null;
   busy: boolean;
   onRerun: () => void;
   onOpenQuestion: (q: string) => void;
@@ -28,7 +28,7 @@ export function EvaluationPage({
           <p className="lede" style={{ marginTop: 12 }}>
             Layers are reported separately. There is no combined “AI accuracy” number.
             Context assembly scores the engine. Planning scores capability mapping.
-            Grounding scores FakeProvider citations. Analyst scores the registered-tool loop.
+            Grounding scores FakeProvider citations. Librarian scores the registered-tool loop.
           </p>
           <div className="eval-bar" data-testid="eval-summary">
             <span>TOTAL <strong data-testid="eval-total">{evalReport.total}</strong></span>
@@ -65,10 +65,10 @@ export function EvaluationPage({
                 </p>
               </div>
             )}
-            {analystEval && (
-              <div data-testid="eval-analyst">
-                <div className="banner-kicker">Agent task success</div>
-                <div className="compare-n">{analystEval.passed}/{analystEval.total}</div>
+            {librarianEval && (
+              <div data-testid="eval-librarian">
+                <div className="banner-kicker">Librarian task success</div>
+                <div className="compare-n">{librarianEval.passed}/{librarianEval.total}</div>
               </div>
             )}
           </div>
@@ -83,7 +83,7 @@ export function EvaluationPage({
                 <span className={c.passed ? "pass" : c.skipped ? "skip" : "fail"}>
                   {c.passed ? "PASS" : c.skipped ? "SKIP" : "FAIL"}
                 </span>{" "}
-                {String(c.id || "")} {String(c.question || "")}
+                {String(c.question || "")}
               </span>
             </div>
           ))}

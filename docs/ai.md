@@ -20,8 +20,16 @@ Two bounded roles:
 
 | Role | Input | Output | May write canonical state? |
 |------|--------|--------|----------------------------|
-| Analyst Agent | operator question | grounded answer + optional action proposal | no |
-| Data Onboarding Agent | one explicit source file | `PROPOSED` source contract | no |
+| Business Librarian | operator question | grounded answer + optional action proposal | no |
+| Data Steward | one explicit source file | `PROPOSED` source contract | no |
+
+The Business Librarian maps operator questions to registered domain
+capabilities, assembles the required business context, and produces
+evidence-grounded answers when that context is sufficient.
+
+The Data Steward profiles new sources and proposes data contracts for
+human review; deterministic adapters remain responsible for canonical
+ingestion.
 
 Deterministic ingest (`SourceAdapter` → validation → ingest runner →
 PostgreSQL) remains the only production write path for source data.
@@ -74,7 +82,7 @@ make ai-smoke    # real/local provider only; never in CI; no business writes
 `make ai-doctor` will not download a model. `make ai-smoke` refuses the
 fake provider and refuses a remote endpoint with no key.
 
-## Analyst Agent
+## Business Librarian
 
 Bounded loop (max 4 iterations) over **read tools registered by the
 active domain**. The generic loop does not know resale vocabulary.
@@ -128,7 +136,7 @@ are not dropped while the rest survives). The model cannot override
 `sufficient=false`. Suggested `propose_reprice` payloads may not include
 a numeric price until an approved pricing policy exists.
 
-## Onboarding Agent
+## Data Steward
 
 CLI only:
 
@@ -174,7 +182,10 @@ versioned policy; the LLM would explain it, not invent it at runtime.
 | Context assembly | `cdp eval` |
 | Question/tool planning | `cdp eval --plan` |
 | Grounding validity | `cdp eval --answers` |
-| Agent task success | `cdp eval --analyst` |
+| Librarian task success | `cdp eval --librarian` |
+
+`cdp eval --analyst` remains as a transport alias for `--librarian`.
+`GET /eval/analyst` remains as a transport alias for `/eval/librarian`.
 
 These are not combined into one accuracy number. Real-model evaluation
 is optional (`make ai-smoke`) and is not CI.

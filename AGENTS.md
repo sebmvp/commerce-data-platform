@@ -39,14 +39,14 @@ Events, evidence, provenance          Resale metrics and rules
 Requirements + sufficiency            Source adapters (JSONL, item notes)
 Generic assembly mechanics            Operator views (inventory, overview)
 FastAPI / MCP / CLI adapters
-Generic Context Inspector rendering
-Generic Analyst / grounding / action lifecycle
+Generic bundle rendering
+Generic Librarian / grounding / action lifecycle
 ```
 
 A new domain provides entities, relationships, intents/requirements,
 resolvers, metrics, rules, evidence, adapters, registered read tools,
 and action validation/apply hooks. It does not rewrite ContextBundle,
-the generic Analyst loop, grounding, or interface adapters.
+the generic Librarian loop, grounding, or interface adapters.
 
 Resale remains the only fully implemented vertical. Do not ship fake
 second businesses as product features. A contract test may use an
@@ -81,21 +81,49 @@ Private raw input stays outside git (`/data/`, `.env`, `CDP_PRIVATE_SOURCE`).
 ## Target flow
 
 ```
-business sources
-    → adapters
-    → canonical operational model (PostgreSQL)
-    → domain services
-    → Context Engine
-    → ContextBundle
-    → FastAPI / MCP / CLI
-    → React operator UI + Analyst Agent (ModelGateway)
-    → human-approved action
+DATA STEWARD
+     proposes source contracts
+              |
+       human approval
+              |
+              v
+     deterministic ingest
+              |
+              v
+    CANONICAL BUSINESS STATE
+              |
+              v
+      BUSINESS LIBRARIAN
+              |
+   registered domain capabilities
+              |
+              v
+        Context Engine
+              |
+              v
+         ContextBundle
+              |
+     sufficiency / evidence
+              |
+              v
+             LLM
+              |
+              v
+     answer / proposal
+              |
+       human approval
+              |
+              v
+         safe action
 ```
 
-Two AI roles sit on that path. They do not replace it:
+Two bounded AI roles sit on that path. They do not replace it:
 
-- **Analyst Agent** — registered read tools, fail-closed grounding, optional action proposal.
-- **Data Onboarding Agent** — profile + `PROPOSED` contract. Deterministic ingest remains canonical.
+- **Business Librarian** — maps operator questions to registered domain
+  capabilities, assembles required context, and produces evidence-grounded
+  answers when that context is sufficient. Optional action proposal.
+- **Data Steward** — profiles a source and proposes a `PROPOSED` contract.
+  Deterministic ingest remains canonical.
 
 See `docs/ai.md`.
 
@@ -110,7 +138,7 @@ Technologies must earn responsibilities. No collection-for-its-own-sake.
 | Context Engine | Assemble typed ContextBundle | — |
 | FastAPI | Human/app HTTP adapter over shared services | — |
 | MCP | Agent adapter over the same services | write/approve tools |
-| React/TS | Operator UI + Context Inspector | full CRUD |
+| React/TS | Operator workspace | full CRUD |
 | Redis | none | async eval/model jobs, bundle cache, rate limits |
 | DuckDB | removed from active architecture | large local Parquet / offline analytical bench |
 | Graph DB / Kafka / Spark / Airflow / K8s / dbt / Polars | not adopted | a concrete capability they uniquely unlock |
@@ -177,7 +205,7 @@ quota. Do not force-push.
 Makefile = developer lifecycle (`doctor`, `up`, `down`, `seed`,
 `reset-demo`, `seed-heldout`, `ingest-private`, `test`, `eval`,
 `eval-heldout`, `eval-compare`, `eval-answers`, `eval-plan`,
-`eval-analyst`, `frontend`, `demo`, `demo-cli`, `test-e2e`, `ai-doctor`,
+`eval-librarian`, `frontend`, `demo`, `demo-cli`, `test-e2e`, `ai-doctor`,
 `ai-smoke`, `clean`, `migrate`).
 
 `cdp` = product behavior (`status`, `context`, `answer`, `eval`, `demo`,

@@ -50,7 +50,7 @@ class ActionApplier(Protocol):
 
 @dataclass(frozen=True)
 class ReadToolSpec:
-    """Registered READ capability a generic analyst may invoke."""
+    """Registered READ capability the Business Librarian may invoke."""
 
     name: str
     summary: str

@@ -23,7 +23,7 @@ Makefile is the developer lifecycle. `cdp` is product behavior.
 | `make eval-compare` | Engine vs lexical retrieval baseline |
 | `make eval-answers` | Gold grounded-answer contract (FakeProvider) |
 | `make eval-plan` | Question/tool planning |
-| `make eval-analyst` | Analyst Agent task success |
+| `make eval-librarian` | Business Librarian task success |
 | `make ai-doctor` | Model gateway diagnostics (no secrets, no downloads) |
 | `make ai-smoke` | Optional real/local provider smoke (never in CI) |
 | `make demo` | Operator workspace (API + Vite). Prints `http://127.0.0.1:5173` |
@@ -39,17 +39,17 @@ Makefile is the developer lifecycle. `cdp` is product behavior.
 | `cdp ingest-private` | Private item notes → `cdp_private` (set `CDP_PRIVATE_SOURCE`) |
 | `cdp status` | Health snapshot + ingest reconciliation |
 | `cdp context "…"` | Assemble a ContextBundle (`--intent`, `--sku`, `--as-of`, `--json`) |
-| `cdp answer "…"` | Analyst Agent over that bundle (abstains if insufficient) |
+| `cdp answer "…"` | Business Librarian over that bundle (abstains if insufficient) |
 | `cdp onboard profile \| propose \| review` | Source contract proposal; does not ingest |
 | `cdp eval` | GOLD / DEVELOPMENT catalog |
 | `cdp eval --heldout` | HELD OUT catalog (needs the held-out world) |
 | `cdp eval --compare` | Engine vs lexical retrieval baseline |
 | `cdp eval --answers` | Grounded-answer contract on the same ids |
 | `cdp eval --plan` | Question/tool planning on the same ids |
-| `cdp eval --analyst` | Analyst Agent task success on the same ids |
+| `cdp eval --librarian` | Business Librarian task success on the same ids |
 | `cdp business snapshot \| attention \| health \| item \| history \| channel` | Typed business tools |
 | `cdp demo` | Isolated warehouse → decision → quarantine story |
-| `cdp mcp` | MCP stdio server (read tools + Analyst `answer`; no approve) |
+| `cdp mcp` | MCP stdio server (read tools + Librarian `answer`; no approve) |
 | `cdp action propose \| list \| get \| approve \| reject` | Sandbox actions; no marketplace mutation |
 | `cdp serve` | FastAPI (`/context`, `/answer`, `/eval`, `/eval/compare`, `/eval/answers`, `/business/*`) |
 | `cdp build --sample` | Schema + ingest from `CDP_DATA` |

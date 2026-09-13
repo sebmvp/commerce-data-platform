@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from cdp_cli import db
 from cdp_cli.ingest import ALL_JOBS
-from evals.analyst_eval import run_analyst_eval
+from evals.librarian_eval import run_librarian_eval
 from evals.plan_eval import run_plan_eval
 
 
@@ -21,9 +21,9 @@ def test_plan_eval_layer(warehouse) -> None:
     assert "accuracy" not in report
 
 
-def test_analyst_eval_layer(warehouse) -> None:
+def test_librarian_eval_layer(warehouse) -> None:
     _build(warehouse)
-    report = run_analyst_eval(warehouse)
+    report = run_librarian_eval(warehouse)
     assert report["layer"] == "agent_task_success"
     assert report["provider"] == "fake"
     assert report["ok"] is True

@@ -14,7 +14,7 @@ stdio is the transport. A host (Claude Desktop, Cursor, Inspector) launches `cdp
 | Tool | Source |
 |---|---|
 | `assemble_context` | context engine |
-| `answer` | Analyst Agent (`run_analyst`, same as POST `/answer`) |
+| `answer` | Business Librarian (`run_librarian`, same as POST `/answer`) |
 | `get_business_snapshot` | `domains/resale/services` |
 | `get_inventory_attention_queue` | `domains/resale/services` |
 | `get_ingest_health` | `domains/resale/services` |
@@ -26,7 +26,7 @@ stdio is the transport. A host (Claude Desktop, Cursor, Inspector) launches `cdp
 
 Not registered: `propose_action`, `approve_action`, `reject_action`, `execute_action`.
 
-`answer` returns the Analyst payload: plan, tool trace, the exact bundle used, grounding_status, citations, and an optional suggested_action. That suggestion is not a write. `approve_action` is still not registered.
+`answer` returns the Librarian payload: plan, tool trace, the exact bundle used, grounding_status, citations, and an optional suggested_action. That suggestion is not a write. `approve_action` is still not registered.
 
 If `answer` returns `grounding_status: abstained`, or `assemble_context` returns `sufficient: false`, a copilot should abstain or qualify. The server does not invent missing listings or prices.
 

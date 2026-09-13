@@ -218,14 +218,14 @@ def create_app() -> FastAPI:
 
     @app.post("/answer")
     def post_grounded_answer(body: AnswerRequest):
-        from ..llm import run_analyst
+        from ..llm import run_librarian
 
         if not (body.question or "").strip() and not body.intent:
             raise HTTPException(400, "question or intent is required")
         _require_db()
         con = db.connect(read_only=True)
         try:
-            return run_analyst(
+            return run_librarian(
                 con,
                 question=body.question,
                 intent=body.intent,
@@ -303,21 +303,29 @@ def create_app() -> FastAPI:
         finally:
             con.close()
 
-    @app.get("/eval/analyst")
-    def eval_analyst():
+    def _eval_librarian():
         import sys
 
         from .. import db as _db
 
         sys.path.insert(0, str(_db.project_root()))
-        from evals.analyst_eval import run_analyst_eval
+        from evals.librarian_eval import run_librarian_eval
 
         _require_db()
         con = db.connect(read_only=True)
         try:
-            return run_analyst_eval(con)
+            return run_librarian_eval(con)
         finally:
             con.close()
+
+    @app.get("/eval/librarian")
+    def eval_librarian():
+        return _eval_librarian()
+
+    @app.get("/eval/analyst")
+    def eval_analyst():
+        # Transport name kept for existing clients; product layer is Librarian.
+        return _eval_librarian()
 
     @app.get("/business/snapshot")
     def business_snapshot(as_of: str | None = Query(None)):

@@ -1,4 +1,4 @@
-"""Analyst task-success eval. Separate from assembly, planning, and grounding."""
+"""Business Librarian task-success eval. Separate from assembly, planning, grounding."""
 from __future__ import annotations
 
 from typing import Any
@@ -16,20 +16,20 @@ def _catalog(suite: str) -> list[dict[str, Any]]:
     return QUESTIONS
 
 
-def run_analyst_eval(
+def run_librarian_eval(
     con,
     *,
     suite: str = "gold",
     strict: bool = True,
 ) -> dict[str, Any]:
-    from cdp_cli.llm import FakeProvider, run_analyst
+    from cdp_cli.llm import FakeProvider, run_librarian
 
     used = FakeProvider()
     catalog = _catalog(suite)
     results = []
     for case in catalog:
         try:
-            result = run_analyst(
+            result = run_librarian(
                 con,
                 question=case["question"],
                 sku=case.get("sku"),
@@ -55,13 +55,13 @@ def run_analyst_eval(
         errors = list(scored["errors"])
         traces = result.get("tool_trace") or []
         if not traces:
-            errors.append("analyst produced no tool trace")
+            errors.append("librarian produced no tool trace")
         allowed = _allowed()
         bad = [t.get("tool") for t in traces if t.get("tool") not in allowed]
         if bad:
             errors.append("unregistered tools: " + ", ".join(str(x) for x in bad))
         if result.get("bundle") is None:
-            errors.append("analyst result missing exact bundle")
+            errors.append("librarian result missing exact bundle")
         scored["errors"] = errors
         scored["passed"] = not errors
         scored["tool_trace"] = [t.get("summary") for t in traces]
@@ -83,13 +83,13 @@ def run_analyst_eval(
         "strict": strict,
         "cases": results,
         "notes": (
-            "FakeProvider analyst contract: registered tools only, exact bundle "
+            "FakeProvider Librarian contract: registered tools only, exact bundle "
             "returned, grounding still fail-closed. Not an LLM-as-judge."
         ),
     }
 
 
 def _allowed() -> set[str]:
-    from cdp_cli.llm.analyst import registered_tools
+    from cdp_cli.llm.librarian import registered_tools
 
     return set(registered_tools())

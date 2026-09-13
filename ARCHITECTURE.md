@@ -15,8 +15,8 @@ businesses.
 ```mermaid
 flowchart TD
   react[React] --> fastapi[FastAPI]
-  fastapi --> analyst[Analyst Agent]
-  analyst --> tools[Domain read capabilities]
+  fastapi --> librarian[Business Librarian]
+  librarian --> tools[Domain read capabilities]
   tools --> engine[Context Engine]
   engine --> pg[(PostgreSQL)]
   engine --> bundle[ContextBundle + evidence]
@@ -69,7 +69,7 @@ flowchart TB
     suff[Sufficiency]
     prov[Provenance]
     assemble[Generic assembly]
-    analystCore[Generic Analyst loop]
+    librarianCore[Generic Librarian loop]
     ground[Fail-closed grounding]
     actions[Action state machine]
     ifaces[FastAPI / MCP / CLI]
@@ -159,11 +159,11 @@ public JSONL worlds (demo / held-out) from synthetic/resale/
         → PostgreSQL
         → domain services + context engine
         → CLI / FastAPI / MCP / React operator workspace
-        → POST /answer (Analyst: registered tools + exact ContextBundle + grounding)
+        → POST /answer (Librarian: registered tools + exact ContextBundle + grounding)
         → human-approved sandbox action → listing_events / item_events
         → recent_changes diffs live projection vs reconstructed prior snapshot
-        → eval layers: assembly / planning / grounding / analyst (FakeProvider)
-        → onboard profile/propose/review (PROPOSED contract only)
+        → eval layers: assembly / planning / grounding / librarian (FakeProvider)
+        → Data Steward profile/propose/review (PROPOSED contract only)
 
 NEXT
 ====
@@ -183,8 +183,8 @@ operator-defined numeric pricing policy (not invented here)
 | Redis | **NOT YET** | No async job/cache/runtime need |
 | dbt / Polars / Neo4j / Kafka / Spark / Airflow / K8s | **NOT ADOPTED** | No capability they uniquely unlock here |
 | MCP | **CURRENT** | Typed tools over shared services |
-| React/TS | **CURRENT** | Operator UI + Context Inspector |
-| LLM copilot | **CURRENT** | ModelGateway: fake default; openai_compatible for Ollama/vLLM/xAI; fail-closed grounding; Analyst Agent; onboarding proposals |
+| React/TS | **CURRENT** | Operator workspace (objects + Librarian) |
+| LLM copilot | **CURRENT** | ModelGateway: fake default; openai_compatible for Ollama/vLLM/xAI; fail-closed grounding; Business Librarian; Data Steward proposals |
 | Lexical retrieval baseline | **CURRENT (eval)** | TF-IDF vs gold ids. Not the architecture. Not RAG. |
 
 ## ContextBundle
@@ -209,5 +209,5 @@ Both score the engine, not an LLM.
 baseline on the same ids. Call it lexical retrieval, not RAG.
 `cdp eval --answers` / `GET /eval/answers` scores the grounded copilot
 contract (FakeProvider) on those ids. `cdp eval --plan` and
-`cdp eval --analyst` are separate layers. CI fails on engine FAIL or SKIP.
+`cdp eval --librarian` are separate layers. CI fails on engine FAIL or SKIP.
 See docs/ai.md.

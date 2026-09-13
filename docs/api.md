@@ -6,7 +6,7 @@ cdp serve
 # http://127.0.0.1:8000/docs
 ```
 
-View-backed routes are a thin resale read model. `/business/*`, `/context`, `/answer`, and `/ingest/trust` call domain services / the Analyst. They do not reimplement business rules.
+View-backed routes are a thin resale read model. `/business/*`, `/context`, `/answer`, and `/ingest/trust` call domain services / the Librarian. They do not reimplement business rules.
 
 | Method | Path | Source |
 |---|---|---|
@@ -17,12 +17,13 @@ View-backed routes are a thin resale read model. `/business/*`, `/context`, `/an
 | GET | `/ingest/runs?limit=N` | `core.v_ingest_health` |
 | GET | `/ingest/trust` | `observability.trust_report` |
 | GET | `/context?question=&intent=&sku=` | `assemble_context` (question or intent required) |
-| POST | `/answer` | Analyst Agent (plan + tools + exact bundle + grounding) |
+| POST | `/answer` | Business Librarian (plan + tools + exact bundle + grounding) |
 | GET | `/eval` | gold context-assembly eval |
 | GET | `/eval/compare` | engine vs lexical baseline |
 | GET | `/eval/answers` | FakeProvider grounded-answer contract |
 | GET | `/eval/plan` | question/tool planning |
-| GET | `/eval/analyst` | Analyst Agent task success |
+| GET | `/eval/librarian` | Business Librarian task success |
+| GET | `/eval/analyst` | transport alias for `/eval/librarian` |
 | GET | `/business/snapshot` | `get_business_snapshot` |
 | GET | `/business/attention?limit=N` | `get_inventory_attention_queue` |
 | GET | `/business/metrics?name=` | metric registry / `explain_metric` |

@@ -1,4 +1,4 @@
-.PHONY: help doctor up down seed seed-heldout reset-demo ingest-private test eval eval-heldout eval-compare eval-answers eval-plan eval-analyst frontend demo demo-cli test-e2e clean migrate ai-doctor ai-smoke
+.PHONY: help doctor up down seed seed-heldout reset-demo ingest-private test eval eval-heldout eval-compare eval-answers eval-plan eval-librarian eval-analyst frontend demo demo-cli test-e2e clean migrate ai-doctor ai-smoke
 
 PYTHON ?= .venv/bin/python
 PIP ?= .venv/bin/pip
@@ -24,7 +24,7 @@ help:
 	@echo "  make eval-compare Engine vs lexical retrieval baseline"
 	@echo "  make eval-answers Gold grounded-answer contract (FakeProvider)"
 	@echo "  make eval-plan    Question/tool planning eval"
-	@echo "  make eval-analyst Analyst Agent task-success eval"
+	@echo "  make eval-librarian Business Librarian task-success eval"
 	@echo "  make demo         Operator workspace (API + Vite)"
 	@echo "  make ai-doctor    Model gateway diagnostics (no secrets, no downloads)"
 	@echo "  make ai-smoke     Optional real/local provider smoke (never in CI)"
@@ -77,8 +77,10 @@ eval-answers: up
 eval-plan: up
 	$(CDP) eval --plan
 
-eval-analyst: up
-	$(CDP) eval --analyst
+eval-librarian: up
+	$(CDP) eval --librarian
+
+eval-analyst: eval-librarian
 
 frontend:
 	cd $(WEB) && npm install && npm run dev -- --port 5173 --host 127.0.0.1
