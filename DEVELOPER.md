@@ -49,7 +49,7 @@ Makefile is the developer lifecycle. `cdp` is product behavior.
 | `cdp eval --analyst` | Analyst Agent task success on the same ids |
 | `cdp business snapshot \| attention \| health \| item \| history \| channel` | Typed business tools |
 | `cdp demo` | Isolated warehouse → decision → quarantine story |
-| `cdp mcp` | MCP stdio server (read tools only) |
+| `cdp mcp` | MCP stdio server (read tools + Analyst `answer`; no approve) |
 | `cdp action propose \| list \| get \| approve \| reject` | Sandbox actions; no marketplace mutation |
 | `cdp serve` | FastAPI (`/context`, `/answer`, `/eval`, `/eval/compare`, `/eval/answers`, `/business/*`) |
 | `cdp build --sample` | Schema + ingest from `CDP_DATA` |

@@ -11,6 +11,7 @@ import pytest
 from cdp_cli import db
 from cdp_cli.core import assemble_context
 from cdp_cli.ingest import ALL_JOBS
+from cdp_cli.llm import run_analyst
 from cdp_cli.mcp.tools import FORBIDDEN_TOOL_NAMES, READ_TOOL_NAMES, call_read_tool
 
 
@@ -21,6 +22,7 @@ def _build(con):
 
 def test_read_surface_excludes_human_gated_writes():
     assert "assemble_context" in READ_TOOL_NAMES
+    assert "answer" in READ_TOOL_NAMES
     assert "get_item" in READ_TOOL_NAMES
     for name in (
         "approve_action",
@@ -92,6 +94,54 @@ def test_unknown_tool_is_rejected():
         call_read_tool("approve_action", action_id="x")
 
 
+def test_answer_tool_requires_question_or_intent():
+    with pytest.raises(ValueError, match="question or intent"):
+        call_read_tool("answer")
+
+
+def test_answer_tool_matches_analyst(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    via_tool = call_read_tool(
+        "answer",
+        question="Should I reprice stone-cargo-l?",
+        intent="reprice_item",
+        sku="stone-cargo-l",
+    )
+    con = db.connect(read_only=True)
+    try:
+        via_analyst = run_analyst(
+            con,
+            question="Should I reprice stone-cargo-l?",
+            intent="reprice_item",
+            sku="stone-cargo-l",
+        )
+    finally:
+        con.close()
+
+    assert via_tool["abstained"] is True
+    assert via_tool["grounding_status"] == "abstained"
+    assert via_tool["bundle"]["sufficient"] is False
+    assert "listing" in {row["concept"] for row in via_tool["bundle"]["missing_context"]}
+    assert via_tool["plan"] == via_analyst["plan"]
+    assert via_tool["grounding_status"] == via_analyst["grounding_status"]
+    assert via_tool["answer"] == via_analyst["answer"]
+    assert via_tool["evidence_refs"] == via_analyst["evidence_refs"]
+
+
+def test_answer_tool_grounds_sufficient_bundle(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    payload = call_read_tool("answer", question="Should I reprice j4-military-s?")
+    assert payload["abstained"] is False
+    assert payload["grounding_status"] == "grounded"
+    assert payload["bundle"]["sufficient"] is True
+    assert "j4-military-s" in payload["answer"]
+    catalog = payload["bundle"]["evidence_catalog"]
+    assert payload["evidence_refs"]
+    assert all(ref in catalog for ref in payload["evidence_refs"])
+
+
 def test_mcp_server_lists_only_read_tools(warehouse):
     pytest.importorskip("mcp")
     _build(warehouse)
@@ -134,5 +184,32 @@ def test_mcp_assemble_context_over_protocol(warehouse):
             assert body["sufficient"] is False
             concepts = {row["concept"] for row in body["missing_context"]}
             assert "listing" in concepts
+
+    asyncio.run(_run())
+
+
+def test_mcp_answer_over_protocol(warehouse):
+    pytest.importorskip("mcp")
+    _build(warehouse)
+    warehouse.close()
+    from mcp import Client
+
+    from cdp_cli.mcp.server import create_server
+
+    async def _run():
+        async with Client(create_server()) as client:
+            result = await client.call_tool(
+                "answer",
+                {
+                    "question": "Should I reprice stone-cargo-l?",
+                    "intent": "reprice_item",
+                    "sku": "stone-cargo-l",
+                },
+            )
+            assert result.is_error is False
+            body = result.structured_content
+            assert body["grounding_status"] == "abstained"
+            assert body["bundle"]["sufficient"] is False
+            assert "ABSTAIN" in body["answer"].upper()
 
     asyncio.run(_run())

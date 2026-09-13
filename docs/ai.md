@@ -96,7 +96,7 @@ A broad question such as “What should I focus on today?” uses snapshot
 “Knowing the whole business” means selective tool access, not dumping
 the database into the prompt.
 
-One `POST /answer` (or `cdp answer`) returns:
+One `POST /answer`, `cdp answer`, or MCP `answer` returns:
 
 - plan / tool trace (factual execution only)
 - the exact ContextBundle used

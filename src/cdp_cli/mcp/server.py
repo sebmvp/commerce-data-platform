@@ -16,17 +16,27 @@ _READ_ONLY = ToolAnnotations(
     idempotent_hint=True,
     open_world_hint=False,
 )
+# Real providers are not bit-identical across calls; FakeProvider is.
+_ANSWER = ToolAnnotations(
+    read_only_hint=True,
+    destructive_hint=False,
+    idempotent_hint=False,
+    open_world_hint=False,
+)
 
 _INSTRUCTIONS = """\
 Read-only agent interface to the Commerce Data Platform context engine.
 
-Prefer assemble_context for operational questions. It returns objects, links,
-metrics, rules, provenance, and missing_context. If sufficient is false, abstain
-or qualify — do not invent listings, prices, or history.
+Prefer `answer` for operator questions. It is the same Analyst path as
+POST /answer: plan, registered read tools, ContextBundle, fail-closed
+grounding. If grounding_status is abstained, do not invent listings,
+prices, or history. Use assemble_context when you need the typed bundle
+without a model.
 
 FACT / METRIC / RECOMMENDATION stay distinct in tool payloads.
 Human approval gates actions. This server does not expose approve_action,
-reject_action, execute_action, or propose_action.
+reject_action, execute_action, or propose_action. suggested_action in an
+answer is a proposal, not a write.
 """
 
 
@@ -55,6 +65,18 @@ def create_server() -> MCPServer:
         """Assemble a typed ContextBundle for a bounded operational question."""
         return _invoke(
             "assemble_context", question=question, intent=intent, sku=sku
+        )
+
+    @server.tool(annotations=_ANSWER)
+    def answer(
+        question: str = "",
+        intent: str | None = None,
+        sku: str | None = None,
+        as_of: str | None = None,
+    ) -> dict[str, Any]:
+        """Grounded Analyst answer over the same function as POST /answer."""
+        return _invoke(
+            "answer", question=question, intent=intent, sku=sku, as_of=as_of
         )
 
     @server.tool(annotations=_READ_ONLY)
