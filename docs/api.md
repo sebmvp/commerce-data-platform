@@ -16,7 +16,7 @@ View-backed routes are a thin resale read model. `/business/*`, `/context`, `/an
 | GET | `/listings/performance?platform=X` | `sales.v_listing_performance` |
 | GET | `/ingest/runs?limit=N` | `core.v_ingest_health` |
 | GET | `/ingest/trust` | `observability.trust_report` |
-| GET | `/context?question=&intent=&sku=` | `assemble_context` (question or intent required) |
+| GET | `/context?question=&intent=&sku=&as_of=` | `assemble_context` (question or intent required; `as_of` ISO-8601) |
 | POST | `/answer` | Business Librarian (plan + tools + exact bundle + grounding) |
 | GET | `/eval` | gold context-assembly eval |
 | GET | `/eval/compare` | engine vs lexical baseline |
@@ -24,7 +24,7 @@ View-backed routes are a thin resale read model. `/business/*`, `/context`, `/an
 | GET | `/eval/plan` | question/tool planning |
 | GET | `/eval/librarian` | Business Librarian task success |
 | GET | `/eval/analyst` | transport alias for `/eval/librarian` |
-| GET | `/business/snapshot` | `get_business_snapshot` |
+| GET | `/business/snapshot?as_of=` | `get_business_snapshot` (omit `as_of` = live projection) |
 | GET | `/business/attention?limit=N` | `get_inventory_attention_queue` |
 | GET | `/business/metrics?name=` | metric registry / `explain_metric` |
 | GET | `/business/items/{sku}` | `get_item` |

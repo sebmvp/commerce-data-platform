@@ -3,6 +3,8 @@
 These call the same Python functions as CLI and FastAPI. They do not
 open a second query path and they do not expose approve/execute.
 `answer` is run_librarian (POST /answer); suggested_action is not a write.
+`as_of` on assemble_context / answer / get_business_snapshot is the same
+ISO-8601 pin as GET /context and GET /business/snapshot.
 """
 from __future__ import annotations
 
@@ -49,15 +51,29 @@ def _with_warehouse(fn: Callable[[Any], Any]) -> Any:
         con.close()
 
 
+def _optional_as_of(as_of: str | None) -> str | None:
+    # Empty strings from hosts must not look like a pinned instant.
+    if as_of is None:
+        return None
+    text = str(as_of).strip()
+    return text or None
+
+
 def _assemble_context(
     *,
     question: str = "",
     intent: str | None = None,
     sku: str | None = None,
+    as_of: str | None = None,
 ) -> dict[str, Any]:
+    pinned = _optional_as_of(as_of)
     return _with_warehouse(
         lambda con: assemble_context(
-            con, question=question or "", intent=intent, sku=sku
+            con,
+            question=question or "",
+            intent=intent,
+            sku=sku,
+            as_of=pinned,
         ).to_dict()
     )
 
@@ -73,15 +89,19 @@ def _answer(
     # actions in the payload are proposals, not writes.
     if not (question or "").strip() and not intent:
         raise ValueError("question or intent is required")
+    pinned = _optional_as_of(as_of)
     return _with_warehouse(
         lambda con: run_librarian(
-            con, question=question, intent=intent, sku=sku, as_of=as_of
+            con, question=question, intent=intent, sku=sku, as_of=pinned
         )
     )
 
 
-def _snapshot() -> dict[str, Any]:
-    return _with_warehouse(lambda con: biz.get_business_snapshot(con).to_dict())
+def _snapshot(*, as_of: str | None = None) -> dict[str, Any]:
+    pinned = _optional_as_of(as_of)
+    return _with_warehouse(
+        lambda con: biz.get_business_snapshot(con, as_of=pinned).to_dict()
+    )
 
 
 def _attention(*, limit: int = 25) -> dict[str, Any]:

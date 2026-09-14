@@ -31,7 +31,9 @@ Prefer `answer` for operator questions. It is the same Business Librarian
 path as POST /answer: plan, registered read tools, ContextBundle,
 fail-closed grounding. If grounding_status is abstained, do not invent listings,
 prices, or history. Use assemble_context when you need the typed bundle
-without a model.
+without a model. Pass as_of (ISO-8601) on assemble_context, answer, and
+get_business_snapshot to pin the same instant GET /context and GET
+/business/snapshot already accept — do not encode the clock only in prose.
 
 FACT / METRIC / RECOMMENDATION stay distinct in tool payloads.
 Human approval gates actions. This server does not expose approve_action,
@@ -61,10 +63,15 @@ def create_server() -> MCPServer:
         question: str = "",
         intent: str | None = None,
         sku: str | None = None,
+        as_of: str | None = None,
     ) -> dict[str, Any]:
-        """Assemble a typed ContextBundle for a bounded operational question."""
+        """Assemble a typed ContextBundle. as_of pins the instant (ISO-8601)."""
         return _invoke(
-            "assemble_context", question=question, intent=intent, sku=sku
+            "assemble_context",
+            question=question,
+            intent=intent,
+            sku=sku,
+            as_of=as_of,
         )
 
     @server.tool(annotations=_ANSWER)
@@ -80,9 +87,9 @@ def create_server() -> MCPServer:
         )
 
     @server.tool(annotations=_READ_ONLY)
-    def get_business_snapshot() -> dict[str, Any]:
-        """Current derived snapshot of inventory, capital, and trust."""
-        return _invoke("get_business_snapshot")
+    def get_business_snapshot(as_of: str | None = None) -> dict[str, Any]:
+        """Derived snapshot. Omit as_of for live projection; pass ISO-8601 to reconstruct."""
+        return _invoke("get_business_snapshot", as_of=as_of)
 
     @server.tool(annotations=_READ_ONLY)
     def get_inventory_attention_queue(limit: int = 25) -> dict[str, Any]:

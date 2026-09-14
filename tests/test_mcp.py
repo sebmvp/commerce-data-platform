@@ -5,11 +5,14 @@ The engine already exists. This slice only exposes it to agents.
 from __future__ import annotations
 
 import asyncio
+from datetime import timedelta
 
 import pytest
 
 from cdp_cli import db
+from cdp_cli.clock import iso, reference_now
 from cdp_cli.core import assemble_context
+from cdp_cli.domains.resale.metrics import STALE_LISTING_DAYS
 from cdp_cli.ingest import ALL_JOBS
 from cdp_cli.llm import run_librarian
 from cdp_cli.mcp.tools import FORBIDDEN_TOOL_NAMES, READ_TOOL_NAMES, call_read_tool
@@ -62,6 +65,71 @@ def test_assemble_context_tool_matches_engine(warehouse):
     assert via_tool["intent"] == via_engine["intent"]
     assert via_tool["sufficient"] == via_engine["sufficient"]
     assert via_tool["missing_context"] == via_engine["missing_context"]
+
+
+def test_assemble_context_as_of_matches_engine(warehouse):
+    """An explicit as_of pin is the same clock HTTP /context already accepts."""
+    _build(warehouse)
+    warehouse.close()
+    pinned = iso(reference_now() - timedelta(days=STALE_LISTING_DAYS))
+    via_tool = call_read_tool(
+        "assemble_context",
+        question="What was the listing state for j4-military-s?",
+        intent="listing_as_of",
+        sku="j4-military-s",
+        as_of=pinned,
+    )
+    con = db.connect(read_only=True)
+    try:
+        via_engine = assemble_context(
+            con,
+            question="What was the listing state for j4-military-s?",
+            intent="listing_as_of",
+            sku="j4-military-s",
+            as_of=pinned,
+        ).to_dict()
+    finally:
+        con.close()
+
+    assert via_tool["intent"] == "listing_as_of"
+    assert via_tool["sufficient"] is True
+    assert via_tool["as_of"] == via_engine["as_of"]
+    assert via_tool["facts"]["listing_as_of"] == via_engine["facts"]["listing_as_of"]
+    assert via_tool["facts"]["listing_as_of"]["covered"] is True
+    # Pin must win over the live world clock, not just echo "two weeks ago" prose.
+    assert via_tool["as_of"].startswith(pinned.removesuffix("Z")[:16])
+
+
+def test_snapshot_as_of_reconstructs_history(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    live = call_read_tool("get_business_snapshot")
+    pinned = iso(reference_now() - timedelta(days=STALE_LISTING_DAYS))
+    prior = call_read_tool("get_business_snapshot", as_of=pinned)
+
+    assert live["kind"] == "derived"
+    assert live["data"]["reconstructed"] is False
+    assert prior["data"]["reconstructed"] is True
+    assert prior["data"]["covered"] is True
+    assert prior["data"]["active_listings"] < live["data"]["active_listings"]
+    assert prior["provenance"]["tool"] == "get_business_snapshot"
+    assert "item_events" in " ".join(prior["provenance"]["source_relations"])
+
+
+def test_snapshot_empty_as_of_is_live_projection(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    live = call_read_tool("get_business_snapshot")
+    blank = call_read_tool("get_business_snapshot", as_of="  ")
+    assert blank["data"]["reconstructed"] is False
+    assert blank["data"]["items_total"] == live["data"]["items_total"]
+
+
+def test_snapshot_invalid_as_of_is_rejected(warehouse):
+    _build(warehouse)
+    warehouse.close()
+    with pytest.raises(ValueError, match="invalid as_of"):
+        call_read_tool("get_business_snapshot", as_of="not-a-date")
 
 
 def test_focus_today_tool_is_sufficient(warehouse):
@@ -177,6 +245,7 @@ def test_mcp_assemble_context_over_protocol(warehouse):
                     "question": "Should I reprice stone-cargo-l?",
                     "intent": "reprice_item",
                     "sku": "stone-cargo-l",
+                    "as_of": iso(reference_now()),
                 },
             )
             assert result.is_error is False
@@ -211,5 +280,34 @@ def test_mcp_answer_over_protocol(warehouse):
             assert body["grounding_status"] == "abstained"
             assert body["bundle"]["sufficient"] is False
             assert "ABSTAIN" in body["answer"].upper()
+
+    asyncio.run(_run())
+
+
+def test_mcp_snapshot_as_of_over_protocol(warehouse):
+    pytest.importorskip("mcp")
+    _build(warehouse)
+    warehouse.close()
+    from mcp import Client
+
+    from cdp_cli.mcp.server import create_server
+
+    async def _run():
+        async with Client(create_server()) as client:
+            live = await client.call_tool("get_business_snapshot", {})
+            assert live.is_error is False
+            pinned = iso(reference_now() - timedelta(days=STALE_LISTING_DAYS))
+            prior = await client.call_tool(
+                "get_business_snapshot", {"as_of": pinned}
+            )
+            assert prior.is_error is False
+            live_body = live.structured_content
+            prior_body = prior.structured_content
+            assert live_body["data"]["reconstructed"] is False
+            assert prior_body["data"]["reconstructed"] is True
+            assert (
+                prior_body["data"]["active_listings"]
+                < live_body["data"]["active_listings"]
+            )
 
     asyncio.run(_run())
