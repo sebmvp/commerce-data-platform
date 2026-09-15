@@ -270,6 +270,18 @@ CREATE TABLE IF NOT EXISTS ops.notes (
 CREATE INDEX IF NOT EXISTS notes_object
   ON ops.notes (object_type, object_id);
 
+-- Lexical retrieval over unstructured evidence. Weighted title (A) > body (B),
+-- GIN-indexed. query-level weighting lives in the search service.
+ALTER TABLE ops.notes
+  ADD COLUMN IF NOT EXISTS search_tsv tsvector
+  GENERATED ALWAYS AS (
+    setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
+    setweight(to_tsvector('english', coalesce(body, '')), 'B')
+  ) STORED;
+
+CREATE INDEX IF NOT EXISTS notes_search_tsv
+  ON ops.notes USING GIN (search_tsv);
+
 -- Named checkpoints. Canonical history remains item_events / listing_events.
 CREATE TABLE IF NOT EXISTS ops.business_snapshots (
   snapshot_id   TEXT PRIMARY KEY,

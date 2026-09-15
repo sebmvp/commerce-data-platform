@@ -501,6 +501,11 @@ def cmd_eval(args: argparse.Namespace) -> int:
         elif getattr(args, "librarian", False):
             compare = None
             report = run_librarian_eval(con, suite=suite)
+        elif getattr(args, "notes", False):
+            compare = None
+            from evals.retrieval_eval import run_retrieval_eval
+
+            report = run_retrieval_eval(con)
         elif getattr(args, "compare", False):
             compare = run_compare(con, suite=suite)
             report = compare["engine"]
@@ -514,6 +519,20 @@ def cmd_eval(args: argparse.Namespace) -> int:
         ok = report["ok"] if compare is None else compare["engine"]["ok"]
         return 0 if ok else 1
     label = (compare or report).get("suite") or suite
+    if getattr(args, "notes", False):
+        print(
+            "LAYER       note_retrieval (deterministic)\n"
+            "            ilike vs fts vs production over the note gold set\n"
+        )
+        for key in ("ilike", "fts", "production"):
+            r = report[key]
+            print(
+                f"  {key:10} {r['passed']}/{r['total']}  "
+                f"recall {r['macro_recall']:.3f}  precision {r['macro_precision']:.3f}"
+                + (f"  mrr {r['macro_mrr']:.3f}" if "macro_mrr" in r else "")
+                + ("  SEMANTIC-FAIL " + ",".join(r["semantic_failures"]) if r.get("semantic_failures") else "")
+            )
+        return 0 if report["ok"] else 1
     if getattr(args, "answers", False) or getattr(args, "plan", False) or getattr(args, "librarian", False):
         print(
             f"SUITE       {label}\n"
@@ -805,6 +824,11 @@ def main(argv: list[str] | None = None) -> int:
         dest="librarian",
         action="store_true",
         help="Score Business Librarian task success on the same ids",
+    )
+    pe.add_argument(
+        "--notes",
+        action="store_true",
+        help="Score note/policy retrieval: ILIKE vs PostgreSQL FTS vs production search_notes",
     )
     pe.add_argument(
         "--heldout",

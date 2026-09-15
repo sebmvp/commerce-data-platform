@@ -277,22 +277,85 @@ def search_notes(
     *,
     object_id: str | None = None,
     query: str | None = None,
+    kind: str | None = None,
     limit: int = 8,
 ) -> list[dict[str, Any]]:
-    """Keyword search over genuinely unstructured operational notes."""
+    """Full-text search over genuinely unstructured operational notes.
+
+    PostgreSQL tsvector retrieval: weighted title (A) > body (B),
+    ts_rank_cd ordering, ts_headline excerpt on the best body fragment.
+    Deterministic filters (object_id, kind) stay exact SQL constraints.
+    rank/excerpt are retrieval aids for the operator — not model confidence.
+    """
     clauses: list[str] = []
     params: list[Any] = []
     if object_id:
-        clauses.append("object_id = ?")
+        clauses.append("n.object_id = ?")
         params.append(object_id)
-    if query and query.strip():
-        needle = f"%{query.strip()}%"
-        clauses.append("(body ILIKE ? OR coalesce(title, '') ILIKE ?)")
-        params.extend([needle, needle])
-    where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
-    sql = (
-        "SELECT note_id, kind, object_type, object_id, title, body "
-        f"FROM ops.notes{where} ORDER BY created_at DESC LIMIT ?"
+    if kind:
+        clauses.append("n.kind = ?")
+        params.append(kind)
+    needle = (query or "").strip()
+    has_tsv = (
+        con.execute(
+            """
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'ops' AND table_name = 'notes'
+              AND column_name = 'search_tsv'
+            """
+        ).fetchone()
+        is not None
     )
-    params.append(max(1, min(int(limit), 50)))
+    vec = (
+        "n.search_tsv"
+        if has_tsv
+        else (
+            "setweight(to_tsvector('english', coalesce(n.title, '')), 'A') || "
+            "setweight(to_tsvector('english', coalesce(n.body, '')), 'B')"
+        )
+    )
+    select_expr = f"{vec} @@ CAST(? AS tsquery)"
+    rank_expr = f"ts_rank_cd({vec}, CAST(? AS tsquery))"
+    headline_expr = (
+        "ts_headline('english', n.body, CAST(? AS tsquery), "
+        "'MaxWords=24, MinWords=8, MaxFragments=1')"
+    )
+    tail = " LIMIT ?"
+    tail_params: list[int] = [max(1, min(int(limit), 50))]
+
+    if needle:
+        # Stemmed OR across tokens: an all-token AND would drop documents
+        # for ordinary questions whose words are absent from the note.
+        # Rank keeps multi-token matches above single-token noise.
+        tsq = con.execute(
+            "SELECT replace(plainto_tsquery('english', ?)::text, ' & ', ' | ')",
+            [needle],
+        ).fetchone() or (None,)
+        query_text = str(tsq[0])
+        where = (
+            " WHERE "
+            + " AND ".join(clauses)
+            + (f" AND {select_expr}" if clauses else select_expr)
+        )
+        sql = f"""
+            SELECT n.note_id, n.kind, n.object_type, n.object_id, n.title, n.body,
+                   n.source_file,
+                   {rank_expr} AS rank,
+                   {headline_expr} AS excerpt
+            FROM ops.notes n
+            {where}
+            ORDER BY rank DESC NULLS LAST, n.created_at DESC{tail}
+        """
+        params = [query_text, query_text, *params, query_text, *tail_params]
+    else:
+        where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+        sql = f"""
+            SELECT n.note_id, n.kind, n.object_type, n.object_id, n.title, n.body,
+                   n.source_file,
+                   NULL::float8 AS rank, n.body AS excerpt
+            FROM ops.notes n
+            {where}
+            ORDER BY n.created_at DESC{tail}
+        """
+        params = [*params, *tail_params]
     return _records(con, sql, params)
