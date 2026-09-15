@@ -1,4 +1,3 @@
-export type View = "overview" | "inventory" | "librarian" | "eval" | "health";
 export type Environment = "demo" | "heldout" | "private";
 export type GroundingStatus = "grounded" | "abstained" | "invalid";
 
