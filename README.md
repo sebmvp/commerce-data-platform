@@ -13,14 +13,14 @@ The **resale domain is the first implementation**. Context contracts and
 interface layers are kept separate from domain-specific resolvers,
 metrics, and rules so additional operational domains can reuse the same
 context machinery. The repository does not currently implement other
-businesses.
+businesses. Public data is synthetic; private records stay local.
 
-![Business Librarian](docs/screenshots/librarian.png)
+![Command Center — attention queue, pulse, recent changes](docs/screenshots/command-center.png)
 
-The operator workspace is object-centric: Overview (attention), Inventory
-(object explorer), and the Business Librarian. The Librarian maps a
-question to registered domain capabilities, assembles the required
-context, and answers only when that evidence is sufficient.
+The operator workspace is built around decisions first: attention queue,
+pulse metrics, and recent changes. Inventory is an object explorer. The
+Business Librarian assembles required context and answers only when the
+evidence is sufficient.
 
 ## How it works
 

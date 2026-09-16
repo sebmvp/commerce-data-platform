@@ -32,7 +32,7 @@ human review; deterministic adapters remain responsible for canonical
 ingestion.
 
 Deterministic ingest (`SourceAdapter` → validation → ingest runner →
-PostgreSQL) remains the only production write path for source data.
+PostgreSQL) remains the canonical write path for source data.
 
 ## ModelGateway
 

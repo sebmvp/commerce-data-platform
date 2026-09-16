@@ -32,7 +32,7 @@ context required and explicitly identify what is missing.
 ## Platform core vs resale vertical
 
 ```
-PLATFORM CORE                         RESALE VERTICAL (first, only production)
+PLATFORM CORE                         RESALE VERTICAL (first implemented)
 ContextBundle                         Items, listings, channels, orders
 EntityRef / relationships / facts     Engagement, sourcing, resale intents
 Events, evidence, provenance          Resale metrics and rules
@@ -48,9 +48,10 @@ resolvers, metrics, rules, evidence, adapters, registered read tools,
 and action validation/apply hooks. It does not rewrite ContextBundle,
 the generic Librarian loop, grounding, or interface adapters.
 
-Resale remains the only fully implemented vertical. Do not ship fake
-second businesses as product features. A contract test may use an
-in-test dummy domain to prove decoupling.
+Resale remains the only fully implemented vertical. The public repository
+uses synthetic demo data; private operational data stays local. Do not
+ship fake second businesses as product features. A contract test may use
+an in-test dummy domain to prove decoupling.
 
 Core modules must not need to know what Grailed, watchers, or
 acquisition_cost mean.
@@ -183,22 +184,6 @@ GitHub Actions log redaction prints the disposable Postgres password
 as `***`. Never copy that masked form into YAML, Makefile, VS Code,
 compose files, or executable Python defaults. The local/CI password
 is the literal `cdp`.
-
-## Delegated authority
-
-For this repository, Builder is authorized to change architecture,
-schema, and structure; add migrations, Compose, CI, Makefile DX;
-add React, FastAPI, MCP, bounded LLM, lexical baseline; expand
-synthetic evaluation data; create multiple coherent commits and push
-verified checkpoints.
-
-Not authorized without a separate explicit instruction: spending money,
-paid services, force-push / history rewrite, unrelated repositories,
-secrets, or publishing private business records.
-
-Continue through a milestone until its definition of done is met or a
-genuine external blocker exists. Commits are recovery boundaries, not a
-quota. Do not force-push.
 
 ## Developer surface
 
