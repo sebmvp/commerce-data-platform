@@ -97,6 +97,16 @@ def create_app() -> FastAPI:
         finally:
             con.close()
 
+    @app.get("/search")
+    def business_search(
+        q: str = Query("", min_length=0),
+        limit: int = Query(20, le=50),
+    ):
+        from . import search as search_mod
+
+        _require_db()
+        return search_mod.search_business(q, limit=limit)
+
     @app.get("/inventory/summary")
     def inventory_summary():
         _require_db()
