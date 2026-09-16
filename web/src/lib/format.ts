@@ -246,14 +246,14 @@ export function channelName(value: unknown): string {
 export function attentionAction(reason?: string | null): string {
   switch (reason) {
     case "unlisted_owned":
-      return "List suggested";
+      return "LIST";
     case "stale_listing":
     case "high_attention_no_offers":
-      return "Price review suggested";
+      return "PRICE REVIEW";
     case "listed_active":
       return "Monitor";
     default:
-      return reason ? humanLabel(reason) : "Review";
+      return reason ? humanLabel(reason) : "REVIEW";
   }
 }
 
@@ -261,6 +261,22 @@ export function attentionTone(reason?: string | null): "bad" | "warn" | "info" {
   if (reason === "unlisted_owned") return "info";
   if (reason === "listed_active") return "info";
   return "warn";
+}
+
+/**
+ * Coverage status mapping: API returns AVAILABLE | PARTIAL | MISSING.
+ * Trust tones are chosen at the decision level, not by relation names.
+ */
+export function coverageTone(status?: string | null): "ok" | "warn" | "bad" {
+  const s = String(status || "").toUpperCase();
+  if (s === "AVAILABLE") return "ok";
+  if (s === "PARTIAL") return "warn";
+  if (s === "MISSING") return "bad";
+  return "bad";
+}
+
+export function attentionRowKey(row: AttentionRowLike): string {
+  return `${row.sku}:${row.listing_age_days ?? row.inventory_age_days ?? ""}`;
 }
 
 export interface AttentionRowLike {
@@ -288,6 +304,10 @@ export function attentionMeta(row: AttentionRowLike): string {
   return bits.join(" · ") || "Listed";
 }
 
+/**
+ * Exception list ranking (Command Center). Decision-shaped rows first;
+ * the unlisted volume is pulse, not a row of exceptions.
+ */
 export function rankAttention<T extends AttentionRowLike>(queue: T[]): T[] {
   const review: T[] = [];
   const monitor: T[] = [];
@@ -298,10 +318,7 @@ export function rankAttention<T extends AttentionRowLike>(queue: T[]): T[] {
     else review.push(row);
   }
   const shown: T[] = [];
-  shown.push(...review.slice(0, 6));
-  shown.push(...monitor.slice(0, 2));
-  const remaining = Math.max(4, 12 - shown.length);
-  shown.push(...unlisted.slice(0, remaining));
+  shown.push(...review.slice(0, 5));
   return shown;
 }
 

@@ -1,82 +1,132 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect } from "react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
-  BookOpenText,
   Boxes,
+  BookOpenText,
+  Database,
   FlaskConical,
-  HeartPulse,
   LayoutDashboard,
+  Waypoints,
 } from "lucide-react";
 import { observedDate } from "@/lib/format";
+import { useRuntime } from "@/lib/api";
+import { CommandPalette } from "@/components/CommandPalette";
 import type { RuntimeInfo } from "@/types";
 
-const NAV = [
-  { to: "/", label: "Overview", icon: LayoutDashboard, id: "overview" },
-  { to: "/inventory", label: "Inventory", icon: Boxes, id: "inventory" },
-  { to: "/librarian", label: "Librarian", icon: BookOpenText, id: "librarian" },
-  { to: "/evaluation", label: "Evaluation", icon: FlaskConical, id: "evaluation" },
-  { to: "/data-health", label: "Data Health", icon: HeartPulse, id: "health" },
-] as const;
+type NavItem = { to: string; label: string; icon: typeof Boxes; id: string };
+
+const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
+  {
+    label: "Business",
+    items: [
+      { to: "/", label: "Command Center", icon: LayoutDashboard, id: "command-center" },
+      { to: "/inventory", label: "Inventory", icon: Boxes, id: "inventory" },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [{ to: "/librarian", label: "Librarian", icon: BookOpenText, id: "librarian" }],
+  },
+  {
+    label: "Data",
+    items: [
+      { to: "/sources", label: "Sources", icon: Database, id: "sources" },
+      { to: "/data-health", label: "Data Health", icon: Waypoints, id: "health" },
+    ],
+  },
+  {
+    label: "System",
+    items: [{ to: "/evaluation", label: "Evaluation", icon: FlaskConical, id: "evaluation" }],
+  },
+];
 
 /**
- * Persistent orientation: nav + environment + model + data age, on every page.
+ * Persistent orientation: grouped nav + environment + data age, on every page.
  * Page content decides its own header; the shell only frames it.
  */
 export function AppShell({ children }: { children: ReactNode }) {
-  const runtime = useRouterState({
-    select: (s) => (s.location.state ?? {}) as Partial<RuntimeInfo>,
-  });
+  // One shell-level runtime fetch (60s stale) instead of router state hacks.
+  const runtimeQuery = useRuntime();
+  const runtime = runtimeQuery.data;
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const env = runtime?.environment || "demo";
+
+  // Keep it fresh across route changes; staleTime keeps this cheap.
+  useEffect(() => {
+    if (runtimeQuery.isStale) void runtimeQuery.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   return (
     <div className="flex min-h-full">
       <aside
-        className="sticky top-0 flex h-screen w-[200px] shrink-0 flex-col border-r py-4"
+        className="sticky top-0 flex h-screen w-[220px] shrink-0 flex-col border-r py-4"
         style={{ background: "var(--surface-1)", borderColor: "var(--border-subtle)" }}
       >
-        <div className="px-4 pb-3">
-          <div className="text-[11px] font-medium tracking-wide" style={{ color: "var(--accent-support)" }}>
-            Commerce
+        <div className="flex items-start justify-between gap-1 px-4 pb-4">
+          <div>
+            <div className="text-[11px] font-medium tracking-wide" style={{ color: "var(--accent-support)" }}>
+              Commerce
+            </div>
+            <div className="text-[14.5px] font-semibold tracking-tight">Data Platform</div>
           </div>
-          <div className="text-[14.5px] font-semibold tracking-tight">Data Platform</div>
         </div>
-        <nav className="flex flex-1 flex-col gap-0.5 px-2">
-          {NAV.map((n) => {
-            const Icon = n.icon;
-            const active =
-              n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
-            return (
-              <Link
-                key={n.to}
-                to={n.to}
-                data-testid={`nav-${n.id}`}
-                className={
-                  "flex items-center gap-2.5 rounded px-2.5 py-[7px] text-[13.5px] focus-ring " +
-                  (active ? "font-medium" : "")
-                }
-                style={
-                  active
-                    ? {
-                        background: "var(--surface-2)",
-                        color: "var(--text-primary)",
-                        boxShadow: "inset 2px 0 0 var(--accent-primary)",
-                      }
-                    : { color: "var(--text-muted)" }
-                }
-              >
-                <Icon size={15} strokeWidth={active ? 2 : 1.7} />
-                {n.label}
-              </Link>
-            );
-          })}
+        <div className="px-3 pb-4">
+          <CommandPalette />
+        </div>
+        <nav className="flex flex-1 flex-col gap-3 px-2">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label} className="flex flex-col gap-0.5">
+              <div className="px-1.5 pb-0.5 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                {group.label}
+              </div>
+              {group.items.map((n) => (
+                <RailLink key={n.to} item={n} pathname={pathname} />
+              ))}
+            </div>
+          ))}
         </nav>
-        <RuntimeFootnote runtime={runtime as RuntimeInfo | undefined} />
+        <RuntimeFootnote runtime={runtime} />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <main className="min-w-0 flex-1">{children}</main>
       </div>
-      <RuntimeWatchers env={env} />
+      <RuntimeWatchers env={runtime?.environment || "demo"} />
     </div>
+  );
+}
+
+function RailLink({
+  item,
+  pathname,
+}: {
+  item: NavItem;
+  pathname: string;
+}) {
+  const active =
+    item.to === "/" ? pathname === "/" : pathname.startsWith(item.to);
+  const Icon = item.icon;
+  return (
+    <Link
+      key={item.to}
+      to={item.to}
+      data-testid={`nav-${item.id}`}
+      className={
+        "flex items-center gap-2.5 rounded px-2.5 py-[7px] text-[13.5px] focus-ring " +
+        (active ? "font-medium" : "")
+      }
+      style={
+        active
+          ? {
+              background: "var(--surface-2)",
+              color: "var(--text-primary)",
+              boxShadow: "inset 2px 0 0 var(--accent-primary)",
+            }
+          : { color: "var(--text-muted)" }
+      }
+    >
+      <Icon size={15} strokeWidth={active ? 2 : 1.7} />
+      {item.label}
+    </Link>
   );
 }
 
@@ -94,50 +144,64 @@ function RuntimeWatchers({ env }: { env: string }) {
   );
 }
 
-type FootnoteProps = { runtime?: RuntimeInfo };
-
-function RuntimeFootnote({ runtime }: FootnoteProps) {
+/**
+ * Environment + data as-of by default. Model kind is a disclosure, not the
+ * default line — demo operators don't need "Fake · test" in the first view.
+ */
+function RuntimeFootnote({ runtime }: { runtime?: RuntimeInfo }) {
   const env = runtime?.environment || "demo";
-  const kind = runtime?.model?.kind || "fake";
   const envLabel =
     env === "private"
       ? "PRIVATE · LOCAL"
       : env === "heldout"
         ? "HELD OUT · EVALUATION"
         : "DEMO · SYNTHETIC";
-  const modelLabel =
+  const kind = runtime?.model?.kind;
+  const kindLabel =
     kind === "fake"
-      ? `Fake · ${runtime?.model?.model || "test"}`
+      ? "Fake · test"
       : kind === "local"
         ? `Local · ${runtime?.model?.model || "model"}`
-        : `Remote · ${runtime?.model?.model || "model"}`;
+        : kind === "remote"
+          ? `Remote · ${runtime?.model?.model || "model"}`
+          : null;
   return (
-      <div
-        className="mt-auto rounded border px-2.5 py-2 mx-3 mb-2"
-        data-testid="runtime-footnote"
-        style={{ background: "var(--surface-2)", borderColor: "var(--border-subtle)" }}
+    <div
+      className="mx-3 mb-2 mt-auto rounded border px-2.5 py-2"
+      data-testid="runtime-footnote"
+      style={{ background: "var(--surface-2)", borderColor: "var(--border-subtle)" }}
+    >
+      <span
+        className="text-[11.5px] font-medium tracking-wide"
+        style={{
+          color:
+            env === "private"
+              ? "var(--accent-link)"
+              : env === "heldout"
+                ? "var(--warning)"
+                : "var(--text-muted)",
+        }}
       >
-        <span
-          className="text-[10.5px] font-medium tracking-wide"
-          style={{
-            color:
-              env === "private"
-                ? "var(--accent-link)"
-                : env === "heldout"
-                  ? "var(--warning)"
-                  : "var(--text-muted)",
-          }}
-        >
-          {envLabel}
-        </span>
-        <div className="mt-0.5 text-[10.5px]" style={{ color: "var(--text-muted)" }}>
-          {modelLabel}
+        {envLabel}
+      </span>
+      {runtime?.as_of ? (
+        <div className="tabular mt-0.5 text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+          data as of {observedDate(runtime.as_of) || runtime.as_of}
         </div>
-        {runtime?.as_of ? (
-          <div className="text-[10.5px]" style={{ color: "var(--text-muted)" }}>
-            data as of {observedDate(runtime.as_of) || runtime.as_of}
+      ) : null}
+      {kindLabel ? (
+        <details className="mt-0.5" data-testid="model-disclosure">
+          <summary
+            className="cursor-pointer text-[11.5px]"
+            style={{ color: "var(--text-muted)" }}
+          >
+            Model
+          </summary>
+          <div className="text-[11.5px]" style={{ color: "var(--text-muted)" }}>
+            {kindLabel}
           </div>
-        ) : null}
-      </div>
+        </details>
+      ) : null}
+    </div>
   );
 }

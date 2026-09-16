@@ -1,83 +1,104 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ErrorNote } from "@/App";
 import { useEvalLayers } from "@/lib/api";
 
+/**
+ * System verification — layered, no combined accuracy number. Layer results
+ * first; the per-question detail is deliberate progressive disclosure.
+ */
 export function EvaluationPage() {
   const { core, compare, answers, plan, librarian, loading, error } = useEvalLayers();
+  const [showCases, setShowCases] = useState(false);
 
   const engine = compare.data?.engine;
   const lexical = compare.data?.lexical;
   const summary = core.data;
 
+  const coreLayers = [
+    { label: "Context assembly", value: engine ? `${engine.passed}/${engine.total}` : summary ? `${summary.passed}/${summary.total}` : "—", note: "Typed bundle per question." },
+    { label: "Question planning", value: plan.data ? `${plan.data.passed}/${plan.data.total}` : "—", note: "Capability mapping." },
+    { label: "Grounding", value: answers.data ? `${answers.data.passed}/${answers.data.total}` : "—", note: "Citation validity, fail-closed." },
+    { label: "Librarian tasks", value: librarian.data ? `${librarian.data.passed}/${librarian.data.total}` : "—", note: "Registered-tool loop." },
+  ];
+
   return (
-    <div className="mx-auto max-w-5xl px-5 py-4" data-testid="eval-page">
-      <header className="mb-4 flex items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[17px] font-semibold tracking-tight">Evaluation</h1>
-          <p className="mt-0.5 max-w-[70ch] text-[13px]" style={{ color: "var(--text-muted)" }}>
-            Layers are reported separately — there is no combined “AI accuracy” number.
-            Context assembly scores the engine. Planning scores capability mapping.
-            Grounding scores FakeProvider citations. Librarian scores the registered-tool loop.
-          </p>
-        </div>
+    <div className="mx-auto max-w-5xl px-6 py-5" data-testid="eval-page">
+      <header className="mb-4">
+        <h1 className="text-[18px] font-semibold tracking-tight">System verification</h1>
+        <p className="mt-0.5 max-w-[70ch] text-[13px]" style={{ color: "var(--text-muted)" }}>
+          Layers are verified separately — there is no combined accuracy number.
+        </p>
       </header>
 
       {error ? <ErrorNote error={error} /> : null}
 
       {loading && !summary ? (
-        <div className="grid grid-cols-3 gap-3 max-[600px]:grid-cols-1">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="h-16 animate-pulse rounded border" style={{ background: "var(--surface-2)", borderColor: "var(--border-subtle)" }} />
+        <div className="grid grid-cols-2 gap-3 max-[600px]:grid-cols-1">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-14 animate-pulse rounded border" style={{ background: "var(--surface-2)", borderColor: "var(--border-subtle)" }} />
           ))}
         </div>
       ) : null}
 
       {summary ? (
         <>
-          <div className="mb-4 flex gap-6 border-y py-2.5" style={{ borderColor: "var(--border-subtle)" }} data-testid="eval-summary">
-            <Stat label="total" value={summary.total} />
-            <Stat label="pass" value={summary.passed} tone="var(--success)" testId="eval-pass" />
-            <Stat label="fail" value={summary.failed} tone={summary.failed ? "var(--danger)" : "var(--text-muted)"} testId="eval-fail" />
-            <Stat label="skip" value={summary.skipped} tone="var(--text-muted)" testId="eval-skip" />
-            <span className="ml-auto self-center text-[12px]" style={{ color: "var(--text-muted)" }}>
-              gold context-assembly ids
-            </span>
+          <div data-testid="eval-summary" className="mb-5">
+            {coreLayers.map((layer) => (
+              <div
+                key={layer.label}
+                className="flex items-baseline justify-between gap-4 border-b py-2 last:border-0"
+                style={{ borderColor: "var(--border-subtle)" }}
+              >
+                <span className="text-[13.5px] font-medium" style={{ color: "var(--text-primary)" }}>
+                  {layer.label}
+                </span>
+                <span className="flex items-baseline gap-3">
+                  <span className="tabular text-[15px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {layer.value}
+                  </span>
+                  <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                    {layer.note}
+                  </span>
+                </span>
+              </div>
+            ))}
           </div>
 
-          <div className="grid grid-cols-3 gap-3 max-[900px]:grid-cols-1" data-testid="eval-layers">
-            <LayerCard
-              title="Context assembly"
-              value={engine ? `${engine.passed}/${engine.total}` : summary ? `${summary.passed}/${summary.total}` : "—"}
-              note="Typed ContextBundle per question."
-              testId="eval-compare"
-            />
-            <LayerCard
-              title="Lexical retrieval"
-              value={lexical && (lexical.passed != null) ? `${lexical.passed}/${lexical.total}` : "—"}
-              note="TF-IDF over serialized rows. Not RAG — it is the naive baseline the engine must beat."
-              tone={lexical && (lexical.passed ?? 0) < (lexical.total ?? 1) ? "var(--warning)" : undefined}
-              testId="lexical"
-            />
-            <LayerCard
-              title="Question / tool planning"
-              value={plan.data ? `${plan.data.passed}/${plan.data.total}` : "—"}
-              note="Deterministic intent mapping."
-            />
-            <LayerCard
-              title="Grounding validity"
-              value={answers.data ? `${answers.data.passed}/${answers.data.total}` : "—"}
-              note="FakeProvider copilot contract. Not an LLM judge."
-            />
-            <LayerCard
-              title="Librarian task success"
-              value={librarian.data ? `${librarian.data.passed}/${librarian.data.total}` : "—"}
-              note="Registered-tool loop, abstention, citation validity."
-            />
+          {/* Lexical baseline — visually quieter, comparison only */}
+          <div
+            className="mb-5 rounded border px-3 py-2.5"
+            data-testid="lexical"
+            style={{ background: "var(--surface-1)", borderColor: "var(--border-subtle)" }}
+          >
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
+                Lexical baseline{" "}
+                <span className="tabular" style={{ color: "var(--text-muted)" }}>
+                  {lexical && lexical.passed != null ? `${lexical.passed}/${lexical.total}` : "—"}
+                </span>
+              </span>
+              <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>
+                Naive TF-IDF retrieval over serialized rows — comparison only.
+                The engine must beat it; it is not the product.
+              </span>
+            </div>
           </div>
 
-          <div className="mt-5">
-            <div className="section-label mb-1.5">Per-question context assembly</div>
-            <div>
+          {/* Progressive disclosure: cases only after click */}
+          <button
+            type="button"
+            data-testid="toggle-cases"
+            onClick={() => setShowCases((v) => !v)}
+            className="rounded border px-3 py-1.5 text-[13px] font-medium focus-ring"
+            style={{ borderColor: "var(--border-subtle)", color: "var(--text-secondary)" }}
+          >
+            {showCases ? "Hide detailed cases" : "View detailed cases"}
+          </button>
+
+          {showCases ? (
+            <div className="mt-4">
+              <div className="section-label mb-1.5">Per-question context assembly</div>
               {(summary.cases || []).map((c) => (
                 <Link
                   key={String(c.id)}
@@ -90,7 +111,11 @@ export function EvaluationPage() {
                   <span
                     className="w-10 shrink-0 text-[11.5px] font-medium"
                     style={{
-                      color: c.passed ? "var(--success)" : c.skipped ? "var(--text-muted)" : "var(--danger)",
+                      color: c.passed
+                        ? "var(--success)"
+                        : c.skipped
+                          ? "var(--text-muted)"
+                          : "var(--danger)",
                     }}
                   >
                     {c.passed ? "PASS" : c.skipped ? "SKIP" : "FAIL"}
@@ -101,63 +126,8 @@ export function EvaluationPage() {
                 </Link>
               ))}
             </div>
-          </div>
+          ) : null}
         </>
-      ) : null}
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  tone,
-  testId,
-}: {
-  label: string;
-  value: unknown;
-  tone?: string;
-  testId?: string;
-}) {
-  return (
-    <div data-testid={testId}>
-      <div className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
-        {label}
-      </div>
-      <div className="tabular text-[20px] font-semibold" style={{ color: tone || "var(--text-primary)" }}>
-        {value == null ? "—" : String(value)}
-      </div>
-    </div>
-  );
-}
-
-function LayerCard({
-  title,
-  value,
-  note,
-  tone,
-  testId,
-}: {
-  title: string;
-  value: string;
-  note?: string;
-  tone?: string;
-  testId?: string;
-}) {
-  return (
-    <div
-      className="rounded border p-3"
-      data-testid={testId}
-      style={{ background: "var(--surface-1)", borderColor: "var(--border-subtle)" }}
-    >
-      <div className="section-label">{title}</div>
-      <div className="tabular mt-0.5 text-[20px] font-semibold tracking-tight" style={{ color: tone || "var(--text-primary)" }}>
-        {value}
-      </div>
-      {note ? (
-        <p className="mt-1 text-[12px]" style={{ color: "var(--text-muted)" }}>
-          {note}
-        </p>
       ) : null}
     </div>
   );

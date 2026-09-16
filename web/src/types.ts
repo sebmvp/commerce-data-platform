@@ -280,3 +280,25 @@ export interface IngestRun {
   rows_loaded?: number;
   rows_rejected?: number;
 }
+
+/* ── Business Search ── */
+
+export interface SearchHit {
+  id: string;
+  sku?: string;
+  kind: string;
+  label: string;
+  state?: string | null;
+  meta?: string | null;
+  href?: string | null;
+}
+
+export interface SearchGroup {
+  type: string;
+  hits: SearchHit[];
+}
+
+export interface SearchReport {
+  query: string;
+  groups: SearchGroup[];
+}

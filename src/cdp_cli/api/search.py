@@ -111,7 +111,7 @@ def _listing_meta(r: dict[str, Any]) -> str:
         platform = url.split("/")[0]
     else:
         platform = "listing"
-    price = f"${r['price_usd']}" if r.get("price_usd") is not None else ""
+    price = f"${r['price_usd']:.0f}" if r.get("price_usd") is not None else ""
     return " · ".join(str(p) for p in (platform, price) if p)
 
 
@@ -142,7 +142,7 @@ def _orders(con, needle: str, limit: int, now: datetime | None) -> list[dict[str
         days = _days(r.get("order_at"), now)
         parts = [_channel(r.get("channel_key")), r.get("status") or ""]
         if r.get("price_usd") is not None:
-            parts.append(f"${r['price_usd']}")
+            parts.append(f"${r['price_usd']:.0f}")
         if days:
             parts.append(f"{days}d ago")
         hits.append(

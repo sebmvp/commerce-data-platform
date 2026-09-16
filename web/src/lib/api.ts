@@ -12,6 +12,7 @@ import type {
   ItemPayload,
   LibrarianResponse,
   RuntimeInfo,
+  SearchReport,
   TrustReport,
 } from "@/types";
 
@@ -246,6 +247,20 @@ export function useCompleteness() {
   return useQuery<CompletenessReport>({
     queryKey: ["completeness"],
     queryFn: () => getJson("/completeness"),
+  });
+}
+
+/* ── Business search (deterministic; not the Librarian) ── */
+
+export function useSearchResults(query: string) {
+  const trimmed = query.trim();
+  return useQuery<SearchReport>({
+    queryKey: ["search", trimmed.toLowerCase()],
+    queryFn: () =>
+      getJson<SearchReport>(`/search?q=${encodeURIComponent(trimmed)}`),
+    enabled: trimmed.length >= 2,
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
 }
 

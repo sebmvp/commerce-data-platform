@@ -1,16 +1,11 @@
-import {
-  createRootRoute,
-  createRoute,
-  createRouter,
-  Outlet,
-} from "@tanstack/react-router";
+import { createRootRoute, createRoute, createRouter, Outlet } from "@tanstack/react-router";
 import { App } from "@/App";
-import { OverviewPage } from "@/pages/Overview";
+import { CommandCenterPage } from "@/pages/Overview";
 import { InventoryPage } from "@/pages/Inventory";
-import { ItemDetailPage } from "@/pages/ItemDetail";
 import { LibrarianPage } from "@/pages/Librarian";
 import { EvaluationPage } from "@/pages/Evaluation";
 import { DataHealthPage } from "@/pages/DataHealth";
+import { SourcesPage } from "@/pages/Sources";
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -20,10 +15,10 @@ const rootRoute = createRootRoute({
   ),
 });
 
-const overviewRoute = createRoute({
+const commandCenterRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: OverviewPage,
+  component: CommandCenterPage,
 });
 
 const inventoryRoute = createRoute({
@@ -35,7 +30,7 @@ const inventoryRoute = createRoute({
 const itemRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/inventory/$sku",
-  component: ItemDetailPage,
+  component: InventoryPage,
 });
 
 const librarianRoute = createRoute({
@@ -48,6 +43,12 @@ const librarianBoundRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/librarian/$sku",
   component: LibrarianPage,
+});
+
+const sourcesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/sources",
+  component: SourcesPage,
 });
 
 const evaluationRoute = createRoute({
@@ -63,11 +64,12 @@ const healthRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
-  overviewRoute,
+  commandCenterRoute,
   inventoryRoute,
   itemRoute,
   librarianRoute,
   librarianBoundRoute,
+  sourcesRoute,
   evaluationRoute,
   healthRoute,
 ]);
