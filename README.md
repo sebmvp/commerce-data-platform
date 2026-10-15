@@ -2,6 +2,22 @@
 
 [![test](https://github.com/sebmvp/commerce-data-platform/actions/workflows/test.yml/badge.svg)](https://github.com/sebmvp/commerce-data-platform/actions/workflows/test.yml)
 
+**Business question.** Can we trust this item's operational state enough to act on it?
+
+**What it is.** Resale operations data into a PostgreSQL warehouse you can replay. Replay-safe ingest, quarantine, reconciliation, then a context engine that assembles only the evidence a question needs — or names what is missing.
+
+**Who it is for.** An operator who needs canonical state, not a chatbot over files.
+
+**Result.** Operator workspace (`make demo` → http://127.0.0.1:5173) plus evals against a lexical baseline. Default model provider is fake/extractive; insufficient context abstains.
+
+**Recommendation.** Do not let an LLM see the warehouse until required context is sufficient.
+
+**Run.**
+
+```bash
+python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev,api,mcp]" && make doctor && make up && make seed && make demo
+```
+
 Business questions depend on exact operational state and relationships,
 not merely semantically similar documents.
 
