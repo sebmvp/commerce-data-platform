@@ -1,213 +1,156 @@
 # Architecture
 
-How operational context is built and read. The README is the overview.
+The README is the overview. This file says what the code does today and
+what the rebuild reuses.
 
-**CURRENT** is what the code does. **NEXT** is not in the repository.
+**CURRENT** is the resale workspace still in the tree. **TARGET** is the
+SEC–GLEIF link. TARGET is not implemented.
 
-The resale domain is the first implementation. Context contracts and
-interface layers are kept separate from domain-specific resolvers,
-metrics, and rules so additional operational domains can reuse the same
-context machinery. The repository does not currently implement other
-businesses.
-
-## System
-
-```mermaid
-flowchart TD
-  react[React] --> fastapi[FastAPI]
-  fastapi --> librarian[Business Librarian]
-  librarian --> tools[Domain read capabilities]
-  tools --> engine[Context Engine]
-  engine --> pg[(PostgreSQL)]
-  engine --> bundle[ContextBundle + evidence]
-  bundle --> gateway[ModelGateway]
-  gateway --> fake[fake]
-  gateway --> oai[openai_compatible]
-  oai --> ollama[Ollama]
-  oai --> vllm[vLLM]
-  oai --> xai[xAI / compatible]
-  gateway --> grounded[Validated grounded answer]
-  grounded --> fastapi
-  fastapi --> react
-  react --> human[Human-approved sandbox action]
-  human --> apply[Domain apply hook]
-  apply --> pg
-```
-
-PostgreSQL owns structured operational truth. The engine assembles a
-typed bundle for one question. Interfaces share that assembly; they do
-not reimplement domain logic.
-
-## Data boundaries
-
-```mermaid
-flowchart LR
-  subgraph canonical [Private canonical]
-    raw[Private raw sources] --> adapter[SourceAdapter]
-    adapter --> batch[AdaptedBatch]
-    batch --> runner[Ingest runner]
-    runner --> private[(cdp_private Postgres)]
-  end
-  subgraph public [Public synthetic]
-    calib[Private aggregate calibration knowledge] --> gen[Synthetic generator]
-    gen --> demo[demo world]
-    gen --> held[held-out world]
-    demo --> publicdb[(public demo DB)]
-    held --> helddb[(cdp_heldout)]
-  end
-```
-
-Private rows never enter git. Public worlds copy lifecycle *patterns*,
-not records.
-
-## Core vs resale
+## What transfers
 
 ```mermaid
 flowchart TB
-  subgraph core [Platform core]
-    bundle[ContextBundle]
-    suff[Sufficiency]
-    prov[Provenance]
-    assemble[Generic assembly]
-    librarianCore[Generic Librarian loop]
-    ground[Fail-closed grounding]
-    actions[Action state machine]
-    ifaces[FastAPI / MCP / CLI]
-    inspector[Generic bundle renderer]
+  subgraph keep [Keep — write new producers through this]
+    job[IngestJob / persist_adapted_batch]
+    audit[core.ingest_runs]
+    quarantine[core.rejected_records]
+    lineage[core.record_lineage]
+    trust[trust_report: read = loaded + rejected]
+    job --> audit
+    job --> quarantine
+    job --> lineage
+    audit --> trust
   end
-  subgraph resale [Resale vertical]
-    items[Items / listings / channels]
-    intents[Resale intents]
-    tools[Registered read tools]
-    metrics[Resale metrics / rules]
-    notesAdapter[Item-note adapters]
-    views[Overview / inventory views]
-    apply[Resale action apply]
+
+  subgraph drop [Do not extend]
+    resale[Resale tables, librarian, MCP, sandbox actions]
   end
-  resale --> core
-```
 
-## Resale object graph
-
-```mermaid
-graph LR
-  Supplier --> Item
-  Item --> Listing
-  Listing --> Channel
-  Listing --> Engagement
-  Listing --> Order
-  Item --> Note
-  Item --> Recommendation
-  Recommendation --> Action
-```
-
-## Question to context
-
-```mermaid
-sequenceDiagram
-  participant Q as Question
-  participant P as QuestionPlan
-  participant D as Domain capabilities
-  participant R as Resolvers
-  participant E as Engine
-  participant B as ContextBundle
-  participant L as Grounded LLM
-  Q->>P: deterministic parse or validated LLM plan
-  P->>D: registered capability + subject
-  D->>R: required concepts
-  R->>E: objects, facts, history, evidence
-  E->>B: sufficiency + provenance + evidence catalog
-  alt insufficient
-    B-->>Q: abstain, named gaps
-  else sufficient
-    B->>L: POST /answer over this exact bundle
-    L-->>Q: answer + validated evidence refs
+  subgraph target [TARGET — not in the tree]
+    sec[SEC daily index + submissions JSON]
+    gleif[GLEIF lei2 / rr / repex]
+    link[link.decisions]
+    pages["/health /filers/{cik} /refusals"]
+    sec --> job
+    gleif --> job
+    job --> link
+    link --> pages
   end
 ```
 
-Deterministic parsing remains CI, gold questions, and fallback. An optional
-LLM planner may map natural phrasing onto registered capabilities. Neither
-path may emit SQL. Invalid planner output falls back to the deterministic
-parser — it is not guessed.
+The runner in `src/cdp_cli/ingest/` already hashes the input, skips an
+unchanged success, quarantines rejects, wraps the upserts in one
+transaction, and writes a durable `failed` row if the run dies. New SEC
+and GLEIF producers call that. They do not get their own loader.
 
-Grounding fails closed: malformed JSON, unknown citations, missing citations
-on a non-abstaining answer, or an unregistered suggested action are not
-trusted answers.
+`src/cdp_cli/observability.py` already answers whether `read` equals
+`loaded + rejected`, and whether a run was left `running`. `/health`
+adds two checks the current report does not have: last SEC index date,
+and company-file hash matches the file on disk. A hash mismatch is red.
+Links are not to be trusted while it is red.
 
-## Runtime interfaces
+`src/cdp_cli/llm/grounding.py` already refuses to treat an insufficient
+bundle as an answer, and rejects a citation the bundle does not contain.
+That rule stays. The librarian loop, the planner, and MCP do not. The
+cited answer is a template over `link.decisions` plus a relationship or
+an exception. A model may not add a parent.
 
-```mermaid
-flowchart LR
-  react[React] --> fastapi[FastAPI]
-  agent[Agent] --> mcp[MCP]
-  fastapi --> services[Shared services]
-  mcp --> services
-  cli[cdp CLI] --> services
-  services --> engine[assemble_context]
-  services --> pg[(PostgreSQL)]
-```
+## CURRENT
 
-## CURRENT vs NEXT
+PostgreSQL holds a synthetic resale world: items, listings, channels,
+orders, notes. Ingest is real. The domain is not the product anymore.
 
-```
-CURRENT
-=======
-private item-note adapter → isolated cdp_private
-public JSONL worlds (demo / held-out) from synthetic/resale/
-        → SourceAdapter → AdaptedBatch
-        → ingest runner (hash skip, quarantine, one transaction, lineage)
-        → PostgreSQL
-        → domain services + context engine
-        → CLI / FastAPI / MCP / React operator workspace
-        → POST /answer (Librarian: registered tools + exact ContextBundle + grounding)
-        → human-approved sandbox action → listing_events / item_events
-        → recent_changes diffs live projection vs reconstructed prior snapshot
-        → eval layers: assembly / planning / grounding / librarian (FakeProvider)
-        → Data Steward profile/propose/review (PROPOSED contract only)
+`make demo` still starts that workspace. Do not treat it as the link.
 
-NEXT
-====
-marketplace listing/order/engagement adapters when those files exist
-Redis only if evaluation/model runs become async jobs
-operator-defined numeric pricing policy (not invented here)
-```
+## TARGET
 
-## Technology decisions
+Four layers. A failure in one does not corrupt the one below it.
 
-| Tech | Decision | Responsibility |
-|------|----------|----------------|
-| PostgreSQL | **CURRENT** canonical store | Objects, history, ingest audit, sandbox actions, notes |
-| JSONL sample_data/ | seed / replay input | Public synthetic worlds. Not a second truth. |
-| DuckDB | **REMOVED** | No remaining distinct responsibility |
-| SQLite actions | **REMOVED** | Actions live in `ops.actions` |
-| Redis | **NOT YET** | No async job/cache/runtime need |
-| dbt / Polars / Neo4j / Kafka / Spark / Airflow / K8s | **NOT ADOPTED** | No capability they uniquely unlock here |
-| MCP | **CURRENT** | Typed tools over shared services |
-| React/TS | **CURRENT** | Operator workspace (objects + Librarian) |
-| LLM copilot | **CURRENT** | ModelGateway: fake default; openai_compatible for Ollama/vLLM/xAI; fail-closed grounding; Business Librarian; Data Steward proposals |
-| Lexical retrieval baseline | **CURRENT (eval)** | TF-IDF vs gold ids. Not the architecture. Not RAG. |
+**Pull.** Two producers. Neither writes canonical rows.
 
-## ContextBundle
+SEC reads `https://www.sec.gov/Archives/edgar/daily-index/`, keeps 10-K,
+10-Q, and 8-K, and downloads `https://data.sec.gov/submissions/CIK##########.json`
+for those CIKs. `https://www.sec.gov/files/company_tickers.json` is a
+ticker helper, not the filing list. Declare a user agent. Stay under 10
+requests a second. Store accession, form, and filing date. Do not
+download the document.
 
-`assemble_context(question, as_of?, domain?) → ContextBundle`
+GLEIF downloads three files, only if the hash changed:
 
-Fields: question, intent, as_of, objects, relationships, facts, metrics,
-events, applicable_rules, applicable_policies, retrieved_evidence,
-provenance, missing_context, sufficient, why, requirements,
-evidence_units / evidence_catalog.
+| File | What it is |
+|------|------------|
+| `lei2` | Who the company is |
+| `rr` | Who owns whom |
+| `repex` | Why a parent is missing |
 
-`sufficient` is true only when every required concept for the intent is
-present. It is not a numeric confidence.
+Stable URLs: `https://goldencopy.gleif.org/api/v2/golden-copies/publishes/lei2/latest.csv`,
+and the same path with `rr` and `repex`. One pull a day.
 
-## Evaluation
+**Raw.** Immutable. `core.ingest_runs` records the run. New tables hold
+the SEC JSON (CIK, fetched time, hash, payload) and the GLEIF publish
+(name, hash, path on disk). No zip in git. No 500 MB inside a row.
 
-`evals/context_questions.py` is GOLD / DEVELOPMENT (demo world).
-`evals/heldout_questions.py` is HELD OUT (World B, different seed and SKUs).
-Both score the engine, not an LLM.
+**Canonical.** Parsed and replaceable from raw.
 
-`cdp eval --compare` / `GET /eval/compare` scores a lexical TF-IDF
-baseline on the same ids. Call it lexical retrieval, not RAG.
-`cdp eval --answers` / `GET /eval/answers` scores the grounded copilot
-contract (FakeProvider) on those ids. `cdp eval --plan` and
-`cdp eval --librarian` are separate layers. CI fails on engine FAIL or SKIP.
-See docs/ai.md.
+`sec.filers` is one row per CIK: current name, tickers, and `lei` as
+reported, usually null. `sec.filer_names` is the former-name history.
+`sec.filings` is one row per accession. No HTML.
+
+`lei.entities` is one row per LEI. Read the header before locking
+registration-authority column names. `lei.names`, `lei.relationships`
+(`rr`), and `lei.exceptions` (`repex`) follow. A missing parent with an
+exception is an answer. It is not a hole to fill.
+
+**Link.** One row per CIK in `link.decisions`. `linked` or `refused`.
+Evidence type and a short reason on every row. Candidates considered
+and rejected stay on the row. Re-running replaces the decision.
+
+Stop at the first rule that fires:
+
+1. SEC `lei` present, valid, and in the company file. `printed_on_record`.
+2. Company record names EDGAR as the registration authority and the
+   registered id is this CIK. Confirm the column first.
+   `registration_authority`.
+3. Normalized legal name matches exactly one issued entity. `exact_name`.
+4. A former name matches exactly one issued entity. `former_name`.
+5. Else `refused`, with the reason. Two candidates, a near name, a
+   lapsed entity, a ticker with no name match.
+
+Ticker never creates a link by itself. It can support a name that
+already matched. Normalization is case, punctuation, and a short suffix
+list, written down and tested. No similarity score.
+
+## Pages
+
+Not built. Three routes are the whole product.
+
+| Route | Job |
+|-------|-----|
+| `/health` | Last success, hash match, reconciliation, link counts, refusal counts |
+| `/filers/{cik}` | SEC identity, company record, decision in the middle. Refusals are not empty states |
+| `/refusals` | The work list |
+
+The answer sits on the filer page. Linked, and a relationship or an
+exception exists: say who owns them and cite those rows. Refused:
+abstain. Parent not reported: say the exception. A model does not pick
+a parent.
+
+## Honesty check
+
+On 2026-10-22, `https://data.sec.gov/submissions/CIK0000320193.json`
+returned Apple Inc., tickers `AAPL`, former names present, `lei` null.
+Step 1 cannot fire. A later rule may link only if it meets the written
+test. A near name is a refusal.
+
+## Technology
+
+| Tech | Decision |
+|------|----------|
+| PostgreSQL | Only database. Canonical state, audit, link decisions |
+| Existing ingest runner | Keep. New producers call it |
+| FastAPI | Later, for the three routes. Not the starting point |
+| React | Later, if a page needs it. Not the starting point |
+| MCP, Redis, DuckDB, Kafka, Spark, Airflow, dbt, a vector index | Not in this rebuild |
+| A model | Optional, after the cited template. Not in the link path |
+
+LICENSE stays MIT.

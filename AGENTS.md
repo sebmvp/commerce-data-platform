@@ -1,176 +1,97 @@
 # Commerce Data Platform — engineering charter
 
-This file is the durable project-scoped charter. Code wins when memory
-disagrees. Update it when architecture or authority actually changes.
+This file is the durable project charter. Code wins when memory disagrees.
+Update it when the architecture actually changes.
 
-## Five invariants
+The product is a link between last night's SEC filings and a GLEIF
+company record, or a written refusal. The resale workspace still in this
+tree is the previous domain. Do not extend it.
 
-1. **Real business truth is not synthetic data.** Private source records
-   load into an isolated canonical database. Public JSONL is a separate
-   demo/eval environment.
-2. **The platform core is not the resale business.** Core provides
-   reusable context infrastructure. Resale is the first vertical.
-3. **PostgreSQL stores structured operational truth.** The Context Engine
-   does not replace the database. The LLM does not replace the engine.
-   Retrieval does not replace structured querying.
-4. **Context is the product thesis.** For a question, assemble the
-   objects, relationships, history, metrics, rules, evidence, and
-   provenance required — and name missing required context.
-5. **Public documentation explains software.** It speaks to operators and
-   maintainers. It does not describe careers, interviews, or portfolios.
+## What stays
 
-If future work contradicts these, document why the architecture changed.
+Reuse the ingest machinery. Do not write a second loader.
 
-## Thesis
+| Keep | Where | Job in the rebuild |
+|------|--------|--------------------|
+| Hash skip, one transaction, quarantine, failed-run audit, orphan recovery | `src/cdp_cli/ingest/` | SEC and GLEIF producers land here |
+| `read = loaded + rejected` | `src/cdp_cli/observability.py` | `/health` goes red when this fails, or when the company-file hash does not match disk |
+| Audit tables | `core.ingest_runs`, `core.rejected_records`, `core.record_lineage` | Same contract. New sources, not a new audit schema |
+| Fail-closed rule | `src/cdp_cli/llm/grounding.py` | A model may not fill a hole or add a fact. The librarian loop does not stay |
 
-A business is not a pile of documents.
+Postgres is the only database. Nothing is paid. A laptop is the production
+environment.
 
-Operational context is objects, relationships, history, metrics, rules,
-provenance, and actions. For a question or decision, assemble only the
-context required and explicitly identify what is missing.
+## What does not stay
 
-## Platform core vs resale vertical
+Resale entities, the context bundle as the thesis, the Business Librarian,
+MCP, sandbox actions, synthetic demo worlds, and a model on the path that
+decides a link.
 
-```
-PLATFORM CORE                         RESALE VERTICAL (first implemented)
-ContextBundle                         Items, listings, channels, orders
-EntityRef / relationships / facts     Engagement, sourcing, resale intents
-Events, evidence, provenance          Resale metrics and rules
-Requirements + sufficiency            Source adapters (JSONL, item notes)
-Generic assembly mechanics            Operator views (inventory, overview)
-FastAPI / MCP / CLI adapters
-Generic bundle rendering
-Generic Librarian / grounding / action lifecycle
-```
+Do not add a second business, a fuzzy matcher, sanctions, filing PDFs, or
+a hosted demo to get there.
 
-A new domain provides entities, relationships, intents/requirements,
-resolvers, metrics, rules, evidence, adapters, registered read tools,
-and action validation/apply hooks. It does not rewrite ContextBundle,
-the generic Librarian loop, grounding, or interface adapters.
+## Invariants
 
-Resale remains the only fully implemented vertical. The public repository
-uses synthetic demo data; private operational data stays local. Do not
-ship fake second businesses as product features. A contract test may use
-an in-test dummy domain to prove decoupling.
+1. Producers do not write canonical rows. Raw is immutable. Canonical is
+   replaceable from raw.
+2. A rerun with the same hash does nothing.
+3. Rejects are quarantined with a reason. They are never silent.
+4. One transaction per ingest run. A mid-run exception rolls back upserts
+   and still leaves a durable `failed` audit row.
+5. The link is deterministic. One row per CIK, replaced on rerun, not
+   stacked. Status is `linked` or `refused`. Every row has an evidence
+   type and a short reason.
+6. Rules fire in order and stop: `printed_on_record`,
+   `registration_authority`, `exact_name`, `former_name`, else `refused`.
+   Ticker never creates a link by itself. No similarity score.
+7. Confirm GLEIF registration-authority column names from the file header
+   before depending on them.
+8. Apple (CIK `0000320193`) is the honesty check. The submissions record
+   has former names and `lei` null. Do not invent a link.
+9. The answer cites the accession and the company record, or it abstains.
+   A template is enough. A model may not add facts or pick a parent.
+10. Public docs explain the software. They do not describe careers,
+    interviews, or portfolios.
 
-Core modules must not need to know what Grailed, watchers, or
-acquisition_cost mean.
-
-## Architectural principle
-
-Structured operational truth uses structured retrieval.
-Unstructured evidence uses search/retrieval.
-Lexical retrieval / RAG is a context source, not the architecture.
-The Context Engine decides what combination is required.
-
-## Data environments
-
-| Environment | Purpose | Database (typical) |
-|-------------|---------|----------------------|
-| Private / real | Canonical operational state of the real business | `cdp_private` |
-| Public demo | Synthetic, scenario-rich, calibrated patterns | `cdp` |
-| Held-out eval | Independent fictional world, different seed | `cdp_heldout` |
-| Scale (optional) | Performance probing, not a production-scale claim | local only |
-
-Canonical means a normalized operational representation with known
-lineage, not “synthetic data we decided looks right.” The original raw
-source remains evidence. Do not silently overwrite contradictory inputs.
-
-Private raw input stays outside git (`/data/`, `.env`, `CDP_PRIVATE_SOURCE`).
-`make ingest-private` loads it. `make clean` must not destroy it.
-
-## Target flow
+## Target shape
 
 ```
-DATA STEWARD
-     proposes source contracts
-              |
-       human approval
-              |
-              v
-     deterministic ingest
-              |
-              v
-    CANONICAL BUSINESS STATE
-              |
-              v
-      BUSINESS LIBRARIAN
-              |
-   registered domain capabilities
-              |
-              v
-        Context Engine
-              |
-              v
-         ContextBundle
-              |
-     sufficiency / evidence
-              |
-              v
-             LLM
-              |
-              v
-     answer / proposal
-              |
-       human approval
-              |
-              v
-         safe action
+SEC daily index + submissions JSON     GLEIF lei2 / rr / repex
+        |                                      |
+        v                                      v
+   raw, hashed                            raw file, hashed
+        |                                      |
+        v                                      v
+   sec.filers / names / filings           lei.entities / names /
+                                          relationships / exceptions
+        |                                      |
+        +---------------- link ----------------+
+                         |
+              link.decisions: linked or refused
+                         |
+           /health  /filers/{cik}  /refusals
+                         |
+              cited answer, or abstain
 ```
 
-Two bounded AI roles sit on that path. They do not replace it:
+SEC pull: daily index, forms 10-K, 10-Q, and 8-K only, submissions JSON
+for those CIKs, no filing document. Declare a user agent. Stay under 10
+requests a second.
 
-- **Business Librarian** — maps operator questions to registered domain
-  capabilities, assembles required context, and produces evidence-grounded
-  answers when that context is sufficient. Optional action proposal.
-- **Data Steward** — profiles a source and proposes a `PROPOSED` contract.
-  Deterministic ingest remains canonical.
+GLEIF pull: `lei2`, `rr`, `repex` from the golden-copy latest CSV URLs,
+only if the hash changed. Do not put the zip in git or inside a row.
 
-See `docs/ai.md`.
+## Build order
 
-## Technology responsibility
+1. Postgres up. One filer, Apple, raw JSON visible, `lei` null visible.
+2. Daily index in. Filings table filled. Rerun is a no-op.
+3. Company file in. Entities load. Hash recorded.
+4. Five rules, with tests. One forced LEI link. One exact-name link.
+   One two-candidate refusal. Apple must not get a sloppy link.
+5. Health page and filer page.
+6. Ownership files, and the cited answer. Only then.
 
-Technologies must earn responsibilities. No collection-for-its-own-sake.
-
-| Layer | Current responsibility | Not justified unless |
-|-------|------------------------|----------------------|
-| PostgreSQL | Canonical structured operational state | — |
-| JSONL sample_data/ | Public synthetic seed / replay input | — |
-| Context Engine | Assemble typed ContextBundle | — |
-| FastAPI | Human/app HTTP adapter over shared services | — |
-| MCP | Agent adapter over the same services | write/approve tools |
-| React/TS | Operator workspace | full CRUD |
-| Redis | none | async eval/model jobs, bundle cache, rate limits |
-| DuckDB | removed from active architecture | large local Parquet / offline analytical bench |
-| Graph DB / Kafka / Spark / Airflow / K8s / dbt / Polars | not adopted | a concrete capability they uniquely unlock |
-
-## ContextBundle
-
-`assemble_context(question, as_of?) → ContextBundle`
-
-Must express: question, as_of, objects, relationships, facts, metrics,
-history, applicable_rules, retrieved_evidence, provenance,
-missing_context, sufficient.
-
-`sufficient` is testable against known required concepts. Do not invent
-confidence scores. When `sufficient` is false, qualify or abstain.
-
-The engine is not arbitrary LLM-SQL and not `vector_search(question)`.
-
-## Invariants (operational)
-
-- Idempotent ingest (content-hash skip + natural-key upsert).
-- Validation quarantine; rejects are never silent.
-- One transaction per ingest run; mid-run exceptions roll back upserts
-  and still write a durable `failed` audit row.
-- Event-sourced items; listing_events for as-of reconstruction; SCD-2
-  channels with half-open `[valid_from, valid_to)`.
-- Full margin is not claimed.
-- FACT / DERIVED / RECOMMENDATION / ACTION stay labeled.
-- FastAPI and MCP share domain services / `assemble_context`; no
-  duplicated domain logic.
-- AI may propose; humans approve. No autonomous marketplace mutation.
-- Public data is synthetic/sanitized. Private calibration stays local.
+Do not start with the UI, and do not start with a model.
 
 ## Verification
 
@@ -181,25 +102,11 @@ push, locate the GitHub Actions run for that HEAD, and require GREEN.
 Do not report CI success from local execution alone.
 
 GitHub Actions log redaction prints the disposable Postgres password
-as `***`. Never copy that masked form into YAML, Makefile, VS Code,
-compose files, or executable Python defaults. The local/CI password
-is the literal `cdp`.
-
-## Developer surface
-
-Makefile = developer lifecycle (`doctor`, `up`, `down`, `seed`,
-`reset-demo`, `seed-heldout`, `ingest-private`, `test`, `eval`,
-`eval-heldout`, `eval-compare`, `eval-answers`, `eval-plan`,
-`eval-librarian`, `frontend`, `demo`, `demo-cli`, `test-e2e`, `ai-doctor`,
-`ai-smoke`, `clean`, `migrate`).
-
-`cdp` = product behavior (`status`, `context`, `answer`, `eval`, `demo`,
-`item`, `action`, `ingest-private`, `mcp`, …).
-
-`make clean` must not destroy private/calibration data.
+as `***`. Never copy that masked form into YAML, Makefile, compose
+files, or executable Python defaults. The local/CI password is the
+literal `cdp`.
 
 ## Licensing
 
-The public GitHub copy currently carries an MIT license (copyright 2026
-Seb). Do not silently replace it with another OSI license or with invented
-legal terms.
+The public GitHub copy carries an MIT license (copyright 2026 Seb).
+Do not silently replace it.

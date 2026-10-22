@@ -1,5 +1,7 @@
 # AI runtime
 
+> Not the current product. This describes the previous resale workspace, still in the tree. The rebuild keeps the fail-closed rule (a model may not fill a hole) and drops the librarian loop. See the README.
+
 How models are called, what they may do, and where they stop.
 
 This is operator/maintainer documentation. The default provider is fake.

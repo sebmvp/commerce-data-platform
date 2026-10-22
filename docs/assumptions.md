@@ -1,5 +1,7 @@
 # Assumptions: synthetic data generation
 
+> Not the current product. This describes the previous synthetic resale world. See the README.
+
 Why the generated data looks the way it does. Each choice is a hypothesis;
 the numbers are illustrative, not claims.
 

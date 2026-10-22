@@ -1,141 +1,114 @@
 # Commerce Data Platform
 
-[![test](https://github.com/sebmvp/commerce-data-platform/actions/workflows/test.yml/badge.svg)](https://github.com/sebmvp/commerce-data-platform/actions/workflows/test.yml)
+A local link between last night's SEC filings and a GLEIF company record, or a written reason there isn't one.
 
-**Business question.** Can we trust this item's operational state enough to act on it?
+Postgres is the only database. Nothing is paid. The resale app is not part of this.
 
-**What it is.** Resale operations data into a PostgreSQL warehouse you can replay. Replay-safe ingest, quarantine, reconciliation, then a context engine that assembles only the evidence a question needs — or names what is missing.
+The new pipeline is not in the tree yet. The tree still has the previous resale workspace. The part worth keeping is the load, not the domain.
 
-**Who it is for.** An operator who needs canonical state, not a chatbot over files.
+## What stays
 
-**Result.** Operator workspace (`make demo` → http://127.0.0.1:5173) plus evals against a lexical baseline. Default model provider is fake/extractive; insufficient context abstains.
+The ingest runner already does the part that has to be trustworthy:
 
-**Recommendation.** Do not let an LLM see the warehouse until required context is sufficient.
+- a file hash, and a rerun that does nothing when the hash matches
+- one transaction per run
+- rejects quarantined with a reason, never dropped
+- `read = loaded + rejected`, or the health check is red
+- a failed run rolls back the upserts and still leaves an audit row
+- a model is not allowed to fill a hole in the record
 
-**Run.**
+That lives in `src/cdp_cli/ingest/` and `src/cdp_cli/observability.py`, against `core.ingest_runs`, `core.rejected_records`, and `core.record_lineage`. The new producers write through that. They do not get a second loader.
 
-```bash
-python -m venv .venv && source .venv/bin/activate && pip install -e ".[dev,api,mcp]" && make doctor && make up && make seed && make demo
-```
+## What does not stay
 
-Business questions depend on exact operational state and relationships,
-not merely semantically similar documents.
+Items, listings, channels, the Business Librarian as the product, the context bundle as the thesis, MCP, sandbox actions, and the synthetic demo world. The link rules are new. A model is not in the path that decides a link.
 
-This project models that business context explicitly and assembles only
-the evidence required for a question. When required context is missing,
-it says so.
+## What done looks like
 
-The **resale domain is the first implementation**. Context contracts and
-interface layers are kept separate from domain-specific resolvers,
-metrics, and rules so additional operational domains can reuse the same
-context machinery. The repository does not currently implement other
-businesses. Public data is synthetic; private records stay local.
+One command pulls the SEC daily index, fetches the new filer records, and loads the latest company file if the hash changed. A second command applies the link rules. A page then shows three things.
 
-![Command Center — attention queue, pulse, recent changes](docs/screenshots/command-center.png)
+**Health.** Last index date, last company-file hash, rows read, rows quarantined, links by evidence type, refusals by reason. If the company-file hash does not match the file on disk, the page is red and the links are not to be trusted. The current trust check already knows `read = loaded + rejected`. It does not yet know SEC or GLEIF.
 
-The operator workspace is built around decisions first: attention queue,
-pulse metrics, and recent changes. Inventory is an object explorer. The
-Business Librarian assembles required context and answers only when the
-evidence is sufficient.
+**A filer.** CIK, name, former names, ticker, the `lei` field as the SEC published it, and either a company record or a refusal. Apple is the honesty check. On 2026-10-22 the submissions record for CIK `0000320193` was Apple Inc., with former names, and `lei` null. The page must not invent a link.
 
-## How it works
+**An answer, only after that.** Who is this filer, and who owns them. It cites the accession and the company record, or it abstains. A template is enough. A model may not add facts. The old grounding code already refuses to override an insufficient bundle. That rule stays. The librarian loop does not.
+
+## Shape
 
 ```
-DATA STEWARD  →  proposed source contract  →  human approval
-        → deterministic ingest → PostgreSQL canonical store
-        → domain services
-        → BUSINESS LIBRARIAN (registered capabilities)
-        → Context Engine → ContextBundle
-        → sufficiency / evidence → LLM (interpret / explain / propose)
-        → human-approved sandbox action
+last night's SEC index          company file (daily is enough)
+        |                              |
+        v                              v
+   raw payloads, hashed          raw file, hashed
+        |                              |
+        v                              v
+   filers, names, filings        entities, names, ownership
+        |                              |
+        +------------ link ------------+
+                     |
+         linked, with a reason
+         or refused, with a reason
+                     |
+            health page + one filer page
+                     |
+            cited answer, or abstain
 ```
 
-The Business Librarian does not receive the entire database in a prompt.
-It calls registered read tools. RAG / lexical retrieval is a possible
-context *source*, not the architecture. The evaluation comparison is a
-**lexical retrieval baseline** (TF-IDF, no generation). Redis is not
-used: nothing here is an async job queue yet.
+The link step is the product. The pulls are plumbing. The model is not in the path that decides a link.
 
-The Data Steward profiles a new source and proposes a data contract for
-human review. Deterministic adapters remain responsible for canonical
-ingestion.
+Four layers. Each one can fail without corrupting the one below it.
 
-## Run
+**Pull.** Two producers. Neither writes canonical rows. SEC: daily index, 10-K / 10-Q / 8-K only, submissions JSON for those CIKs, no filing document. Declare a user agent. Stay under 10 requests a second. GLEIF: `lei2`, `rr`, and `repex` from the golden-copy latest CSV URLs, and only if the hash changed.
+
+**Raw.** Immutable. A rerun with the same hash does nothing. `core.ingest_runs` already records source, status, rows read, loaded, rejected, and the file hash. Raw SEC JSON and the GLEIF file path-plus-hash are new tables. The zip does not go in git, and it does not go inside a row.
+
+**Canonical.** Parsed, typed, replaceable from raw. `sec.filers`, `sec.filer_names`, `sec.filings`, `lei.entities`, `lei.names`, `lei.relationships`, `lei.exceptions`. Column names for registration-authority fields get locked after reading the file header, not before.
+
+**Link.** Deterministic. One row per CIK. `linked` or `refused`. Re-running replaces the decision. It does not stack duplicates.
+
+Rules, in order, stop at the first that fires:
+
+1. The SEC `lei` field is present, valid, and exists in the company file. Evidence: `printed_on_record`.
+2. The company record names EDGAR as the registration authority and the registered id is this CIK. Confirm that column in the file before depending on it. Evidence: `registration_authority`.
+3. Normalized legal name matches exactly one issued entity. Evidence: `exact_name`.
+4. A former name matches exactly one issued entity. Evidence: `former_name`.
+5. Anything else is a refusal. Evidence: `refused`, with the reason.
+
+Ticker never creates a link by itself. Normalization is case, punctuation, and a short list of suffixes, written down and tested. No similarity score.
+
+## Pages
+
+Three routes. Not built yet.
+
+`/health` is the pipeline. `/filers/{cik}` is the object: SEC identity, company record, decision in the middle. Refusals are first-class. `/refusals` is the work list.
+
+The answer sits on the filer page. If the decision is `linked` and a relationship or an exception exists, say who owns them and cite those rows. If the decision is `refused`, abstain. If the parent was not reported, say the exception. Do not let a model pick a parent.
+
+## Out of v1
+
+Sanctions, a chatbot, filing PDFs, a fuzzy matcher, every filer since 1994, a hosted demo, and the resale workspace.
+
+A laptop is the production environment.
+
+## Build order
+
+1. Postgres up. One filer, Apple, raw JSON visible, `lei` null visible. No company file yet.
+2. Daily index in, limited to those three forms, submissions fetched, filings table filled. Rerun is a no-op.
+3. Company file in. Entities load. Hash recorded.
+4. The five rules, with tests. One forced link from a record that actually has an LEI. One exact-name link. One refusal with two candidates. Apple must not get a sloppy link.
+5. Health page and filer page.
+6. Ownership files, and the cited answer. Only then.
+
+The first thing a stranger should understand is the refusal, not the stack.
+
+## What you can run today
+
+The commands below still start the previous resale workspace. That is not the product.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev,api,mcp]"
-make doctor
-make up          # docker compose postgres, or a local Postgres on :5432
-make seed
-make test
-make eval        # GOLD / DEVELOPMENT — total / pass / fail / skip
-make demo        # http://127.0.0.1:5173  operator workspace
-make reset-demo  # rebuild demo world (clears sandbox actions)
+make doctor && make up && make seed && make demo
 ```
 
-`make demo` starts the API and operator workspace. `cdp demo` is the CLI/system
-behavior story (isolated database). `Makefile` is the developer lifecycle;
-`cdp` is product behavior (`status`, `context`, `answer`, `eval`, `demo`,
-`business item <sku>`, `action`, `mcp`).
-
-## Evaluation
-
-Gold questions score `assemble_context`, not an LLM. Cases include
-current facts, as-of listing state, channel comparison, listing
-performance, missing context, and hybrid structured + note questions.
-
-A separate **held-out** world (`make seed-heldout` / `make eval-heldout`)
-runs the same intents against different items and dates. That is
-held-out scenario validation, not a generalization claim.
-
-`cdp eval --compare` (or `GET /eval/compare`) runs the same ids against
-a lexical TF-IDF baseline over serialized warehouse rows. Hybrid note
-questions are expected to tie; multi-hop and missing-context disclosure
-are not.
-
-`cdp eval --answers` (or `GET /eval/answers`) scores the grounded
-copilot contract on those same ids. `cdp eval --plan` scores capability
-mapping. `cdp eval --librarian` scores the registered-tool Librarian
-loop. Those layers are reported separately. They are not an LLM-as-judge
-and not a combined accuracy number.
-
-`cdp answer` runs the Business Librarian over registered read tools, then
-grounds the answer on the exact ContextBundle used. The default
-provider is fake and extractive. A real model is used only when
-`CDP_MODEL_PROVIDER=openai_compatible`. Local endpoints do not need a
-key. Insufficient bundles abstain. See [docs/ai.md](docs/ai.md).
-
-Relative phrases such as "two weeks ago" resolve against the world clock
-in `sample_data/world.json`, so next month's run matches this one.
-`CDP_AS_OF=now` uses the wall clock.
-
-## Boundaries
-
-- Public data is synthetic. A few dimensions copy rounded private
-  operational *patterns* (size, state mix, cost missingness, owned vs
-  listed). Dual-channel, engagement paths, and notes/policies are
-  illustrative. Private rows are never committed.
-- This is not a scale claim and not live marketplace integration.
-- Grounded answers use the ContextBundle. Default provider is fake; no keys in the repo.
-  Fake output is extractive, not model reasoning. See [docs/ai.md](docs/ai.md).
-- The published LICENSE is MIT (already on GitHub). That is not an
-  invitation to treat private business data as public.
-
-## Reference
-
-| Layer | Path |
-|-------|------|
-| Charter | [AGENTS.md](AGENTS.md) |
-| Schema | `schema/001_init.sql` + Alembic |
-| Demo world | `sample_data/` + `synthetic/resale/` |
-| Held-out world | `sample_data_heldout/` + `synthetic/resale/` |
-| Context engine | `src/cdp_cli/core/` + `src/cdp_cli/domains/resale/` |
-| Gold eval | `evals/context_questions.py` |
-| Held-out eval | `evals/heldout_questions.py` |
-| Lexical baseline | `evals/lexical_baseline.py` |
-| Answer eval | `evals/answer_eval.py` |
-| Plan / librarian eval | `evals/plan_eval.py`, `evals/librarian_eval.py` |
-| AI runtime | [docs/ai.md](docs/ai.md) |
-| Operator UI | `web/` |
-| Detail | [ARCHITECTURE.md](ARCHITECTURE.md) · [DEVELOPER.md](DEVELOPER.md) · [docs/DEMO.md](docs/DEMO.md) |
+LICENSE is MIT.

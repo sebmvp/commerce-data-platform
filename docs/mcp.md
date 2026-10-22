@@ -1,5 +1,7 @@
 # MCP (agent adapter)
 
+> Not the current product. MCP is not part of the rebuild. This describes the previous resale workspace. See the README.
+
 Read-only tools over the same Python functions as CLI and FastAPI. No second query path. No approve/execute.
 
 ```bash

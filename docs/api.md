@@ -1,5 +1,7 @@
 # FastAPI read layer
 
+> Not the current product. This describes the previous resale workspace, still in the tree. See the README.
+
 ```bash
 pip install -e ".[api]"
 cdp serve

@@ -1,6 +1,8 @@
 # Demo
 
-The public demo is the operator workspace: Overview → object → Librarian → sandbox action.
+> Not the current product. This describes the previous resale workspace, still in the tree. The rebuild keeps the ingest runner and the trust check, and replaces this domain. See the README.
+
+The public demo is the operator workspace: Command Center → object → Librarian → sandbox action.
 
 ```bash
 pip install -e ".[dev,api]"
@@ -18,8 +20,8 @@ environment badge should read **DEMO · SYNTHETIC**.
 
 ## Product story (visual)
 
-1. **Overview** — owned / listed / sold, capital, and the attention queue. Names first, SKUs second.
-2. **Attention item** — click a row. The why line is the reason it is on the queue.
+1. **Command Center** — a few items that need a decision, then pulse counts and recent snapshot diffs. Names first, SKUs second.
+2. **Attention item** — click a row. Inventory stays; the object panel opens.
 3. **Object view** — identity, listings, engagement, orders, timeline, sandbox action.
 4. **Ask Librarian** — “Should I review the price of this listing?” from the object, or type it on Librarian.
 5. **Interpreted plan** — registered capability + subject. Not SQL.

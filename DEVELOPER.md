@@ -1,5 +1,7 @@
 # Developer notes
 
+> Not the current product. This describes the previous resale workspace, still in the tree. The rebuild keeps the ingest runner and the trust check, and replaces this domain. See the README.
+
 Design decisions worth knowing before extending this.
 
 Makefile is the developer lifecycle. `cdp` is product behavior.
